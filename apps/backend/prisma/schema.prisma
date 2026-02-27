@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  nickname      String    @unique
+  password      String    // Add password for auth
+  avatar        String?
+  status        String    @default("OFFLINE") // OFFLINE, ONLINE, PLAYING
+  coinBalance   Float     @default(0)
+  createdAt     DateTime  @default(now())
+  lastLoginAt   DateTime?
+  
+  wallet        Wallet?
+  handsWon      Hand[]
+  actions       HandAction[]
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  balance       Float    @default(0)
+  frozenBalance Float    @default(0)
+  user          User     @relation(fields: [userId], references: [id])
+  
+  @@map("wallets")
+}
+
+model Room {
+  id          String   @id @default(uuid())
+  name        String
+  blindSmall  Float
+  blindBig    Float
+  maxPlayers  Int
+  status      String   @default("ACTIVE") // ACTIVE, MAINTENANCE
+  createdAt   DateTime @default(now())
+  
+  tables      Table[]
+
+  @@map("rooms")
+}
+
+model Table {
+  id             String   @id @default(uuid())
+  roomId         String
+  state          String   @default("WAITING") // WAITING, DEALING, PREFLOP, FLOP, TURN, RIVER, SHOWDOWN
+  room           Room     @relation(fields: [roomId], references: [id])
+  
+  hands          Hand[]
+
+  @@map("tables")
+}
+
+model Hand {
+  id        String   @id @default(uuid())
+  tableId   String
+  winnerId  String?
+  potSize   Float    @default(0)
+  createdAt DateTime @default(now())
+  
+  table     Table    @relation(fields: [tableId], references: [id])
+  winner    User?    @relation(fields: [winnerId], references: [id])
+  actions   HandAction[]
+  settlements Settlement[]
+
+  @@map("hands")
+}
+
+model HandAction {
+  id        String   @id @default(uuid())
+  handId    String
+  userId    String
+  action    String   // FOLD, CHECK, CALL, RAISE, ALLIN
+  amount    Float    @default(0)
+  createdAt DateTime @default(now())
+
+  hand      Hand     @relation(fields: [handId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("hand_actions")
+}
+
+model Settlement {
+  id        String   @id @default(uuid())
+  handId    String
+  userId    String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  hand      Hand     @relation(fields: [handId], references: [id])
+
+  @@map("settlements")
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  type      String   // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}

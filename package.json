@@ -1,0 +1,28 @@
+{
+  "name": "texas-project-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "turbo": "latest"
+  },
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependencies": {
+    "axios": "^1.13.5",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
+    "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.5.0"
+  }
+}
