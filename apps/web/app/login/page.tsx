@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { username, password });
       localStorage.setItem('token', data.access_token);
-      router.push('/');
+      router.push('/rooms');
     } catch (error) {
       alert('Login failed');
     }

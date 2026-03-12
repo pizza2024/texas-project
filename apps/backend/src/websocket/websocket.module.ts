@@ -13,5 +13,6 @@ import { JwtModule } from '@nestjs/jwt';
     }),
   ],
   providers: [AppGateway],
+  exports: [AppGateway],
 })
 export class WebsocketModule {}

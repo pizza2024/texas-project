@@ -17,5 +17,8 @@ export interface Player {
   cards: string[]; // e.g., ['Ah', 'Kd']
   position: number; // Seat index 0-8
   isButton: boolean;
+  isSmallBlind: boolean;
+  isBigBlind: boolean;
   hasActed: boolean;
+  ready: boolean; // Whether player is ready to start the game
 }
