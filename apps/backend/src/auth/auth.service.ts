@@ -7,12 +7,16 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class AuthService {
+  private static readonly STARTING_BALANCE = 10000;
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private walletService: WalletService,
   ) {}
 
   async validateUser(
@@ -35,7 +39,7 @@ export class AuthService {
     const payload = { username: user.nickname, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
-      user: this.toAuthUser(user),
+      user: await this.toAuthUser(user),
     };
   }
 
@@ -43,10 +47,11 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     const user = await this.userService.createUser({
       nickname: registerDto.nickname,
+      coinBalance: AuthService.STARTING_BALANCE,
       password: hashedPassword,
       wallet: {
         create: {
-          balance: 10000, // Starting balance
+          balance: AuthService.STARTING_BALANCE,
         },
       },
     });
@@ -62,17 +67,19 @@ export class AuthService {
     return this.toAuthUser(user);
   }
 
-  private toAuthUser(user: {
+  private async toAuthUser(user: {
     id: string;
     nickname: string;
     avatar: string | null;
     coinBalance: number;
-  }): AuthUserDto {
+  }): Promise<AuthUserDto> {
+    const balance = await this.walletService.getBalance(user.id);
+
     return {
       id: user.id,
       nickname: user.nickname,
       avatar: user.avatar,
-      coinBalance: user.coinBalance,
+      coinBalance: balance,
     };
   }
 }

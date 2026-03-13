@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#0d2818"/>
+      <stop offset="100%" stop-color="#020406"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="50%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Border -->
+  <rect width="64" height="64" rx="14" fill="none" stroke="url(#gold)" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Spade shape -->
+  <!-- Main bulb (top) -->
+  <path d="M32 10
+    C32 10, 14 22, 14 34
+    C14 41, 19 45, 25 44
+    C22 48, 19 51, 16 53
+    L48 53
+    C45 51, 42 48, 39 44
+    C45 45, 50 41, 50 34
+    C50 22, 32 10, 32 10Z"
+    fill="url(#gold)"/>
+</svg>

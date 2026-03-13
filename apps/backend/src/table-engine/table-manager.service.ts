@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Table } from './table';
+import { Table, TableSnapshot } from './table';
 import { RoomService } from '../room/room.service';
-import { ROOM_DISSOLVED_EVENT, roomEvents } from '../websocket/room-events';
+import {
+  ROOM_DISSOLVED_EVENT,
+  ROOM_STATUS_UPDATED_EVENT,
+  roomEvents,
+} from '../websocket/room-events';
+import { WalletService } from '../wallet/wallet.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TableManagerService {
@@ -10,17 +16,28 @@ export class TableManagerService {
   // multiple Table instances being created for the same room.
   private pendingGetTable: Map<string, Promise<Table | undefined>> = new Map();
 
-  constructor(private roomService: RoomService) {}
+  constructor(
+    private roomService: RoomService,
+    private walletService: WalletService,
+    private prisma: PrismaService,
+  ) {}
 
   async getTable(roomId: string): Promise<Table | undefined> {
     if (this.tables.has(roomId)) {
       return this.tables.get(roomId);
     }
     if (!this.pendingGetTable.has(roomId)) {
-      const promise = this.roomService.findOne(roomId).then((room) => {
+      const promise = this.roomService.findOne(roomId).then(async (room) => {
         this.pendingGetTable.delete(roomId);
         if (room && !this.tables.has(roomId)) {
-          const table = new Table(room.id, room.id, room.maxPlayers, room.blindSmall, room.blindBig);
+          const persistedTable = await this.prisma.table.findUnique({
+            where: { id: roomId },
+            select: { stateSnapshot: true },
+          });
+          const snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
+          const table = snapshot
+            ? Table.fromSnapshot(snapshot, room.maxPlayers, room.blindSmall, room.blindBig)
+            : new Table(room.id, room.id, room.maxPlayers, room.blindSmall, room.blindBig);
           this.tables.set(roomId, table);
         }
         return this.tables.get(roomId);
@@ -30,16 +47,86 @@ export class TableManagerService {
     return this.pendingGetTable.get(roomId);
   }
 
+  async getUserBalance(userId: string): Promise<number> {
+    return this.walletService.getBalance(userId);
+  }
+
+  private parseSnapshot(snapshot: string | null | undefined): TableSnapshot | null {
+    if (!snapshot) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(snapshot) as TableSnapshot;
+    } catch {
+      return null;
+    }
+  }
+
+  async persistTableState(roomId: string): Promise<void> {
+    const table = this.tables.get(roomId);
+    if (!table) {
+      return;
+    }
+
+    await this.prisma.table.upsert({
+      where: { id: roomId },
+      update: {
+        state: table.currentStage,
+        stateSnapshot: JSON.stringify(table.toSnapshot()),
+        snapshotUpdatedAt: new Date(),
+      },
+      create: {
+        id: roomId,
+        roomId,
+        state: table.currentStage,
+        stateSnapshot: JSON.stringify(table.toSnapshot()),
+        snapshotUpdatedAt: new Date(),
+      },
+    });
+  }
+
+  async clearTableState(roomId: string): Promise<void> {
+    await this.prisma.table.deleteMany({
+      where: { id: roomId },
+    });
+  }
+
+  async persistTableBalances(roomId: string): Promise<void> {
+    const table = this.tables.get(roomId);
+    if (!table) {
+      return;
+    }
+
+    await this.walletService.setBalances(table.getPersistentBalances());
+  }
+
   getTables(): Table[] {
     return Array.from(this.tables.values());
   }
 
-  getUserCurrentRoomId(userId: string): string | null {
+  async getUserCurrentRoomId(userId: string): Promise<string | null> {
     for (const [roomId, table] of this.tables.entries()) {
       if (table.hasPlayer(userId)) {
         return roomId;
       }
     }
+
+    const persistedTables = await this.prisma.table.findMany({
+      where: { stateSnapshot: { not: null } },
+      select: {
+        id: true,
+        stateSnapshot: true,
+      },
+    });
+
+    for (const persistedTable of persistedTables) {
+      const snapshot = this.parseSnapshot(persistedTable.stateSnapshot);
+      if (snapshot?.players.some((player) => player?.id === userId)) {
+        return persistedTable.id;
+      }
+    }
+
     return null;
   }
 
@@ -47,24 +134,30 @@ export class TableManagerService {
     roomId: string;
     dissolved: boolean;
   } | null> {
-    const roomId = this.getUserCurrentRoomId(userId);
+    const roomId = await this.getUserCurrentRoomId(userId);
     if (!roomId) {
       return null;
     }
 
-    const table = this.tables.get(roomId);
+    const table = await this.getTable(roomId);
     if (!table) {
       return null;
     }
 
-    table.removePlayer(userId);
+    const removedPlayer = table.removePlayer(userId);
+    if (removedPlayer) {
+      await this.walletService.setBalance(removedPlayer.id, removedPlayer.stack);
+    }
 
     const hasNoPlayers = table.getPlayerCount() === 0;
     if (!hasNoPlayers) {
+      await this.persistTableState(roomId);
+      await this.broadcastRoomStatus(roomId);
       return { roomId, dissolved: false };
     }
 
     this.tables.delete(roomId);
+    await this.clearTableState(roomId);
 
     try {
       await this.roomService.deleteRoom(roomId);
@@ -86,7 +179,7 @@ export class TableManagerService {
       return null;
     }
 
-    const table = this.tables.get(roomId);
+    const table = await this.getTable(roomId);
     const currentPlayers = table ? table.getPlayerCount() : 0;
     const maxPlayers = room.maxPlayers;
 
@@ -96,5 +189,14 @@ export class TableManagerService {
       maxPlayers,
       isFull: currentPlayers >= maxPlayers,
     };
+  }
+
+  async broadcastRoomStatus(roomId: string): Promise<void> {
+    const status = await this.getRoomStatus(roomId);
+    if (!status) {
+      return;
+    }
+
+    roomEvents.emit(ROOM_STATUS_UPDATED_EVENT, status);
   }
 }

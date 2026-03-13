@@ -56,6 +56,8 @@ model Table {
   id             String   @id @default(uuid())
   roomId         String
   state          String   @default("WAITING") // WAITING, DEALING, PREFLOP, FLOP, TURN, RIVER, SHOWDOWN
+  stateSnapshot  String?
+  snapshotUpdatedAt DateTime?
   room           Room     @relation(fields: [roomId], references: [id])
   
   hands          Hand[]

@@ -5,10 +5,12 @@ import { UserModule } from '../user/user.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
     UserModule,
+    WalletModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret',
