@@ -309,8 +309,10 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatusMap, setRoomStatusMap] = useState<Record<string, RoomStatus>>({});
   const [currentBalance, setCurrentBalance] = useState<number>(0);
+  const [nickname, setNickname] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState<{ roomId: string; roomName: string } | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -344,6 +346,7 @@ export default function RoomsPage() {
             ? profileRes.data.coinBalance
             : 0,
         );
+        setNickname(typeof profileRes.data?.nickname === 'string' ? profileRes.data.nickname : '');
 
         const statusEntries = await Promise.all(
           roomList.map(async (room) => {
@@ -604,19 +607,8 @@ export default function RoomsPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-colors hover:bg-yellow-900/20"
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(234,179,8,0.3)',
-                color: 'rgba(245,158,11,0.7)',
-              }}
-              onClick={() => router.push('/settings')}
-            >
-              {t('common.settings')}
-            </Button>
+          <div className="flex items-center gap-3">
+            {/* Create Table button */}
             <Button
               onClick={() => setShowCreateDialog(true)}
               className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
@@ -629,21 +621,84 @@ export default function RoomsPage() {
             >
               {t('lobby.createTable')}
             </Button>
-            <Button
-              variant="outline"
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-colors hover:bg-yellow-900/20"
+
+          {/* Avatar + click dropdown */}
+          <div className="relative">
+            {/* Click-outside overlay */}
+            {showDropdown && (
+              <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
+            )}
+            {/* Avatar circle */}
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer select-none font-black text-base uppercase tracking-wider transition-all duration-200"
+              onClick={() => setShowDropdown((v) => !v)}
               style={{
-                background: 'transparent',
-                border: '1px solid rgba(234,179,8,0.3)',
-                color: 'rgba(245,158,11,0.7)',
-              }}
-              onClick={() => {
-                localStorage.removeItem('token');
-                router.push('/login');
+                background: 'linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
+                color: '#000',
+                boxShadow: showDropdown
+                  ? '0 0 22px rgba(245,158,11,0.45), 0 4px 14px rgba(0,0,0,0.45)'
+                  : '0 0 10px rgba(245,158,11,0.2), 0 2px 8px rgba(0,0,0,0.4)',
+                border: '2px solid rgba(245,158,11,0.35)',
+                transform: showDropdown ? 'scale(1.06)' : 'scale(1)',
               }}
             >
-              {t('common.logout')}
-            </Button>
+              {nickname ? nickname.charAt(0).toUpperCase() : '?'}
+            </div>
+
+            {/* Dropdown */}
+            {showDropdown && (
+              <div
+                className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-50"
+                style={{
+                  background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
+                  border: '1px solid rgba(234,179,8,0.22)',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.65), 0 0 20px rgba(234,179,8,0.06)',
+                }}
+              >
+                {/* User info row */}
+                <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(234,179,8,0.1)' }}>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-black text-xs uppercase"
+                      style={{
+                        background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)',
+                        color: '#000',
+                      }}
+                    >
+                      {nickname ? nickname.charAt(0).toUpperCase() : '?'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-black text-sm truncate">{nickname || '—'}</p>
+                      <p className="text-[10px] font-bold tracking-wide" style={{ color: 'rgba(245,158,11,0.6)' }}>
+                        ${currentBalance.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu items */}
+                <div className="py-1">
+                  <button
+                    className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
+                    style={{ color: 'rgba(245,158,11,0.85)' }}
+                    onClick={() => { setShowDropdown(false); router.push('/settings'); }}
+                  >
+                    <span>⚙️</span>
+                    {t('common.settings')}
+                  </button>
+                  <div className="h-px mx-4 my-1" style={{ background: 'rgba(234,179,8,0.1)' }} />
+                  <button
+                    className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-red-900/20"
+                    style={{ color: 'rgba(248,113,113,0.75)' }}
+                    onClick={() => { setShowDropdown(false); localStorage.removeItem('token'); router.push('/login'); }}
+                  >
+                    <span>🚪</span>
+                    {t('common.logout')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           </div>
         </header>
 
