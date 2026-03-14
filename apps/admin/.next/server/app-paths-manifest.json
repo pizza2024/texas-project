@@ -1,0 +1,13 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/finance/page": "app/finance/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/rooms/[id]/page": "app/rooms/[id]/page.js",
+  "/rooms/page": "app/rooms/page.js",
+  "/users/[id]/page": "app/users/[id]/page.js",
+  "/users/page": "app/users/page.js"
+}

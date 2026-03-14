@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import { disconnectSocket, getSocket } from '@/lib/socket';
 import { showSystemMessage } from '@/lib/system-message';
+import { UserAvatar } from '@/components/user-avatar';
 
 /* ---------- 创建房间弹窗 ---------- */
 interface CreateRoomForm {
@@ -310,6 +311,8 @@ export default function RoomsPage() {
   const [roomStatusMap, setRoomStatusMap] = useState<Record<string, RoomStatus>>({});
   const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [nickname, setNickname] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -347,6 +350,8 @@ export default function RoomsPage() {
             : 0,
         );
         setNickname(typeof profileRes.data?.nickname === 'string' ? profileRes.data.nickname : '');
+        setUserId(typeof profileRes.data?.id === 'string' ? profileRes.data.id : '');
+        setUserAvatar(typeof profileRes.data?.avatar === 'string' ? profileRes.data.avatar : null);
 
         const statusEntries = await Promise.all(
           roomList.map(async (room) => {
@@ -630,25 +635,29 @@ export default function RoomsPage() {
             )}
             {/* Avatar circle */}
             <div
-              className="w-11 h-11 rounded-full flex items-center justify-center cursor-pointer select-none font-black text-base uppercase tracking-wider transition-all duration-200"
+              className="cursor-pointer transition-all duration-200"
               onClick={() => setShowDropdown((v) => !v)}
               style={{
-                background: 'linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
-                color: '#000',
                 boxShadow: showDropdown
                   ? '0 0 22px rgba(245,158,11,0.45), 0 4px 14px rgba(0,0,0,0.45)'
                   : '0 0 10px rgba(245,158,11,0.2), 0 2px 8px rgba(0,0,0,0.4)',
+                borderRadius: '50%',
                 border: '2px solid rgba(245,158,11,0.35)',
                 transform: showDropdown ? 'scale(1.06)' : 'scale(1)',
               }}
             >
-              {nickname ? nickname.charAt(0).toUpperCase() : '?'}
+              <UserAvatar
+                userId={userId}
+                avatar={userAvatar}
+                size={40}
+                style={{ background: 'linear-gradient(135deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)' }}
+              />
             </div>
 
             {/* Dropdown */}
             {showDropdown && (
               <div
-                className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-50"
+                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-50"
                 style={{
                   background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
                   border: '1px solid rgba(234,179,8,0.22)',
@@ -658,15 +667,15 @@ export default function RoomsPage() {
                 {/* User info row */}
                 <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(234,179,8,0.1)' }}>
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-black text-xs uppercase"
+                    <UserAvatar
+                      userId={userId}
+                      avatar={userAvatar}
+                      size={32}
                       style={{
-                        background: 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)',
-                        color: '#000',
+                        background: 'linear-gradient(135deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)',
+                        border: '1px solid rgba(245,158,11,0.35)',
                       }}
-                    >
-                      {nickname ? nickname.charAt(0).toUpperCase() : '?'}
-                    </div>
+                    />
                     <div className="min-w-0">
                       <p className="text-white font-black text-sm truncate">{nickname || '—'}</p>
                       <p className="text-[10px] font-bold tracking-wide" style={{ color: 'rgba(245,158,11,0.6)' }}>

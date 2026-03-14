@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
@@ -15,6 +15,8 @@ import { useSoundSettings } from '@/lib/use-sound-settings';
 import { useTranslation } from 'react-i18next';
 import i18n, { SUPPORTED_LOCALES, saveLocale, type LocaleCode } from '@/lib/i18n';
 import '@/lib/i18n';
+import { UserAvatar } from '@/components/user-avatar';
+import { AvatarCropDialog } from '@/components/avatar-crop-dialog';
 
 interface UserProfile {
   id: string;
@@ -22,6 +24,8 @@ interface UserProfile {
   avatar: string | null;
   coinBalance: number;
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 const pageBg: React.CSSProperties = {
   background: 'radial-gradient(ellipse at 50% 20%, #0d2818 0%, #060e10 55%, #020406 100%)',
@@ -34,6 +38,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [currentLocale, setCurrentLocale] = useState<LocaleCode>('zh-CN');
   const { soundSettings, toggleSoundSetting, handleVolumeChange } = useSoundSettings();
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCurrentLocale((i18n.language ?? 'zh-CN') as LocaleCode);
@@ -100,6 +108,52 @@ export default function SettingsPage() {
     void i18n.changeLanguage(code);
   };
 
+  // Step 1: file selected → open crop dialog
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+    const objectUrl = URL.createObjectURL(file);
+    setCropSrc(objectUrl);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Step 2: crop confirmed → upload cropped + compressed blob
+  const handleCropConfirm = async (blob: Blob) => {
+    setCropSrc(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, 'avatar.jpg');
+      const { data } = await api.post('/user/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setProfile(prev => prev ? { ...prev, avatar: data.avatarUrl } : prev);
+    } catch {
+      setAvatarError(t('settings.avatarUploadError'));
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropSrc(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+  };
+
+  const handleAvatarDelete = async () => {
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      await api.delete('/user/avatar');
+      setProfile(prev => prev ? { ...prev, avatar: null } : prev);
+    } catch {
+      setAvatarError(t('settings.avatarDeleteError'));
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={pageBg}>
@@ -118,6 +172,21 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen relative overflow-x-hidden text-white" style={pageBg}>
+      {/* Crop dialog */}
+      {cropSrc && (
+        <AvatarCropDialog
+          imageSrc={cropSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+          labels={{
+            title: t('settings.avatarCropTitle'),
+            zoom: t('settings.avatarCropZoom'),
+            confirm: t('settings.avatarCropConfirm'),
+            cancel: t('common.cancel'),
+            processing: t('settings.avatarCropProcessing'),
+          }}
+        />
+      )}
       <div className="fixed inset-0 pointer-events-none select-none overflow-hidden">
         <span className="absolute top-8 left-8 text-[9rem] font-serif opacity-[0.03] text-yellow-400 -rotate-12">♠</span>
         <span className="absolute bottom-10 right-8 text-[9rem] font-serif opacity-[0.03] text-yellow-400 rotate-6">♣</span>
@@ -181,6 +250,52 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Avatar editor */}
+            <div className="flex items-center gap-5">
+              <div className="relative flex-shrink-0">
+                <UserAvatar
+                  userId={profile?.id ?? ''}
+                  avatar={profile?.avatar}
+                  size={80}
+                  style={{ border: '2px solid rgba(234,179,8,0.35)', background: 'linear-gradient(160deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)' }}
+                />
+                {avatarUploading && (
+                  <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                <button
+                  type="button"
+                  disabled={avatarUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 h-9 rounded-xl text-xs font-black tracking-[0.1em] uppercase transition-all disabled:opacity-50"
+                  style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.45)', color: '#fcd34d' }}
+                >
+                  {t('settings.uploadAvatar')}
+                </button>
+                {profile?.avatar && (
+                  <button
+                    type="button"
+                    disabled={avatarUploading}
+                    onClick={handleAvatarDelete}
+                    className="px-4 h-9 rounded-xl text-xs font-black tracking-[0.1em] uppercase transition-all disabled:opacity-50"
+                    style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: 'rgba(252,165,165,0.9)' }}
+                  >
+                    {t('settings.removeAvatar')}
+                  </button>
+                )}
+                <div className="text-[10px]" style={{ color: 'rgba(156,163,175,0.7)' }}>
+                  {t('settings.avatarHint')}
+                </div>
+                {avatarError && (
+                  <div className="text-[11px] font-semibold" style={{ color: '#fca5a5' }}>{avatarError}</div>
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: 'rgba(245,158,11,0.5)' }}>
@@ -222,7 +337,6 @@ export default function SettingsPage() {
               <div className="flex flex-wrap gap-2">
                 {([
                   t('settings.changePassword'),
-                  t('settings.setAvatar'),
                   t('settings.personalProfile'),
                   t('settings.morePrefs'),
                 ] as string[]).map((label) => (

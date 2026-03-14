@@ -13,6 +13,7 @@ import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import { JwtService } from '@nestjs/jwt';
+import { UserService } from '../user/user.service';
 import { GameStage } from '../table-engine/table';
 import {
   ROOM_CREATED_EVENT,
@@ -52,6 +53,7 @@ export class AppGateway
   constructor(
     private tableManager: TableManagerService,
     private jwtService: JwtService,
+    private userService: UserService,
   ) {}
 
   private handleRoomCreated = (room: RoomCreatedPayload) => {
@@ -462,8 +464,12 @@ export class AppGateway
     }
 
     // Avoid duplicate seat in same room; reject if room is full
+    // Fetch latest avatar from DB so it's always up-to-date
+    const avatar = await this.userService.getUserAvatar(userId);
+    const playerData = { ...client.data.user, avatar: avatar ?? '' };
+
     const joined = table.addPlayer(
-      client.data.user,
+      playerData,
       balance ?? 0,
     );
     if (!joined) {

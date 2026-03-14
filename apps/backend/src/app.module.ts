@@ -8,6 +8,7 @@ import { RoomModule } from './room/room.module';
 import { TableEngineModule } from './table-engine/table-engine.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     RoomModule,
     TableEngineModule,
     WebsocketModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,10 +18,12 @@ import {
 import { normalizeSoundVolume } from '@/lib/sound-settings';
 import { useSoundSettings } from '@/lib/use-sound-settings';
 import { showSystemMessage } from '@/lib/system-message';
+import { UserAvatar } from '@/components/user-avatar';
 
 interface Player {
   id: string;
   nickname: string;
+  avatar: string;
   stack: number;
   bet: number;
   cards: string[];
@@ -1261,27 +1263,8 @@ export default function RoomPage() {
 
                 {/* Avatar circle */}
                 <div
-                  className={`w-[68px] h-[68px] rounded-full flex flex-col items-center justify-center relative transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
+                  className={`relative transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
                   style={{
-                    background: isFolded
-                      ? 'rgba(0,0,0,0.5)'
-                      : isMe
-                        ? 'linear-gradient(160deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)'
-                        : 'linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)',
-                    border: isActive
-                      ? '2px solid rgba(250,204,21,0.9)'
-                      : isWinnerHighlighted
-                        ? '2px solid rgba(250,204,21,0.85)'
-                      : isMe
-                        ? '2px solid rgba(234,179,8,0.35)'
-                        : '2px solid rgba(255,255,255,0.1)',
-                    boxShadow: isActive
-                      ? '0 0 16px rgba(250,204,21,0.5), 0 0 32px rgba(250,204,21,0.2)'
-                      : isWinnerHighlighted
-                        ? '0 0 20px rgba(250,204,21,0.35), 0 0 36px rgba(74,222,128,0.14)'
-                      : isLoserHighlighted
-                        ? '0 2px 8px rgba(0,0,0,0.45)'
-                      : '0 4px 12px rgba(0,0,0,0.5)',
                     opacity: isFolded ? 0.45 : isLoserHighlighted ? 0.62 : 1,
                     transform: isWinnerHighlighted
                       ? 'scale(1.08)'
@@ -1290,17 +1273,44 @@ export default function RoomPage() {
                         : 'scale(1)',
                   }}
                 >
-                  <div
-                    className="text-[10px] font-bold truncate px-1 text-center w-full"
-                    style={{ color: isMe ? '#fcd34d' : 'rgba(255,255,255,0.9)' }}
-                  >
-                    {player.nickname}
+                  <UserAvatar
+                    userId={player.id}
+                    avatar={player.avatar}
+                    size={68}
+                    style={{
+                      background: isFolded
+                        ? 'rgba(0,0,0,0.5)'
+                        : isMe
+                          ? 'linear-gradient(160deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)'
+                          : 'linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)',
+                      border: isActive
+                        ? '2px solid rgba(250,204,21,0.9)'
+                        : isWinnerHighlighted
+                          ? '2px solid rgba(250,204,21,0.85)'
+                        : isMe
+                          ? '2px solid rgba(234,179,8,0.35)'
+                          : '2px solid rgba(255,255,255,0.1)',
+                      boxShadow: isActive
+                        ? '0 0 16px rgba(250,204,21,0.5), 0 0 32px rgba(250,204,21,0.2)'
+                        : isWinnerHighlighted
+                          ? '0 0 20px rgba(250,204,21,0.35), 0 0 36px rgba(74,222,128,0.14)'
+                        : isLoserHighlighted
+                          ? '0 2px 8px rgba(0,0,0,0.45)'
+                        : '0 4px 12px rgba(0,0,0,0.5)',
+                    }}
+                  />
+                  {/* Nickname overlay at bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 rounded-b-full bg-black/55 px-0.5 py-0.5 text-center pointer-events-none">
+                    <div className="text-[9px] font-bold truncate" style={{ color: isMe ? '#fcd34d' : 'rgba(255,255,255,0.9)' }}>
+                      {player.nickname}
+                    </div>
                   </div>
-                  <div className="text-[9px] font-semibold mt-0.5" style={{ color: 'rgba(74,222,128,0.8)' }}>
+                  {/* Stack chip top-right */}
+                  <div className="absolute top-0.5 right-0.5 text-[8px] font-semibold leading-none" style={{ color: 'rgba(74,222,128,0.9)' }}>
                     ${player.stack}
                   </div>
                   {isWaiting && (
-                    <div className={`text-[8px] mt-0.5 font-bold tracking-wider ${player.ready ? 'text-green-400' : 'text-gray-600'}`}>
+                    <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 text-[7px] font-bold tracking-wider whitespace-nowrap ${player.ready ? 'text-green-400' : 'text-gray-500'}`}>
                       {player.ready ? t('room.readyTag') : t('room.standby')}
                     </div>
                   )}

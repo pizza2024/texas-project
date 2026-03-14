@@ -16,6 +16,7 @@ model User {
   nickname      String    @unique
   password      String
   avatar        String?
+  role          String    @default("PLAYER") // PLAYER | ADMIN | SUPER_ADMIN
   status        String    @default("OFFLINE") // OFFLINE, ONLINE, PLAYING
   coinBalance   Float     @default(0)
   createdAt     DateTime  @default(now())
@@ -25,8 +26,23 @@ model User {
   handsWon      Hand[]
   actions       HandAction[]
   transactions  Transaction[]
+  adminLogs     AdminLog[]
 
   @@map("users")
+}
+
+model AdminLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  action      String   // BAN_USER | UNBAN_USER | ADJUST_BALANCE | DELETE_ROOM | KICK_USER | BROADCAST | MAINTENANCE
+  targetType  String   // USER | ROOM | SYSTEM
+  targetId    String?
+  detail      String?
+  createdAt   DateTime @default(now())
+
+  admin       User     @relation(fields: [adminId], references: [id])
+
+  @@map("admin_logs")
 }
 
 model Wallet {

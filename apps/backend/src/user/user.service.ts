@@ -28,4 +28,19 @@ export class UserService {
       where,
     });
   }
+
+  async updateAvatar(userId: string, avatarUrl: string | null): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatar: avatarUrl },
+    });
+  }
+
+  async getUserAvatar(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+    return user?.avatar ?? null;
+  }
 }

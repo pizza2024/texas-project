@@ -154,10 +154,11 @@ export class Table {
 
   addPlayer(player: any, initialStack = 1000): boolean {
     if (this.hasPlayer(player.sub)) {
-      // Refresh nickname from JWT on every connect/reconnect
+      // Refresh display name and avatar from latest data on every connect/reconnect
       const existing = this.players.find(p => p?.id === player.sub);
       if (existing) {
         existing.nickname = player.nickname ?? player.username;
+        existing.avatar = player.avatar ?? existing.avatar ?? '';
       }
       return true;
     }
@@ -169,7 +170,7 @@ export class Table {
     const newPlayer: Player = {
       id: player.sub,
       nickname: player.nickname ?? player.username,
-      avatar: '',
+      avatar: player.avatar ?? '',
       stack: Math.max(0, initialStack),
       bet: 0,
       totalBet: 0,

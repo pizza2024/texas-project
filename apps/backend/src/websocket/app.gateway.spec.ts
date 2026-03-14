@@ -14,6 +14,9 @@ describe('AppGateway', () => {
   let jwtService: {
     verify: jest.Mock;
   };
+  let userService: {
+    getUserAvatar: jest.Mock;
+  };
   let gateway: AppGateway;
 
   beforeEach(() => {
@@ -32,8 +35,11 @@ describe('AppGateway', () => {
         username: 'alice',
       }),
     };
+    userService = {
+      getUserAvatar: jest.fn().mockResolvedValue(null),
+    };
 
-    gateway = new AppGateway(tableManager as any, jwtService as any);
+    gateway = new AppGateway(tableManager as any, jwtService as any, userService as any);
     gateway.server = {
       in: jest.fn(),
       emit: jest.fn(),
@@ -224,7 +230,10 @@ describe('AppGateway', () => {
     await gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
 
     expect(tableManager.getUserBalance).toHaveBeenCalledWith('user-1');
-    expect(table.addPlayer).toHaveBeenCalledWith(client.data.user, 10000);
+    expect(table.addPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({ sub: 'user-1' }),
+      10000,
+    );
   });
 
   it('rejects joining a room when the player has no balance', async () => {
