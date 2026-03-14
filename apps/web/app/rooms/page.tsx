@@ -439,8 +439,10 @@ export default function RoomsPage() {
 
   const handlePasswordJoin = () => {
     if (!passwordDialog) return;
-    // Pass password via query param so the room page can use it on socket connect
-    router.push(`/room/${passwordDialog.roomId}?password=${encodeURIComponent(passwordInput)}`);
+    if (passwordInput.trim()) {
+      sessionStorage.setItem(`room-password:${passwordDialog.roomId}`, passwordInput.trim());
+    }
+    router.push(`/room/${passwordDialog.roomId}`);
     setPasswordDialog(null);
   };
 
@@ -455,6 +457,10 @@ export default function RoomsPage() {
         password: form.password.trim() || undefined,
       });
       setShowCreateDialog(false);
+      const pwd = form.password.trim();
+      if (pwd) {
+        sessionStorage.setItem(`room-password:${data.id}`, pwd);
+      }
       router.push(`/room/${data.id}`);
     } catch (error) {
       console.error('Failed to create room', error);

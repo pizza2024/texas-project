@@ -3,7 +3,7 @@
 import { useTranslation } from 'react-i18next';
 import '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,8 +166,6 @@ const pageBg: React.CSSProperties = {
 export default function RoomPage() {
   const { id } = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const roomPassword = searchParams.get('password') ?? undefined;
   const [table, setTable] = useState<TableState | null>(null);
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -528,6 +526,9 @@ export default function RoomPage() {
 
     socket.on('connect', () => {
       console.log('Connected to socket');
+      const passwordKey = `room-password:${id as string}`;
+      const roomPassword = sessionStorage.getItem(passwordKey) ?? undefined;
+      sessionStorage.removeItem(passwordKey);
       socket.emit('join_room', { roomId: id, password: roomPassword });
     });
 
@@ -587,7 +588,7 @@ export default function RoomPage() {
     });
 
     return () => { disconnectSocket(); };
-  }, [id, router, roomPassword]);
+  }, [id, router]);
 
   useEffect(() => {
     const token = getStoredToken();
