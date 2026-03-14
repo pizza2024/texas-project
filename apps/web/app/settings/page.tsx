@@ -31,6 +31,36 @@ const pageBg: React.CSSProperties = {
   background: 'radial-gradient(ellipse at 50% 20%, #0d2818 0%, #060e10 55%, #020406 100%)',
 };
 
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard not available
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="shrink-0 px-2 h-6 rounded-md text-[10px] font-bold tracking-wide uppercase transition-all"
+      style={{
+        background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(245,158,11,0.1)',
+        border: copied ? '1px solid rgba(74,222,128,0.35)' : '1px solid rgba(245,158,11,0.25)',
+        color: copied ? 'rgba(74,222,128,0.9)' : 'rgba(245,158,11,0.7)',
+      }}
+    >
+      {copied ? '✓' : '复制'}
+    </button>
+  );
+}
+
 export default function SettingsPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -321,8 +351,11 @@ export default function SettingsPage() {
               </div>
 
               <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: 'rgba(245,158,11,0.5)' }}>
-                  {t('settings.userId')}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: 'rgba(245,158,11,0.5)' }}>
+                    {t('settings.userId')}
+                  </div>
+                  <CopyButton value={profile?.id ?? ''} />
                 </div>
                 <div className="mt-2 text-sm font-semibold break-all" style={{ color: 'rgba(229,231,235,0.88)' }}>
                   {profile?.id ?? '—'}
