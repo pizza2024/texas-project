@@ -50,13 +50,15 @@ export class Table {
   dealerIndex: number;
   smallBlind: number;
   bigBlind: number;
+  minBuyIn: number;
+  roomPassword: string | null;
   minBet: number;
   lastHandResult: HandResultEntry[] | null;
   settlementEndsAt: number | null;
   readyCountdownEndsAt: number | null;
   actionEndsAt: number | null;
 
-  constructor(id: string, roomId: string, maxPlayers: number, smallBlind: number, bigBlind: number) {
+  constructor(id: string, roomId: string, maxPlayers: number, smallBlind: number, bigBlind: number, minBuyIn?: number, roomPassword?: string | null) {
     this.id = id;
     this.roomId = roomId;
     this.players = new Array(maxPlayers).fill(null);
@@ -69,6 +71,8 @@ export class Table {
     this.dealerIndex = 0;
     this.smallBlind = smallBlind;
     this.bigBlind = bigBlind;
+    this.minBuyIn = minBuyIn ?? bigBlind;
+    this.roomPassword = roomPassword ?? null;
     this.minBet = bigBlind;
     this.lastHandResult = null;
     this.settlementEndsAt = null;
@@ -81,8 +85,10 @@ export class Table {
     maxPlayers: number,
     smallBlind: number,
     bigBlind: number,
+    minBuyIn?: number,
+    roomPassword?: string | null,
   ): Table {
-    const table = new Table(snapshot.id, snapshot.roomId, maxPlayers, smallBlind, bigBlind);
+    const table = new Table(snapshot.id, snapshot.roomId, maxPlayers, smallBlind, bigBlind, minBuyIn, roomPassword);
     table.players = snapshot.players;
     table.deck = [...snapshot.deck];
     table.communityCards = [...snapshot.communityCards];

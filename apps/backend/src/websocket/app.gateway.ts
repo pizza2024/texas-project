@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
+import * as bcrypt from 'bcrypt';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import { JwtService } from '@nestjs/jwt';
 import { GameStage } from '../table-engine/table';
@@ -412,9 +413,9 @@ export class AppGateway
   @SubscribeMessage('join_room')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: { roomId: string; password?: string },
   ) {
-    const { roomId } = data;
+    const { roomId, password } = data;
     const userId = client.data.user?.sub as string;
 
     const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
@@ -431,17 +432,41 @@ export class AppGateway
       return { event: 'error', data: 'Room not found' };
     }
 
-    await this.ensureRecoveredRoundFlow(roomId, table);
+    // Password check for private rooms (skip if already seated — reconnect)
+    const isAlreadySeated = table.hasPlayer(userId);
+    if (!isAlreadySeated && table.roomPassword) {
+      const passwordMatch = await bcrypt.compare(password ?? '', table.roomPassword);
+      if (!passwordMatch) {
+        client.emit('wrong_password', { roomId });
+        return { event: 'wrong_password', data: { roomId } };
+      }
+    }
 
-    client.join(roomId);
+    await this.ensureRecoveredRoundFlow(roomId, table);
+    const balance = isAlreadySeated ? null : await this.tableManager.getUserBalance(userId);
+    const minimumRequiredBalance = table.minBuyIn;
+    if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
+      client.emit('insufficient_balance', {
+        roomId,
+        balance: balance ?? 0,
+        minimumRequiredBalance,
+      });
+      return {
+        event: 'insufficient_balance',
+        data: {
+          roomId,
+          balance: balance ?? 0,
+          minimumRequiredBalance,
+        },
+      };
+    }
 
     // Avoid duplicate seat in same room; reject if room is full
     const joined = table.addPlayer(
       client.data.user,
-      await this.tableManager.getUserBalance(userId),
+      balance ?? 0,
     );
     if (!joined) {
-      client.leave(roomId);
       client.emit('room_full', { roomId });
       return {
         event: 'room_full',
@@ -449,6 +474,7 @@ export class AppGateway
       };
     }
 
+    client.join(roomId);
     await this.tableManager.persistTableState(roomId);
     await this.broadcastTableState(roomId, table);
     await this.tableManager.broadcastRoomStatus(roomId);

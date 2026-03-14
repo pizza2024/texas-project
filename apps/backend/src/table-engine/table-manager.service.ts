@@ -35,9 +35,11 @@ export class TableManagerService {
             select: { stateSnapshot: true },
           });
           const snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
+          const minBuyIn = room.minBuyIn > 0 ? room.minBuyIn : room.blindBig;
+          const roomPassword = room.password ?? null;
           const table = snapshot
-            ? Table.fromSnapshot(snapshot, room.maxPlayers, room.blindSmall, room.blindBig)
-            : new Table(room.id, room.id, room.maxPlayers, room.blindSmall, room.blindBig);
+            ? Table.fromSnapshot(snapshot, room.maxPlayers, room.blindSmall, room.blindBig, minBuyIn, roomPassword)
+            : new Table(room.id, room.id, room.maxPlayers, room.blindSmall, room.blindBig, minBuyIn, roomPassword);
           this.tables.set(roomId, table);
         }
         return this.tables.get(roomId);

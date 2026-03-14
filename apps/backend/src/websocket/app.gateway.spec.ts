@@ -204,6 +204,9 @@ describe('AppGateway', () => {
       emit: jest.fn(),
     };
     const table = {
+      smallBlind: 10,
+      bigBlind: 20,
+      hasPlayer: jest.fn().mockReturnValue(false),
       addPlayer: jest.fn().mockReturnValue(true),
       getMaskedView: jest.fn().mockReturnValue({ roomId: 'room-1' }),
     };
@@ -224,6 +227,41 @@ describe('AppGateway', () => {
     expect(table.addPlayer).toHaveBeenCalledWith(client.data.user, 10000);
   });
 
+  it('rejects joining a room when the player has no balance', async () => {
+    const client = {
+      data: { user: { sub: 'user-1', username: 'alice' } },
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+    };
+    const table = {
+      smallBlind: 10,
+      bigBlind: 20,
+      minBuyIn: 20,
+      hasPlayer: jest.fn().mockReturnValue(false),
+      addPlayer: jest.fn(),
+      getMaskedView: jest.fn(),
+    };
+
+    tableManager.getUserCurrentRoomId.mockReturnValue(null);
+    tableManager.getUserBalance.mockResolvedValue(0);
+    tableManager.getTable.mockResolvedValue(table);
+
+    const result = await gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
+
+    expect(client.emit).toHaveBeenCalledWith('insufficient_balance', {
+      roomId: 'room-1',
+      balance: 0,
+      minimumRequiredBalance: 20,
+    });
+    expect(client.join).not.toHaveBeenCalled();
+    expect(table.addPlayer).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      event: 'insufficient_balance',
+      data: { roomId: 'room-1', balance: 0, minimumRequiredBalance: 20 },
+    });
+  });
+
   it('rebuilds an in-progress settlement timer from restored state', async () => {
     jest.useFakeTimers();
     const roomSocket = {
@@ -234,6 +272,9 @@ describe('AppGateway', () => {
       currentStage: GameStage.SETTLEMENT,
       settlementEndsAt: Date.now() + 2000,
       readyCountdownEndsAt: null as number | null,
+      smallBlind: 10,
+      bigBlind: 20,
+      hasPlayer: jest.fn().mockReturnValue(false),
       addPlayer: jest.fn().mockReturnValue(true),
       beginReadyCountdown: jest.fn(() => {
         table.readyCountdownEndsAt = Date.now() + 5000;

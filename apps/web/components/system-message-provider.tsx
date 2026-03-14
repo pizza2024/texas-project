@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { subscribeSystemMessage, type SystemMessageOptions } from '@/lib/system-message';
+import { useTranslation } from 'react-i18next';
+import '@/lib/i18n';
 
 interface PendingSystemMessage extends SystemMessageOptions {
   resolve: () => void;
@@ -13,6 +15,7 @@ export function SystemMessageProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const [queue, setQueue] = useState<PendingSystemMessage[]>([]);
 
   useEffect(() => {
@@ -72,7 +75,7 @@ export function SystemMessageProvider({
                     backgroundClip: 'text',
                   }}
                 >
-                  {activeMessage.title ?? '提示'}
+                  {activeMessage.title ?? t('common.tips')}
                 </h2>
               </div>
             </div>
@@ -97,7 +100,7 @@ export function SystemMessageProvider({
                   boxShadow: '0 0 20px rgba(245,158,11,0.18)',
                 }}
               >
-                {activeMessage.confirmText ?? '知道了'}
+                {activeMessage.confirmText ?? t('common.iGotIt')}
               </Button>
             </div>
           </div>

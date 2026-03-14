@@ -6,6 +6,8 @@ export interface RoomCreatedPayload {
   blindSmall: number;
   blindBig: number;
   maxPlayers: number;
+  minBuyIn: number;
+  isPrivate: boolean;
 }
 
 export interface RoomDissolvedPayload {

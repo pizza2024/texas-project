@@ -1,7 +1,9 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+import '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -164,6 +166,8 @@ const pageBg: React.CSSProperties = {
 export default function RoomPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roomPassword = searchParams.get('password') ?? undefined;
   const [table, setTable] = useState<TableState | null>(null);
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -171,6 +175,7 @@ export default function RoomPage() {
   const [myUserId] = useState<string>(() => getMyUserId());
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const { soundSettings } = useSoundSettings();
+  const { t } = useTranslation();
   const [dealAnimations, setDealAnimations] = useState<Record<string, number>>({});
   const [chipFlights, setChipFlights] = useState<ChipFlight[]>([]);
   const [payoutFlights, setPayoutFlights] = useState<PayoutFlight[]>([]);
@@ -199,7 +204,7 @@ export default function RoomPage() {
 
   const redirectForExpiredToken = () => {
     handleExpiredSession({
-      alertMessage: '登录状态已过期，请重新登录后继续牌局。',
+      alertMessage: t('auth.sessionExpiredGameMsg'),
       returnTo: roomPath,
     });
   };
@@ -523,7 +528,7 @@ export default function RoomPage() {
 
     socket.on('connect', () => {
       console.log('Connected to socket');
-      socket.emit('join_room', { roomId: id });
+      socket.emit('join_room', { roomId: id, password: roomPassword });
     });
 
     socket.on('room_update', (data: TableState) => {
@@ -549,8 +554,24 @@ export default function RoomPage() {
 
     socket.on('room_full', async () => {
       await showSystemMessage({
-        title: '房间已满',
-        message: '当前房间人数已满，请选择其他牌桌。',
+        title: t('room.roomFull'),
+        message: t('room.roomFullMsg'),
+      });
+      router.replace('/rooms');
+    });
+
+    socket.on('insufficient_balance', async (data?: { minimumRequiredBalance?: number }) => {
+      await showSystemMessage({
+        title: t('room.insufficientBalance'),
+        message: t('room.insufficientBalanceMsg', { amount: data?.minimumRequiredBalance ?? 0 }),
+      });
+      router.replace('/rooms');
+    });
+
+    socket.on('wrong_password', async () => {
+      await showSystemMessage({
+        title: t('lobby.wrongPassword'),
+        message: t('lobby.wrongPasswordMsg'),
       });
       router.replace('/rooms');
     });
@@ -558,15 +579,15 @@ export default function RoomPage() {
     socket.on('error', async (message: string) => {
       if (message === 'Room not found') {
         await showSystemMessage({
-          title: '房间不存在',
-          message: '该房间不存在或已被解散。',
+          title: t('room.roomNotFound'),
+          message: t('room.roomNotFoundMsg'),
         });
         router.replace('/rooms');
       }
     });
 
     return () => { disconnectSocket(); };
-  }, [id, router]);
+  }, [id, router, roomPassword]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -832,7 +853,7 @@ export default function RoomPage() {
         <div className="text-center space-y-3">
           <div className="text-5xl animate-pulse">🃏</div>
           <p className="text-sm tracking-[0.3em] uppercase font-semibold" style={{ color: 'rgba(245,158,11,0.7)' }}>
-            Loading Table…
+            {t('room.loadingTable')}
           </p>
         </div>
       </div>
@@ -846,12 +867,12 @@ export default function RoomPage() {
   const readyCount = seatedPlayers.filter((p) => p.ready).length;
   const activePlayer = table.activePlayerIndex >= 0 ? table.players[table.activePlayerIndex] : null;
   const isUrgentCountdown = activeCountdown > 0 && activeCountdown <= (isActionStage ? 5 : 3);
-  const countdownLabel = isSettlement ? '结算倒计时' : isAutoReadyCountdown ? '自动开局' : '行动倒计时';
+  const countdownLabel = isSettlement ? t('room.countdownSettlement') : isAutoReadyCountdown ? t('room.countdownAutoStart') : t('room.countdownAction');
   const isMyTurn = isActionStage && activePlayer?.id === myUserId;
   const callAmount = myPlayer ? Math.max(0, (table.currentBet ?? 0) - myPlayer.bet) : 0;
   const canCheck = callAmount === 0;
   const minRaiseTo = (table.currentBet ?? 0) + (table.bigBlind ?? 0);
-  const timeoutActionLabel = canCheck ? '自动过牌' : '自动弃牌';
+  const timeoutActionLabel = canCheck ? t('room.autoCheck') : t('room.autoFold');
   const winnerRevealPlayerIds = new Set(winnerReveals.map((reveal) => reveal.playerId));
   const winnerHighlightPlayerIds = new Set(winnerHighlights);
   const loserHighlightPlayerIds = new Set(loserHighlights);
@@ -879,10 +900,10 @@ export default function RoomPage() {
               className="text-lg font-black tracking-widest uppercase mb-2"
               style={{ color: 'rgba(245,158,11,0.9)' }}
             >
-              退出房间
+            {t('room.exitRoom')}
             </h3>
             <p className="text-sm mb-6" style={{ color: 'rgba(156,163,175,0.9)' }}>
-              确定要退出当前房间并返回大厅吗？
+            {t('room.exitConfirm')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -891,7 +912,7 @@ export default function RoomPage() {
                 onClick={() => setShowLeaveConfirm(false)}
                 disabled={leaving}
               >
-                取消
+                {t('room.exitCancel')}
               </Button>
               <Button
                 className="flex-1 h-10 rounded-lg font-black tracking-wider text-xs uppercase transition-opacity hover:opacity-90"
@@ -904,7 +925,7 @@ export default function RoomPage() {
                 onClick={handleConfirmLeave}
                 disabled={leaving}
               >
-                {leaving ? '退出中…' : '确定退出'}
+                {leaving ? t('room.exiting') : t('room.exitConfirmBtn')}
               </Button>
             </div>
           </div>
@@ -934,14 +955,14 @@ export default function RoomPage() {
           }}
           onClick={() => window.open('/settings', '_blank', 'noopener,noreferrer')}
         >
-          ⚙ 设置
+          {t('room.settingsBtn')}
         </button>
 
         <div className="text-center">
           {isSettlement ? (
             <div className="flex flex-col items-center gap-1">
               <span className="text-[10px] tracking-[0.26em] uppercase font-semibold" style={{ color: 'rgba(251,191,36,0.78)' }}>
-                🏆 结算中
+                {t('room.settling')}
               </span>
               <span
                 className={isUrgentCountdown ? 'countdown-badge countdown-badge-urgent' : 'countdown-badge'}
@@ -962,7 +983,7 @@ export default function RoomPage() {
           ) : isAutoReadyCountdown ? (
             <div className="flex flex-col items-center gap-1">
               <span className="text-[10px] tracking-[0.26em] uppercase font-semibold" style={{ color: 'rgba(74,222,128,0.82)' }}>
-                自动开局倒计时
+                {t('room.autoStartCountdown')}
               </span>
               <span
                 className={isUrgentCountdown ? 'countdown-badge countdown-badge-urgent' : 'countdown-badge'}
@@ -982,7 +1003,7 @@ export default function RoomPage() {
             </div>
           ) : isWaiting ? (
             <span className="text-xs tracking-[0.2em] uppercase" style={{ color: 'rgba(245,158,11,0.6)' }}>
-              等待准备 · {readyCount}/{seatedPlayers.length}
+              {t('room.waitingReady', { ready: readyCount, total: seatedPlayers.length })}
             </span>
           ) : activePlayer ? (
             <div className="flex flex-col items-center gap-1">
@@ -990,7 +1011,7 @@ export default function RoomPage() {
                 className="text-xs font-semibold tracking-wider"
                 style={{ color: isMyTurn ? '#fcd34d' : 'rgba(156,163,175,0.8)' }}
               >
-                {isMyTurn ? '🟡 轮到你了！' : `⏳ 等待 ${activePlayer.nickname}`}
+                {isMyTurn ? t('room.yourTurn') : t('room.waitingPlayer', { nickname: activePlayer.nickname })}
               </span>
               {actionCountdown > 0 && (
                 <span
@@ -1064,7 +1085,7 @@ export default function RoomPage() {
                       <CardDisplay card={card} large />
                     </div>
                   ))
-                : <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.15)' }}>Waiting for deal…</span>
+                : <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.15)' }}>{t('room.waitingForDeal')}</span>
               }
             </div>
           </div>
@@ -1279,7 +1300,7 @@ export default function RoomPage() {
                   </div>
                   {isWaiting && (
                     <div className={`text-[8px] mt-0.5 font-bold tracking-wider ${player.ready ? 'text-green-400' : 'text-gray-600'}`}>
-                      {player.ready ? '✓ 准备' : '待机'}
+                      {player.ready ? t('room.readyTag') : t('room.standby')}
                     </div>
                   )}
                   {isActionStage && isActive && actionCountdown > 0 && (
@@ -1382,11 +1403,11 @@ export default function RoomPage() {
           >
             {isAutoReadyCountdown
               ? isReady
-                ? `✓ 已准备 — 点击取消 (${readyCountdown}s)`
-                : '已取消 — 重新准备'
+                ? t('room.readyCancelCountdown', { seconds: readyCountdown })
+                : t('room.readyCancelled')
               : isReady
-                ? '✓ 已准备 — 取消'
-                : '准备'}
+                ? t('room.readyCancel')
+                : t('room.ready')}
           </Button>
         ) : isSettlement ? (
           <div
@@ -1397,7 +1418,7 @@ export default function RoomPage() {
               color: 'rgba(245,158,11,0.82)',
             }}
           >
-            结算中 · {settlementCountdown}s
+            {t('room.settlementCountdown', { seconds: settlementCountdown })}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
@@ -1425,7 +1446,7 @@ export default function RoomPage() {
               }}
             >
               {isMyTurn
-                ? `⏱ ${actionCountdown}s 后将${timeoutActionLabel}`
+                ? t('room.autoActionLabel', { seconds: actionCountdown, action: timeoutActionLabel })
                 : activePlayer
                   ? `等待 ${activePlayer.nickname} 操作${actionCountdown > 0 ? ` · ${actionCountdown}s` : ''}`
                   : '等待操作'}
@@ -1447,7 +1468,7 @@ export default function RoomPage() {
                     : 'none',
                 }}
               >
-                {!canCheck && isMyTurn ? `弃牌 · ${actionCountdown}s` : '弃牌'}
+                {!canCheck && isMyTurn ? t('room.foldCountdown', { seconds: actionCountdown }) : t('room.fold')}
               </Button>
 
               {canCheck ? (
@@ -1466,7 +1487,7 @@ export default function RoomPage() {
                       : 'none',
                   }}
                 >
-                  {isMyTurn ? `过牌 · ${actionCountdown}s` : '过牌'}
+                  {isMyTurn ? t('room.checkCountdown', { seconds: actionCountdown }) : t('room.check')}
                 </Button>
               ) : (
                 <Button
@@ -1480,7 +1501,7 @@ export default function RoomPage() {
                     boxShadow: isMyTurn ? '0 0 16px rgba(59,130,246,0.2)' : 'none',
                   }}
                 >
-                  跟注 ${callAmount}
+                  {t('room.call', { amount: callAmount })}
                 </Button>
               )}
 
@@ -1513,7 +1534,7 @@ export default function RoomPage() {
                     color: 'rgba(255,255,255,0.3)',
                   }}
                 >
-                  加注
+                  {t('room.raise')}
                 </Button>
               </div>
             </div>

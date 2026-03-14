@@ -18,6 +18,8 @@ export class RoomService {
       blindSmall: room.blindSmall,
       blindBig: room.blindBig,
       maxPlayers: room.maxPlayers,
+      minBuyIn: room.minBuyIn > 0 ? room.minBuyIn : room.blindBig,
+      isPrivate: !!room.password,
     });
 
     return room;

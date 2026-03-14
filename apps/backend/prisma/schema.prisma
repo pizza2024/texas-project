@@ -12,8 +12,9 @@ datasource db {
 
 model User {
   id            String    @id @default(uuid())
+  username      String    @unique
   nickname      String    @unique
-  password      String    // Add password for auth
+  password      String
   avatar        String?
   status        String    @default("OFFLINE") // OFFLINE, ONLINE, PLAYING
   coinBalance   Float     @default(0)
@@ -44,6 +45,8 @@ model Room {
   blindSmall  Float
   blindBig    Float
   maxPlayers  Int
+  minBuyIn    Float    @default(0)
+  password    String?
   status      String   @default("ACTIVE") // ACTIVE, MAINTENANCE
   createdAt   DateTime @default(now())
   

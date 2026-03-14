@@ -23,7 +23,7 @@ export class AuthService {
     username: string,
     pass: string,
   ): Promise<Omit<User, 'password'> | null> {
-    const user = await this.userService.user({ nickname: username }); // Assuming username is nickname for simplicity
+    const user = await this.userService.user({ username });
     if (user && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
@@ -36,7 +36,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-    const payload = { username: user.nickname, sub: user.id };
+    const payload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
       user: await this.toAuthUser(user),
@@ -46,7 +46,8 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthUserDto> {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     const user = await this.userService.createUser({
-      nickname: registerDto.nickname,
+      username: registerDto.username,
+      nickname: registerDto.nickname || registerDto.username,
       coinBalance: AuthService.STARTING_BALANCE,
       password: hashedPassword,
       wallet: {
