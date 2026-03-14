@@ -1,5 +1,14 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+function buildQuery(params?: Record<string, any>): string {
+  if (!params) return '';
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  );
+  const qs = new URLSearchParams(clean as Record<string, string>).toString();
+  return qs ? `?${qs}` : '';
+}
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('admin_token');
@@ -48,7 +57,7 @@ export const login = (username: string, password: string) =>
 
 // Users
 export const getUsers = (params?: Record<string, any>) =>
-  request<any>(`/admin/users?${new URLSearchParams(params as any).toString()}`);
+  request<any>(`/admin/users${buildQuery(params)}`);
 
 export const getUserById = (id: string) => request<any>(`/admin/users/${id}`);
 
@@ -68,11 +77,11 @@ export const adjustBalance = (id: string, amount: number, reason?: string) =>
   });
 
 export const getUserTransactions = (id: string, params?: Record<string, any>) =>
-  request<any>(`/admin/users/${id}/transactions?${new URLSearchParams(params as any).toString()}`);
+  request<any>(`/admin/users/${id}/transactions${buildQuery(params)}`);
 
 // Rooms
 export const getRooms = (params?: Record<string, any>) =>
-  request<any>(`/admin/rooms?${new URLSearchParams(params as any).toString()}`);
+  request<any>(`/admin/rooms${buildQuery(params)}`);
 
 export const getRoomById = (id: string) => request<any>(`/admin/rooms/${id}`);
 
@@ -90,7 +99,7 @@ export const toggleRoomMaintenance = (id: string) =>
 
 // Finance
 export const getTransactions = (params?: Record<string, any>) =>
-  request<any>(`/admin/finance/transactions?${new URLSearchParams(params as any).toString()}`);
+  request<any>(`/admin/finance/transactions${buildQuery(params)}`);
 
 export const getFinanceSummary = () => request<any>('/admin/finance/summary');
 
@@ -117,7 +126,7 @@ export const getHandsStats = () => request<any>('/admin/analytics/hands');
 // System
 export const getSystemStatus = () => request<any>('/admin/system/status');
 export const getAdminLogs = (params?: Record<string, any>) =>
-  request<any>(`/admin/system/logs?${new URLSearchParams(params as any).toString()}`);
+  request<any>(`/admin/system/logs${buildQuery(params)}`);
 export const toggleMaintenance = (enable?: boolean) =>
   request<any>('/admin/system/maintenance', {
     method: 'POST',
