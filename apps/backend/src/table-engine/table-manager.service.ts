@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Table, TableSnapshot } from './table';
 import { RoomService } from '../room/room.service';
 import {
@@ -8,9 +8,15 @@ import {
 } from '../websocket/room-events';
 import { WalletService } from '../wallet/wallet.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+
+/** Redis key for a table snapshot; TTL = 24 h */
+const TABLE_KEY = (roomId: string) => `table:${roomId}`;
+const TABLE_TTL = 86400;
 
 @Injectable()
 export class TableManagerService {
+  private readonly logger = new Logger(TableManagerService.name);
   private tables: Map<string, Table> = new Map();
   // Deduplicate concurrent getTable calls for the same roomId to prevent
   // multiple Table instances being created for the same room.
@@ -20,6 +26,7 @@ export class TableManagerService {
     private roomService: RoomService,
     private walletService: WalletService,
     private prisma: PrismaService,
+    private redis: RedisService,
   ) {}
 
   async getTable(roomId: string): Promise<Table | undefined> {
@@ -30,11 +37,21 @@ export class TableManagerService {
       const promise = this.roomService.findOne(roomId).then(async (room) => {
         this.pendingGetTable.delete(roomId);
         if (room && !this.tables.has(roomId)) {
-          const persistedTable = await this.prisma.table.findUnique({
-            where: { id: roomId },
-            select: { stateSnapshot: true },
-          });
-          const snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
+          // Priority: Redis (fast) → SQLite (durable) → fresh table
+          let snapshot = await this.loadSnapshotFromRedis(roomId);
+          if (!snapshot) {
+            const persistedTable = await this.prisma.table.findUnique({
+              where: { id: roomId },
+              select: { stateSnapshot: true },
+            });
+            snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
+            if (snapshot) {
+              this.logger.debug(`table:${roomId} recovered from SQLite`);
+            }
+          } else {
+            this.logger.debug(`table:${roomId} recovered from Redis`);
+          }
+
           const minBuyIn = room.minBuyIn > 0 ? room.minBuyIn : room.blindBig;
           const roomPassword = room.password ?? null;
           const table = snapshot
@@ -47,6 +64,11 @@ export class TableManagerService {
       this.pendingGetTable.set(roomId, promise);
     }
     return this.pendingGetTable.get(roomId);
+  }
+
+  private async loadSnapshotFromRedis(roomId: string): Promise<TableSnapshot | null> {
+    const raw = await this.redis.get(TABLE_KEY(roomId));
+    return this.parseSnapshot(raw);
   }
 
   async getUserBalance(userId: string): Promise<number> {
@@ -79,24 +101,33 @@ export class TableManagerService {
       return;
     }
 
+    const snapshot = JSON.stringify(table.toSnapshot());
+
+    // Write to Redis first (fast, crash-safe buffer)
+    await this.redis.set(TABLE_KEY(roomId), snapshot, TABLE_TTL);
+
+    // Write to SQLite (durable persistence)
     await this.prisma.table.upsert({
       where: { id: roomId },
       update: {
         state: table.currentStage,
-        stateSnapshot: JSON.stringify(table.toSnapshot()),
+        stateSnapshot: snapshot,
         snapshotUpdatedAt: new Date(),
       },
       create: {
         id: roomId,
         roomId,
         state: table.currentStage,
-        stateSnapshot: JSON.stringify(table.toSnapshot()),
+        stateSnapshot: snapshot,
         snapshotUpdatedAt: new Date(),
       },
     });
   }
 
   async clearTableState(roomId: string): Promise<void> {
+    // Remove from Redis
+    await this.redis.del(TABLE_KEY(roomId));
+    // Remove from SQLite
     await this.prisma.table.deleteMany({
       where: { id: roomId },
     });

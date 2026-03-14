@@ -49,12 +49,36 @@ export class AppGateway
   private settlementTimers = new Map<string, NodeJS.Timeout>();
   private autoStartTimers = new Map<string, NodeJS.Timeout>();
   private actionTimers = new Map<string, NodeJS.Timeout>();
+  /**
+   * Per-room processing lock: chains async operations so that concurrent
+   * socket events for the same room are serialized (Tick Loop lite).
+   */
+  private roomLocks = new Map<string, Promise<void>>();
 
   constructor(
     private tableManager: TableManagerService,
     private jwtService: JwtService,
     private userService: UserService,
   ) {}
+
+  /**
+   * Serialize all async operations for a given room through a promise chain.
+   * This prevents race conditions when two clients send events simultaneously
+   * for the same table (e.g. two players act at the exact same millisecond).
+   */
+  private withRoomLock<T>(roomId: string, fn: () => Promise<T>): Promise<T> {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const outer = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+
+    const prev = this.roomLocks.get(roomId) ?? Promise.resolve();
+    const next = prev.then(() => fn()).then(resolve, reject);
+    this.roomLocks.set(roomId, next.then(() => {}, () => {}));
+    return outer;
+  }
 
   private handleRoomCreated = (room: RoomCreatedPayload) => {
     this.server.emit('room_created', room);
@@ -503,31 +527,33 @@ export class AppGateway
       return { event: 'error', data: 'Not in any room' };
     }
 
-    const table = await this.tableManager.getTable(roomId);
-    if (!table) {
-      return { event: 'error', data: 'Room not found' };
-    }
+    return this.withRoomLock(roomId, async () => {
+      const table = await this.tableManager.getTable(roomId);
+      if (!table) {
+        return { event: 'error', data: 'Room not found' };
+      }
 
-    await this.ensureRecoveredRoundFlow(roomId, table);
+      await this.ensureRecoveredRoundFlow(roomId, table);
 
-    const allReady = table.setPlayerReady(userId);
-    if (table.readyCountdownEndsAt) {
+      const allReady = table.setPlayerReady(userId);
+      if (table.readyCountdownEndsAt) {
+        await this.tableManager.persistTableState(roomId);
+        await this.broadcastTableState(roomId, table);
+        return { event: 'ready_updated', data: { roomId } };
+      }
+
+      if (allReady) {
+        table.startHandIfReady();
+        await this.tableManager.persistTableBalances(roomId);
+        if (this.isActionStage(table.currentStage)) {
+          await this.scheduleActionTimeout(roomId, table);
+        }
+      }
+
       await this.tableManager.persistTableState(roomId);
       await this.broadcastTableState(roomId, table);
       return { event: 'ready_updated', data: { roomId } };
-    }
-
-    if (allReady) {
-      table.startHandIfReady();
-      await this.tableManager.persistTableBalances(roomId);
-      if (this.isActionStage(table.currentStage)) {
-        await this.scheduleActionTimeout(roomId, table);
-      }
-    }
-
-    await this.tableManager.persistTableState(roomId);
-    await this.broadcastTableState(roomId, table);
-    return { event: 'ready_updated', data: { roomId } };
+    });
   }
 
   @SubscribeMessage('player_action')
@@ -535,9 +561,10 @@ export class AppGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { action: string; amount?: number; roomId: string },
   ) {
-    // Process action
-    const table = await this.tableManager.getTable(data.roomId);
-    if (table) {
+    return this.withRoomLock(data.roomId, async () => {
+      const table = await this.tableManager.getTable(data.roomId);
+      if (!table) return;
+
       await this.ensureRecoveredRoundFlow(data.roomId, table);
       const processed = table.processAction(client.data.user.sub, data.action, data.amount || 0);
       if (!processed) {
@@ -553,7 +580,7 @@ export class AppGateway
       }
 
       await this.broadcastTableState(data.roomId, table);
-    }
+    });
   }
 
   @SubscribeMessage('leave_room')

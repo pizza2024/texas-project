@@ -48,8 +48,9 @@ model AdminLog {
 model Wallet {
   id            String   @id @default(uuid())
   userId        String   @unique
-  balance       Float    @default(0)
-  frozenBalance Float    @default(0)
+  balance       Float    @default(0)       // Real-money balance (reserved for future USDT top-up)
+  chips         Float    @default(0)       // Game chips (migrated from old balance field)
+  frozenChips   Float    @default(0)       // Chips locked at a table (prevents double-spend)
   user          User     @relation(fields: [userId], references: [id])
   
   @@map("wallets")

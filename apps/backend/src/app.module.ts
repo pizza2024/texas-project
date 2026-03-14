@@ -9,9 +9,11 @@ import { TableEngineModule } from './table-engine/table-engine.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminModule } from './admin/admin.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
+    RedisModule,
     PrismaModule,
     AuthModule,
     UserModule,

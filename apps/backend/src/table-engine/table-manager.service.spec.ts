@@ -29,7 +29,11 @@ describe('TableManagerService', () => {
       deleteMany: jest.Mock;
       findMany: jest.Mock;
     };
+    hand: { create: jest.Mock };
+    settlement: { createMany: jest.Mock };
+    transaction: { create: jest.Mock };
   };
+  let redis: { get: jest.Mock; set: jest.Mock; del: jest.Mock };
   let service: TableManagerService;
 
   beforeEach(() => {
@@ -52,8 +56,21 @@ describe('TableManagerService', () => {
         deleteMany: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
       },
+      hand: { create: jest.fn().mockResolvedValue({ id: 'hand-1' }) },
+      settlement: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      transaction: { create: jest.fn().mockResolvedValue({}) },
     };
-    service = new TableManagerService(roomService as any, walletService as any, prisma as any);
+    redis = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new TableManagerService(
+      roomService as any,
+      walletService as any,
+      prisma as any,
+      redis as any,
+    );
   });
 
   afterEach(() => {
