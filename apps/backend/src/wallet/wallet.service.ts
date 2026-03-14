@@ -44,7 +44,11 @@ export class WalletService {
     ]);
   }
 
-  async setBalances(entries: Array<{ userId: string; balance: number }>): Promise<void> {
+  async setBalances(
+    entries: Array<{ userId: string; balance: number }>,
+    /** When true, frozenBalance is also set to the new balance (player still seated at a table). */
+    frozen = false,
+  ): Promise<void> {
     if (entries.length === 0) {
       return;
     }
@@ -55,10 +59,14 @@ export class WalletService {
         return [
           this.prisma.wallet.upsert({
             where: { userId },
-            update: { balance: normalizedBalance },
+            update: {
+              balance: normalizedBalance,
+              frozenBalance: frozen ? normalizedBalance : 0,
+            },
             create: {
               userId,
               balance: normalizedBalance,
+              frozenBalance: frozen ? normalizedBalance : 0,
             },
           }),
           this.prisma.user.update({
@@ -68,5 +76,51 @@ export class WalletService {
         ];
       }),
     );
+  }
+
+  /**
+   * Freeze the player's entire balance when they sit down at a table.
+   * This prevents them from joining a second table simultaneously.
+   */
+  async freezeBalance(userId: string, amount: number): Promise<void> {
+    const normalizedAmount = Math.max(0, amount);
+    await this.prisma.wallet.upsert({
+      where: { userId },
+      update: { frozenBalance: normalizedAmount },
+      create: { userId, balance: normalizedAmount, frozenBalance: normalizedAmount },
+    });
+  }
+
+  /**
+   * Unfreeze the player's balance when they leave a table.
+   * Always call this alongside setBalance so the new balance is spendable.
+   */
+  async unfreezeBalance(userId: string): Promise<void> {
+    await this.prisma.wallet.updateMany({
+      where: { userId },
+      data: { frozenBalance: 0 },
+    });
+  }
+
+  /**
+   * Returns the spendable (non-frozen) balance.
+   * While a player is seated at a table their entire balance is frozen,
+   * so availableBalance will be 0 until they leave.
+   */
+  async getAvailableBalance(userId: string): Promise<number> {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: { balance: true, frozenBalance: true },
+    });
+
+    if (!wallet) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { coinBalance: true },
+      });
+      return user?.coinBalance ?? WalletService.STARTING_BALANCE;
+    }
+
+    return Math.max(0, wallet.balance - wallet.frozenBalance);
   }
 }

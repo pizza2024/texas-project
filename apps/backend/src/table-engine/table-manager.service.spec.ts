@@ -16,8 +16,11 @@ describe('TableManagerService', () => {
   };
   let walletService: {
     getBalance: jest.Mock;
+    getAvailableBalance: jest.Mock;
     setBalance: jest.Mock;
     setBalances: jest.Mock;
+    freezeBalance: jest.Mock;
+    unfreezeBalance: jest.Mock;
   };
   let prisma: {
     table: {
@@ -36,8 +39,11 @@ describe('TableManagerService', () => {
     };
     walletService = {
       getBalance: jest.fn().mockResolvedValue(10000),
+      getAvailableBalance: jest.fn().mockResolvedValue(10000),
       setBalance: jest.fn(),
       setBalances: jest.fn(),
+      freezeBalance: jest.fn().mockResolvedValue(undefined),
+      unfreezeBalance: jest.fn().mockResolvedValue(undefined),
     };
     prisma = {
       table: {

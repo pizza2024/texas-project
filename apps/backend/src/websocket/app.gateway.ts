@@ -273,6 +273,9 @@ export class AppGateway
       return;
     }
 
+    // Persist settlement records BEFORE resetToWaiting clears lastHandResult
+    await this.tableManager.persistSettlementRecords(roomId);
+
     currentTable.resetToWaiting();
     await this.tableManager.persistTableState(roomId);
     await this.tableManager.persistTableBalances(roomId);
@@ -445,7 +448,7 @@ export class AppGateway
     }
 
     await this.ensureRecoveredRoundFlow(roomId, table);
-    const balance = isAlreadySeated ? null : await this.tableManager.getUserBalance(userId);
+    const balance = isAlreadySeated ? null : await this.tableManager.getUserAvailableBalance(userId);
     const minimumRequiredBalance = table.minBuyIn;
     if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
       client.emit('insufficient_balance', {
@@ -478,6 +481,11 @@ export class AppGateway
         event: 'room_full',
         data: { roomId },
       };
+    }
+
+    // Freeze entire balance while player is seated
+    if (!isAlreadySeated && balance !== null) {
+      await this.tableManager.freezePlayerBalance(userId, balance);
     }
 
     client.join(roomId);

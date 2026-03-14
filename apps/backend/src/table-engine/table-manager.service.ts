@@ -53,6 +53,14 @@ export class TableManagerService {
     return this.walletService.getBalance(userId);
   }
 
+  async getUserAvailableBalance(userId: string): Promise<number> {
+    return this.walletService.getAvailableBalance(userId);
+  }
+
+  async freezePlayerBalance(userId: string, amount: number): Promise<void> {
+    await this.walletService.freezeBalance(userId, amount);
+  }
+
   private parseSnapshot(snapshot: string | null | undefined): TableSnapshot | null {
     if (!snapshot) {
       return null;
@@ -100,7 +108,61 @@ export class TableManagerService {
       return;
     }
 
-    await this.walletService.setBalances(table.getPersistentBalances());
+    // frozen=true: player is still seated, so keep their entire balance frozen
+    await this.walletService.setBalances(table.getPersistentBalances(), true);
+  }
+
+  /**
+   * Record Settlement + Transaction rows for the just-completed hand.
+   * Must be called BEFORE resetToWaiting() so lastHandResult is still populated.
+   */
+  async persistSettlementRecords(roomId: string): Promise<void> {
+    const table = this.tables.get(roomId);
+    if (!table?.lastHandResult || table.lastHandResult.length === 0) {
+      return;
+    }
+
+    const handResult = table.lastHandResult;
+
+    // Determine primary winner (largest win amount) for Hand.winnerId
+    const primaryWinner = handResult.reduce((a, b) => (b.winAmount > a.winAmount ? b : a), handResult[0]);
+    const totalPot = handResult.reduce((sum, r) => sum + r.winAmount, 0);
+
+    try {
+      // Create the Hand record, then Settlement + Transaction records
+      const hand = await this.prisma.hand.create({
+        data: {
+          tableId: roomId,
+          winnerId: primaryWinner.winAmount > 0 ? primaryWinner.playerId : null,
+          potSize: totalPot,
+        },
+      });
+
+      const settlementData = handResult.map((r) => ({
+        handId: hand.id,
+        userId: r.playerId,
+        amount: r.winAmount,
+      }));
+
+      const transactionData = handResult
+        .filter((r) => r.totalBet > 0 || r.winAmount > 0)
+        .map((r) => {
+          const profit = r.winAmount - r.totalBet;
+          return {
+            userId: r.playerId,
+            amount: profit,
+            type: profit >= 0 ? 'GAME_WIN' : 'GAME_LOSS',
+          };
+        });
+
+      await this.prisma.$transaction([
+        this.prisma.settlement.createMany({ data: settlementData }),
+        ...transactionData.map((t) => this.prisma.transaction.create({ data: t })),
+      ]);
+    } catch (err) {
+      // Non-fatal: log and continue — game integrity (balance updates) must not be blocked
+      console.error(`[persistSettlementRecords] roomId=${roomId}`, err);
+    }
   }
 
   getTables(): Table[] {
@@ -149,6 +211,7 @@ export class TableManagerService {
     const removedPlayer = table.removePlayer(userId);
     if (removedPlayer) {
       await this.walletService.setBalance(removedPlayer.id, removedPlayer.stack);
+      await this.walletService.unfreezeBalance(removedPlayer.id);
     }
 
     const hasNoPlayers = table.getPlayerCount() === 0;

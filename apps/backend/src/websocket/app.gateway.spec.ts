@@ -8,8 +8,11 @@ describe('AppGateway', () => {
     getTable: jest.Mock;
     broadcastRoomStatus: jest.Mock;
     getUserBalance: jest.Mock;
+    getUserAvailableBalance: jest.Mock;
+    freezePlayerBalance: jest.Mock;
     persistTableBalances: jest.Mock;
     persistTableState: jest.Mock;
+    persistSettlementRecords: jest.Mock;
   };
   let jwtService: {
     verify: jest.Mock;
@@ -26,8 +29,11 @@ describe('AppGateway', () => {
       getTable: jest.fn(),
       broadcastRoomStatus: jest.fn(),
       getUserBalance: jest.fn().mockResolvedValue(10000),
+      getUserAvailableBalance: jest.fn().mockResolvedValue(10000),
+      freezePlayerBalance: jest.fn().mockResolvedValue(undefined),
       persistTableBalances: jest.fn(),
       persistTableState: jest.fn(),
+      persistSettlementRecords: jest.fn().mockResolvedValue(undefined),
     };
     jwtService = {
       verify: jest.fn().mockReturnValue({
@@ -229,7 +235,7 @@ describe('AppGateway', () => {
 
     await gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
 
-    expect(tableManager.getUserBalance).toHaveBeenCalledWith('user-1');
+    expect(tableManager.getUserAvailableBalance).toHaveBeenCalledWith('user-1');
     expect(table.addPlayer).toHaveBeenCalledWith(
       expect.objectContaining({ sub: 'user-1' }),
       10000,
@@ -253,7 +259,7 @@ describe('AppGateway', () => {
     };
 
     tableManager.getUserCurrentRoomId.mockReturnValue(null);
-    tableManager.getUserBalance.mockResolvedValue(0);
+    tableManager.getUserAvailableBalance.mockResolvedValue(0);
     tableManager.getTable.mockResolvedValue(table);
 
     const result = await gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
@@ -279,7 +285,7 @@ describe('AppGateway', () => {
     };
     const table = {
       currentStage: GameStage.SETTLEMENT,
-      settlementEndsAt: Date.now() + 2000,
+      settlementEndsAt: Date.now() + 2000 as number | null,
       readyCountdownEndsAt: null as number | null,
       smallBlind: 10,
       bigBlind: 20,
@@ -290,7 +296,7 @@ describe('AppGateway', () => {
       }),
       resetToWaiting: jest.fn(() => {
         table.currentStage = GameStage.WAITING;
-        table.settlementEndsAt = null;
+        table.settlementEndsAt = null as number | null;
       }),
       getMaskedView: jest.fn().mockReturnValue({ roomId: 'room-1' }),
     };
