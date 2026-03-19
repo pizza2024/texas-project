@@ -10,6 +10,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminModule } from './admin/admin.module';
 import { RedisModule } from './redis/redis.module';
+import { MatchmakingModule } from './matchmaking/matchmaking.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RedisModule } from './redis/redis.module';
     TableEngineModule,
     WebsocketModule,
     AdminModule,
+    MatchmakingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

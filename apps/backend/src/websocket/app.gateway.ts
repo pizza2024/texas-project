@@ -24,6 +24,7 @@ import {
   RoomStatusUpdatedPayload,
   roomEvents,
 } from './room-events';
+import { MatchmakingService, BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
 
 @WebSocketGateway({
   cors: {
@@ -59,6 +60,7 @@ export class AppGateway
     private tableManager: TableManagerService,
     private jwtService: JwtService,
     private userService: UserService,
+    private matchmakingService: MatchmakingService,
   ) {}
 
   /**
@@ -297,8 +299,16 @@ export class AppGateway
       return;
     }
 
+    // Capture hand result before it's cleared by persistSettlementRecords / resetToWaiting
+    const handResult = currentTable.lastHandResult ? [...currentTable.lastHandResult] : [];
+
     // Persist settlement records BEFORE resetToWaiting clears lastHandResult
     await this.tableManager.persistSettlementRecords(roomId);
+
+    // Update ELO ratings for all participants (non-blocking, fire-and-forget on error)
+    if (handResult.length > 0) {
+      void this.matchmakingService.updateElo(handResult);
+    }
 
     currentTable.resetToWaiting();
     await this.tableManager.persistTableState(roomId);
@@ -594,6 +604,7 @@ export class AppGateway
     }
 
     const roomId = result.roomId;
+    this.matchmakingService.recordPlayerLeft(roomId, userId);
 
     client.leave(roomId);
     await this.syncRoomAfterPlayerExit(roomId, result.dissolved);
@@ -603,5 +614,61 @@ export class AppGateway
       event: 'left_room',
       data: { roomId, dissolved: result.dissolved },
     };
+  }
+
+  /**
+   * Quick-match: find or create a suitable matchmaking room for the requested tier,
+   * then emit match_found so the client can navigate to the room.
+   */
+  @SubscribeMessage('quick_match')
+  async handleQuickMatch(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { tier: BlindTier },
+  ) {
+    const userId = client.data.user?.sub as string;
+    if (!userId) return { event: 'error', data: 'Unauthorized' };
+
+    const tier = data?.tier;
+    if (!tier || !BLIND_TIERS[tier]) {
+      client.emit('match_error', { message: 'Invalid tier' });
+      return;
+    }
+
+    const config = BLIND_TIERS[tier];
+
+    // Ensure player isn't already in a room
+    const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
+    if (currentRoomId) {
+      client.emit('match_error', { message: 'already_in_room', roomId: currentRoomId });
+      return;
+    }
+
+    // Validate available chips
+    const availableChips = await this.tableManager.getUserAvailableBalance(userId);
+    if (availableChips < config.minBuyIn) {
+      client.emit('match_error', { message: 'insufficient_chips', required: config.minBuyIn });
+      return;
+    }
+
+    const playerElo = await this.matchmakingService.getPlayerElo(userId);
+    const rawIp = client.handshake.address ?? '0.0.0.0';
+    const ipHash = this.matchmakingService.hashIp(rawIp);
+
+    try {
+      const roomId = await this.matchmakingService.findOrCreateMatchmakingRoom(
+        userId,
+        tier,
+        playerElo,
+        ipHash,
+      );
+
+      // Record this player in the matchmaking tracking maps before they officially join
+      this.matchmakingService.recordPlayerJoined(roomId, userId, playerElo, ipHash);
+
+      client.emit('match_found', { roomId, tier });
+    } catch (err) {
+      this.logger.error('quick_match error', err);
+      client.emit('match_error', { message: 'server_error' });
+    }
   }
 }

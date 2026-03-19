@@ -4,12 +4,14 @@ import { TableEngineModule } from '../table-engine/table-engine.module';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../user/user.module';
+import { MatchmakingModule } from '../matchmaking/matchmaking.module';
 
 @Module({
   imports: [
     TableEngineModule,
     AuthModule,
     UserModule,
+    MatchmakingModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret',
     }),

@@ -10,6 +10,120 @@ import { disconnectSocket, getSocket } from '@/lib/socket';
 import { showSystemMessage } from '@/lib/system-message';
 import { UserAvatar } from '@/components/user-avatar';
 
+/* ---------- Quick Match Dialog ---------- */
+
+const TIERS = [
+  { id: 'MICRO',   label: 'Micro',   blinds: '5/10',    minChips: 100,  seats: 6, emoji: '🌱' },
+  { id: 'LOW',     label: 'Low',     blinds: '10/20',   minChips: 200,  seats: 6, emoji: '💚' },
+  { id: 'MEDIUM',  label: 'Medium',  blinds: '25/50',   minChips: 500,  seats: 9, emoji: '💛' },
+  { id: 'HIGH',    label: 'High',    blinds: '50/100',  minChips: 1000, seats: 9, emoji: '🔶' },
+  { id: 'PREMIUM', label: 'Premium', blinds: '100/200', minChips: 2000, seats: 6, emoji: '💎' },
+] as const;
+
+interface QuickMatchDialogProps {
+  currentChips: number;
+  onClose: () => void;
+  onMatch: (tier: string) => void;
+}
+
+function QuickMatchDialog({ currentChips, onClose, onMatch }: QuickMatchDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl p-6 space-y-5"
+        style={{
+          background: 'linear-gradient(160deg, rgba(10,20,14,0.99) 0%, rgba(5,11,8,1) 100%)',
+          border: '1px solid rgba(16,185,129,0.3)',
+          boxShadow: '0 0 60px rgba(16,185,129,0.08), 0 20px 60px rgba(0,0,0,0.7)',
+        }}
+      >
+        {/* Title */}
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">⚡</span>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase" style={{ color: 'rgba(52,211,153,0.6)' }}>
+              {t('lobby.quickMatch')}
+            </p>
+            <h2 className="text-xl font-black tracking-wide" style={{ color: '#6ee7b7' }}>
+              {t('lobby.selectTier')}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="ml-auto text-gray-500 hover:text-gray-300 transition-colors text-lg leading-none"
+          >✕</button>
+        </div>
+
+        {/* Tiers */}
+        <div className="space-y-2">
+          {TIERS.map((tier) => {
+            const affordable = currentChips >= tier.minChips;
+            return (
+              <button
+                key={tier.id}
+                disabled={!affordable}
+                onClick={() => onMatch(tier.id)}
+                className="w-full rounded-xl px-4 py-3.5 flex items-center gap-4 transition-all duration-150 text-left"
+                style={{
+                  background: affordable
+                    ? 'rgba(255,255,255,0.04)'
+                    : 'rgba(255,255,255,0.01)',
+                  border: affordable
+                    ? '1px solid rgba(52,211,153,0.2)'
+                    : '1px solid rgba(255,255,255,0.06)',
+                  opacity: affordable ? 1 : 0.4,
+                  cursor: affordable ? 'pointer' : 'not-allowed',
+                }}
+                onMouseEnter={(e) => {
+                  if (affordable) (e.currentTarget as HTMLElement).style.background = 'rgba(16,185,129,0.12)';
+                }}
+                onMouseLeave={(e) => {
+                  if (affordable) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
+                }}
+              >
+                <span className="text-2xl leading-none">{tier.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-black text-base tracking-wide" style={{ color: affordable ? '#d1fae5' : '#6b7280' }}>
+                      {t(`lobby.tier${tier.id.charAt(0) + tier.id.slice(1).toLowerCase()}` as any) || tier.label}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: 'rgba(245,158,11,0.75)' }}>
+                      {t('lobby.tierBlinds', { blinds: tier.blinds })}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 mt-0.5">
+                    <span className="text-[11px]" style={{ color: 'rgba(156,163,175,0.7)' }}>
+                      {t('lobby.tierMinChips', { amount: tier.minChips.toLocaleString() })}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'rgba(156,163,175,0.7)' }}>
+                      {t('lobby.tierMaxSeats', { seats: tier.seats })}
+                    </span>
+                  </div>
+                </div>
+                {affordable && (
+                  <span className="text-emerald-400 text-sm font-bold">→</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-center" style={{ color: 'rgba(107,114,128,0.6)' }}>
+          {t('lobby.quickMatchDesc')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 创建房间弹窗 ---------- */
 interface CreateRoomForm {
   name: string;
@@ -310,11 +424,14 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatusMap, setRoomStatusMap] = useState<Record<string, RoomStatus>>({});
   const [currentBalance, setCurrentBalance] = useState<number>(0);
+  const [elo, setElo] = useState<number>(1000);
   const [nickname, setNickname] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState<{ roomId: string; roomName: string } | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
@@ -349,6 +466,7 @@ export default function RoomsPage() {
             ? profileRes.data.coinBalance
             : 0,
         );
+        setElo(typeof profileRes.data?.elo === 'number' ? profileRes.data.elo : 1000);
         setNickname(typeof profileRes.data?.nickname === 'string' ? profileRes.data.nickname : '');
         setUserId(typeof profileRes.data?.id === 'string' ? profileRes.data.id : '');
         setUserAvatar(typeof profileRes.data?.avatar === 'string' ? profileRes.data.avatar : null);
@@ -414,12 +532,34 @@ export default function RoomsPage() {
     socket.on('room_created', onRoomCreated);
     socket.on('room_dissolved', onRoomDissolved);
     socket.on('room_status_updated', onRoomStatusUpdated);
+
+    const onMatchFound = (payload: { roomId: string }) => {
+      setIsSearching(false);
+      router.push(`/room/${payload.roomId}`);
+    };
+
+    const onMatchError = async (payload: { message: string; required?: number }) => {
+      setIsSearching(false);
+      let msg = t('lobby.matchError');
+      if (payload.message === 'insufficient_chips') {
+        msg = t('lobby.matchErrorInsufficientChips', { amount: payload.required ?? 0 });
+      } else if (payload.message === 'already_in_room') {
+        msg = t('lobby.matchErrorAlreadyInRoom');
+      }
+      await showSystemMessage({ title: t('lobby.quickMatch'), message: msg });
+    };
+
+    socket.on('match_found', onMatchFound);
+    socket.on('match_error', onMatchError);
+
     fetchRooms();
 
     return () => {
       socket.off('room_created', onRoomCreated);
       socket.off('room_dissolved', onRoomDissolved);
       socket.off('room_status_updated', onRoomStatusUpdated);
+      socket.off('match_found', onMatchFound);
+      socket.off('match_error', onMatchError);
       disconnectSocket();
     };
   }, [router]);
@@ -479,6 +619,19 @@ export default function RoomsPage() {
     }
   };
 
+  const handleQuickMatch = (tier: string) => {
+    setShowQuickMatchDialog(false);
+    setIsSearching(true);
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const socket = getSocket(token);
+    socket.emit('quick_match', { tier });
+  };
+
+  const handleCancelSearch = () => {
+    setIsSearching(false);
+  };
+
   if (loading) {
     return (
       <div
@@ -508,6 +661,52 @@ export default function RoomsPage() {
           onClose={() => setShowCreateDialog(false)}
           onCreate={handleCreateRoom}
         />
+      )}
+
+      {showQuickMatchDialog && (
+        <QuickMatchDialog
+          currentChips={currentBalance}
+          onClose={() => setShowQuickMatchDialog(false)}
+          onMatch={handleQuickMatch}
+        />
+      )}
+
+      {/* Searching overlay */}
+      {isSearching && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" />
+          <div
+            className="relative flex flex-col items-center gap-6 px-10 py-9 rounded-3xl"
+            style={{
+              background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
+              border: '1px solid rgba(234,179,8,0.3)',
+              boxShadow: '0 0 60px rgba(234,179,8,0.08), 0 20px 60px rgba(0,0,0,0.7)',
+            }}
+          >
+            <div className="text-5xl animate-spin" style={{ animationDuration: '1.5s' }}>⚡</div>
+            <div className="text-center space-y-1.5">
+              <p className="text-xl font-black tracking-widest uppercase" style={{ color: '#fcd34d' }}>
+                {t('lobby.searching')}
+              </p>
+              <div className="flex gap-1 justify-center">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <button
+              className="text-xs font-bold tracking-[0.2em] uppercase px-6 py-2.5 rounded-lg transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(245,158,11,0.6)', border: '1px solid rgba(245,158,11,0.2)' }}
+              onClick={handleCancelSearch}
+            >
+              {t('lobby.searchingCancel')}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Password dialog for private rooms */}
@@ -613,6 +812,20 @@ export default function RoomsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Quick Match button */}
+            <Button
+              onClick={() => setShowQuickMatchDialog(true)}
+              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, #065f46 0%, #047857 40%, #10b981 100%)',
+                color: '#ecfdf5',
+                border: 'none',
+                boxShadow: '0 0 20px rgba(16,185,129,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              }}
+            >
+              ⚡ {t('lobby.quickMatchBtn')}
+            </Button>
+
             {/* Create Table button */}
             <Button
               onClick={() => setShowCreateDialog(true)}
@@ -680,6 +893,9 @@ export default function RoomsPage() {
                       <p className="text-white font-black text-sm truncate">{nickname || '—'}</p>
                       <p className="text-[10px] font-bold tracking-wide" style={{ color: 'rgba(245,158,11,0.6)' }}>
                         ${currentBalance.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] font-bold tracking-wide" style={{ color: 'rgba(52,211,153,0.7)' }}>
+                        ⚡ {t('lobby.eloRating')}: {elo}
                       </p>
                     </div>
                   </div>

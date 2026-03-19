@@ -12,4 +12,7 @@ export class AuthUserDto {
 
   @ApiProperty({ example: 10000 })
   coinBalance: number;
+
+  @ApiProperty({ example: 1000, description: 'Matchmaking ELO rating' })
+  elo: number;
 }

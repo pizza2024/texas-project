@@ -73,6 +73,7 @@ export class AuthService {
     nickname: string;
     avatar: string | null;
     coinBalance: number;
+    elo: number;
   }): Promise<AuthUserDto> {
     const balance = await this.walletService.getBalance(user.id);
 
@@ -81,6 +82,7 @@ export class AuthService {
       nickname: user.nickname,
       avatar: user.avatar,
       coinBalance: balance,
+      elo: user.elo,
     };
   }
 }

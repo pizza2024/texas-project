@@ -948,19 +948,6 @@ export default function RoomPage() {
           ← Lobby
         </Button>
 
-        <button
-          type="button"
-          className="absolute left-1/2 -translate-x-1/2 h-8 px-4 text-[11px] font-bold tracking-[0.18em] uppercase rounded-lg transition-colors hover:bg-yellow-900/20"
-          style={{
-            background: 'transparent',
-            border: '1px solid rgba(234,179,8,0.2)',
-            color: 'rgba(245,158,11,0.68)',
-          }}
-          onClick={() => window.open('/settings', '_blank', 'noopener,noreferrer')}
-        >
-          {t('room.settingsBtn')}
-        </button>
-
         <div className="text-center">
           {isSettlement ? (
             <div className="flex flex-col items-center gap-1">

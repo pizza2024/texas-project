@@ -26,7 +26,7 @@ export class RoomService {
   }
 
   async findAll(): Promise<Room[]> {
-    return this.prisma.room.findMany();
+    return this.prisma.room.findMany({ where: { isMatchmaking: false } });
   }
 
   async findOne(id: string): Promise<Room | null> {
