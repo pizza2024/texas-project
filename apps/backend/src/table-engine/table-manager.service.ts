@@ -201,9 +201,14 @@ export class TableManagerService {
   }
 
   async getUserCurrentRoomId(userId: string): Promise<string | null> {
+    return (await this.getUserCurrentRoom(userId))?.roomId ?? null;
+  }
+
+  async getUserCurrentRoom(userId: string): Promise<{ roomId: string; isMatchmaking: boolean } | null> {
     for (const [roomId, table] of this.tables.entries()) {
       if (table.hasPlayer(userId)) {
-        return roomId;
+        const room = await this.roomService.findOne(roomId);
+        return { roomId, isMatchmaking: room?.isMatchmaking ?? false };
       }
     }
 
@@ -218,7 +223,8 @@ export class TableManagerService {
     for (const persistedTable of persistedTables) {
       const snapshot = this.parseSnapshot(persistedTable.stateSnapshot);
       if (snapshot?.players.some((player) => player?.id === userId)) {
-        return persistedTable.id;
+        const room = await this.roomService.findOne(persistedTable.id);
+        return { roomId: persistedTable.id, isMatchmaking: room?.isMatchmaking ?? false };
       }
     }
 

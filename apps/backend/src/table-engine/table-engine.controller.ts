@@ -16,8 +16,8 @@ export class TableEngineController {
   @UseGuards(AuthGuard('jwt'))
   @Get('me/current-room')
   async getCurrentRoom(@Req() req: AuthenticatedRequest) {
-    const roomId = await this.tableManagerService.getUserCurrentRoomId(req.user.userId);
-    return { roomId };
+    const room = await this.tableManagerService.getUserCurrentRoom(req.user.userId);
+    return { roomId: room?.roomId ?? null, isMatchmaking: room?.isMatchmaking ?? false };
   }
 
   @UseGuards(AuthGuard('jwt'))

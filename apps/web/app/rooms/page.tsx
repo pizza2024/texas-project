@@ -432,6 +432,7 @@ export default function RoomsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const isSearchingRef = useRef(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState<{ roomId: string; roomName: string } | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
@@ -455,8 +456,13 @@ export default function RoomsPage() {
         ]);
 
         if (currentRoomRes.data?.roomId) {
-          router.replace(`/room/${currentRoomRes.data.roomId}`);
-          return;
+          if (currentRoomRes.data?.isMatchmaking) {
+            // Silently leave stale matchmaking rooms so the user returns to the lobby cleanly.
+            await api.post('/tables/me/leave-room').catch(() => {});
+          } else {
+            router.replace(`/room/${currentRoomRes.data.roomId}`);
+            return;
+          }
         }
 
         const roomList: Room[] = roomsRes.data || [];
@@ -534,11 +540,15 @@ export default function RoomsPage() {
     socket.on('room_status_updated', onRoomStatusUpdated);
 
     const onMatchFound = (payload: { roomId: string }) => {
+      if (!isSearchingRef.current) return;
+      isSearchingRef.current = false;
       setIsSearching(false);
       router.push(`/room/${payload.roomId}`);
     };
 
     const onMatchError = async (payload: { message: string; required?: number }) => {
+      if (!isSearchingRef.current) return;
+      isSearchingRef.current = false;
       setIsSearching(false);
       let msg = t('lobby.matchError');
       if (payload.message === 'insufficient_chips') {
@@ -621,6 +631,7 @@ export default function RoomsPage() {
 
   const handleQuickMatch = (tier: string) => {
     setShowQuickMatchDialog(false);
+    isSearchingRef.current = true;
     setIsSearching(true);
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -629,6 +640,7 @@ export default function RoomsPage() {
   };
 
   const handleCancelSearch = () => {
+    isSearchingRef.current = false;
     setIsSearching(false);
   };
 
