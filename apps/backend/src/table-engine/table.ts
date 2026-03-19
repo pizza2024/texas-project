@@ -8,6 +8,8 @@ export interface HandResultEntry {
   winAmount: number;
   /** Total chips this player contributed to the pot this hand (for P&L records). */
   totalBet: number;
+  /** The best 5-card combination for showdown results (empty for fold-wins). */
+  bestCards?: string[];
 }
 
 export interface Pot {
@@ -31,6 +33,8 @@ export interface TableSnapshot {
   settlementEndsAt: number | null;
   readyCountdownEndsAt: number | null;
   actionEndsAt: number | null;
+  isFoldWin: boolean;
+  foldWinnerRevealed: boolean;
 }
 
 export enum GameStage {
@@ -64,6 +68,10 @@ export class Table {
   settlementEndsAt: number | null;
   readyCountdownEndsAt: number | null;
   actionEndsAt: number | null;
+  /** True when the hand ended because all opponents folded (no showdown). */
+  isFoldWin: boolean;
+  /** True when the fold-win winner chose to reveal their cards. */
+  foldWinnerRevealed: boolean;
 
   constructor(id: string, roomId: string, maxPlayers: number, smallBlind: number, bigBlind: number, minBuyIn?: number, roomPassword?: string | null) {
     this.id = id;
@@ -85,6 +93,8 @@ export class Table {
     this.settlementEndsAt = null;
     this.readyCountdownEndsAt = null;
     this.actionEndsAt = null;
+    this.isFoldWin = false;
+    this.foldWinnerRevealed = false;
   }
 
   static fromSnapshot(
@@ -109,6 +119,8 @@ export class Table {
     table.settlementEndsAt = snapshot.settlementEndsAt;
     table.readyCountdownEndsAt = snapshot.readyCountdownEndsAt;
     table.actionEndsAt = snapshot.actionEndsAt ?? null;
+    table.isFoldWin = snapshot.isFoldWin ?? false;
+    table.foldWinnerRevealed = snapshot.foldWinnerRevealed ?? false;
     return table;
   }
 
@@ -156,6 +168,8 @@ export class Table {
       settlementEndsAt: this.settlementEndsAt,
       readyCountdownEndsAt: this.readyCountdownEndsAt,
       actionEndsAt: this.actionEndsAt,
+      isFoldWin: this.isFoldWin,
+      foldWinnerRevealed: this.foldWinnerRevealed,
     };
   }
 
@@ -525,6 +539,8 @@ export class Table {
           winAmount: p!.id === winner.id ? winAmount : 0,
           totalBet: p!.totalBet,
         }));
+      this.isFoldWin = true;
+      this.foldWinnerRevealed = false;
       this.currentStage = GameStage.SETTLEMENT;
       return true;
     }
@@ -653,10 +669,13 @@ export class Table {
         handName: isFolded ? '弃牌' : (result?.score.name ?? ''),
         winAmount: winAmounts.get(p.id) ?? 0,
         totalBet: p.totalBet,
+        bestCards: isFolded ? [] : (result?.score.bestCards ?? []),
       };
     });
 
     this.pot = 0;
+    this.isFoldWin = false;
+    this.foldWinnerRevealed = false;
     this.currentStage = GameStage.SETTLEMENT;
     this.actionEndsAt = null;
   }
@@ -724,7 +743,16 @@ export class Table {
     this.settlementEndsAt = null;
     this.readyCountdownEndsAt = null;
     this.actionEndsAt = null;
+    this.isFoldWin = false;
+    this.foldWinnerRevealed = false;
     this.currentStage = GameStage.WAITING;
+  }
+
+  /** Called when the fold-win winner chooses to reveal their cards. */
+  revealFoldWinnerCards(): void {
+    if (this.isFoldWin && this.currentStage === GameStage.SETTLEMENT) {
+      this.foldWinnerRevealed = true;
+    }
   }
 
   /**
@@ -732,19 +760,32 @@ export class Table {
    * hidden (replaced with ['??','??']) unless it's showdown/settlement.
    */
   getMaskedView(forPlayerId: string): object {
-    const revealAll =
+    // In a fold-win settlement, only reveal the winner's cards if they chose to show.
+    // In a showdown (or post-showdown settlement), reveal all cards.
+    const isShowdownSettlement =
       this.currentStage === GameStage.SHOWDOWN ||
-      this.currentStage === GameStage.SETTLEMENT;
+      (this.currentStage === GameStage.SETTLEMENT && !this.isFoldWin);
 
     const maskedPlayers = this.players.map((p) => {
       if (!p) return null;
       const isOwn = p.id === forPlayerId;
+      let showCards: boolean;
+      if (isOwn) {
+        showCards = true;
+      } else if (isShowdownSettlement) {
+        showCards = true;
+      } else if (this.currentStage === GameStage.SETTLEMENT && this.isFoldWin) {
+        // Show fold-win winner's cards only if they chose to reveal
+        const isWinner = this.lastHandResult?.some(
+          (e) => e.playerId === p.id && e.winAmount > 0,
+        ) ?? false;
+        showCards = isWinner && this.foldWinnerRevealed;
+      } else {
+        showCards = false;
+      }
       return {
         ...p,
-        cards:
-          isOwn || revealAll
-            ? p.cards
-            : p.cards.map(() => '??'),
+        cards: showCards ? p.cards : p.cards.map(() => '??'),
       };
     });
 
@@ -764,6 +805,8 @@ export class Table {
       settlementEndsAt: this.settlementEndsAt,
       readyCountdownEndsAt: this.readyCountdownEndsAt,
       actionEndsAt: this.actionEndsAt,
+      isFoldWin: this.isFoldWin,
+      foldWinnerRevealed: this.foldWinnerRevealed,
     };
   }
 }

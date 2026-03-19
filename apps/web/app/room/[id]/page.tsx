@@ -39,6 +39,8 @@ interface HandResultEntry {
   nickname: string;
   handName: string;
   winAmount: number;
+  /** Best 5-card combination for showdown results. */
+  bestCards?: string[];
 }
 
 interface TableState {
@@ -54,6 +56,8 @@ interface TableState {
   settlementEndsAt?: number | null;
   readyCountdownEndsAt?: number | null;
   actionEndsAt?: number | null;
+  isFoldWin?: boolean;
+  foldWinnerRevealed?: boolean;
 }
 
 const SUIT_SYMBOL: Record<string, string> = { s: '♠', h: '♥', d: '♦', c: '♣' };
@@ -108,10 +112,12 @@ function CardDisplay({
   card,
   large,
   reveal,
+  highlight,
 }: {
   card: string;
   large?: boolean;
   reveal?: boolean;
+  highlight?: boolean;
 }) {
   const isHidden = card === '??';
   const suit = card.slice(-1);
@@ -140,9 +146,13 @@ function CardDisplay({
     <div
       className={`${w} rounded-lg flex flex-col items-center justify-center select-none`}
       style={{
-        background: 'linear-gradient(160deg, #ffffff 0%, #f0f0f0 100%)',
-        border: '1px solid rgba(0,0,0,0.15)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+        background: highlight
+          ? 'linear-gradient(160deg, #fef9c3 0%, #fef08a 100%)'
+          : 'linear-gradient(160deg, #ffffff 0%, #f0f0f0 100%)',
+        border: highlight ? '2px solid rgba(234,179,8,0.9)' : '1px solid rgba(0,0,0,0.15)',
+        boxShadow: highlight
+          ? '0 0 10px rgba(234,179,8,0.55), 0 2px 8px rgba(0,0,0,0.35)'
+          : '0 2px 8px rgba(0,0,0,0.35)',
         color: isRed ? '#dc2626' : '#111827',
       }}
     >
@@ -182,6 +192,7 @@ export default function RoomPage() {
   const [winnerReveals, setWinnerReveals] = useState<WinnerReveal[]>([]);
   const [winnerHighlights, setWinnerHighlights] = useState<string[]>([]);
   const [loserHighlights, setLoserHighlights] = useState<string[]>([]);
+  const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
   const previousTableRef = useRef<TableState | null>(null);
   const dealCleanupRef = useRef<number | null>(null);
   const chipCleanupRef = useRef<number | null>(null);
@@ -713,6 +724,8 @@ export default function RoomPage() {
         table.currentStage === 'SETTLEMENT' &&
         table.lastHandResult
       ) {
+        setFoldWinChoiceMade(false);
+        const isFoldWin = table.isFoldWin ?? false;
         const winners = table.lastHandResult.filter((entry) => entry.winAmount > 0);
         const losers = table.lastHandResult.filter((entry) => entry.winAmount <= 0);
         winners.forEach((entry, winnerIndex) => {
@@ -731,17 +744,25 @@ export default function RoomPage() {
               delay: payoutAnimationIndex * CHIP_FLIGHT_STAGGER_MS,
             });
             payoutAnimationIndex += 1;
-            nextWinnerReveals.push({
-              id: `winner-reveal-${Date.now()}-${entry.playerId}-${winnerIndex}`,
-              playerId: entry.playerId,
-              nickname: entry.nickname,
-              handName: entry.handName,
-              winAmount: entry.winAmount,
-              cards: player?.cards ?? [],
-              top: seat.top - 10,
-              left: seat.left,
-              centerOffsetX: (winnerIndex - (winners.length - 1) / 2) * 160,
-            });
+
+            // For fold-wins: winner animation is shown to all (no hidden cards at showdown).
+            // For showdowns: only show the floating reveal to the winner themselves.
+            const isMyWin = entry.playerId === myUserId;
+            if (!isFoldWin && !isMyWin) {
+              // Non-winner viewer in showdown: skip floating animation, show highlight via bestCards
+            } else {
+              nextWinnerReveals.push({
+                id: `winner-reveal-${Date.now()}-${entry.playerId}-${winnerIndex}`,
+                playerId: entry.playerId,
+                nickname: entry.nickname,
+                handName: entry.handName,
+                winAmount: entry.winAmount,
+                cards: player?.cards ?? [],
+                top: seat.top - 10,
+                left: seat.left,
+                centerOffsetX: (winnerIndex - (winners.length - 1) / 2) * 160,
+              });
+            }
             nextWinnerHighlights.push(entry.playerId);
           });
         losers.forEach((entry) => {
@@ -762,7 +783,7 @@ export default function RoomPage() {
     }
 
     previousTableRef.current = table;
-  }, [table]);
+  }, [table, myUserId]);
 
   useEffect(() => {
     return () => {
@@ -822,6 +843,21 @@ export default function RoomPage() {
   const isSettlement = table?.currentStage === 'SETTLEMENT';
   const isAutoReadyCountdown = table?.currentStage === 'WAITING' && readyCountdown > 0;
   const isActionStage = table ? table.currentStage !== 'WAITING' && table.currentStage !== 'SETTLEMENT' : false;
+  // Fold-win show/muck: only the winner sees the choice during settlement
+  const isFoldWinSettlement = isSettlement && (table?.isFoldWin ?? false);
+  const isFoldWinWinner = isFoldWinSettlement &&
+    (table?.lastHandResult?.some(e => e.playerId === myUserId && e.winAmount > 0) ?? false);
+  const showFoldWinChoice = isFoldWinWinner && !foldWinChoiceMade;
+
+  const handleShowCards = () => {
+    const socket = getAuthorizedSocket();
+    if (!socket) return;
+    socket.emit('show_cards');
+    setFoldWinChoiceMade(true);
+  };
+  const handleMuckCards = () => {
+    setFoldWinChoiceMade(true);
+  };
   const activeCountdown = isSettlement
     ? settlementCountdown
     : isAutoReadyCountdown
@@ -879,6 +915,15 @@ export default function RoomPage() {
   const winnerRevealPlayerIds = new Set(winnerReveals.map((reveal) => reveal.playerId));
   const winnerHighlightPlayerIds = new Set(winnerHighlights);
   const loserHighlightPlayerIds = new Set(loserHighlights);
+  // Build a map of playerId → bestCards set for showdown card highlighting
+  const winnerBestCardsMap = new Map<string, Set<string>>();
+  if (isSettlement && !(table?.isFoldWin)) {
+    table?.lastHandResult?.forEach((entry) => {
+      if (entry.winAmount > 0 && entry.bestCards && entry.bestCards.length > 0) {
+        winnerBestCardsMap.set(entry.playerId, new Set(entry.bestCards));
+      }
+    });
+  }
   return (
     <div className="min-h-screen text-white relative overflow-hidden pb-24" style={pageBg}>
 
@@ -1242,7 +1287,7 @@ export default function RoomPage() {
                   <div className="flex gap-1 mb-1">
                     {player.cards.map((c, ci) => (
                       <div key={ci} style={getDealAnimationStyle(`player-${i}-card-${ci}`)}>
-                        <CardDisplay card={c} />
+                        <CardDisplay card={c} highlight={winnerBestCardsMap.get(player.id)?.has(c)} />
                       </div>
                     ))}
                   </div>
@@ -1408,6 +1453,29 @@ export default function RoomPage() {
                 : t('room.ready')}
           </Button>
         ) : isSettlement ? (
+          showFoldWinChoice ? (
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'rgba(251,191,36,0.85)' }}>
+                {t('room.showOrMuck')}
+              </span>
+              <div className="flex gap-3">
+                <Button
+                  className="h-9 px-5 text-xs font-bold tracking-widest uppercase rounded-xl transition-colors"
+                  style={{ background: 'rgba(20,83,45,0.88)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac' }}
+                  onClick={handleShowCards}
+                >
+                  {t('room.showCards')}
+                </Button>
+                <Button
+                  className="h-9 px-5 text-xs font-bold tracking-widest uppercase rounded-xl transition-colors"
+                  style={{ background: 'rgba(30,27,75,0.88)', border: '1px solid rgba(167,139,250,0.35)', color: '#c4b5fd' }}
+                  onClick={handleMuckCards}
+                >
+                  {t('room.muck')}
+                </Button>
+              </div>
+            </div>
+          ) : (
           <div
             className="h-11 px-6 rounded-xl flex items-center justify-center text-sm font-bold tracking-[0.15em] uppercase"
             style={{
@@ -1418,6 +1486,7 @@ export default function RoomPage() {
           >
             {t('room.settlementCountdown', { seconds: settlementCountdown })}
           </div>
+          )
         ) : (
           <div className="flex flex-col items-center gap-2">
             <div

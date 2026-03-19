@@ -671,4 +671,27 @@ export class AppGateway
       client.emit('match_error', { message: 'server_error' });
     }
   }
+
+  @SubscribeMessage('show_cards')
+  async handleShowCards(@ConnectedSocket() client: Socket) {
+    const userId = client.data.user?.sub as string;
+    if (!userId) return;
+
+    const roomId = await this.tableManager.getUserCurrentRoomId(userId);
+    if (!roomId) return;
+
+    const table = await this.tableManager.getTable(roomId);
+    if (!table) return;
+
+    if (table.currentStage !== GameStage.SETTLEMENT || !table.isFoldWin) return;
+
+    const isWinner = table.lastHandResult?.some(
+      (e) => e.playerId === userId && e.winAmount > 0,
+    ) ?? false;
+    if (!isWinner) return;
+
+    table.revealFoldWinnerCards();
+    await this.tableManager.persistTableState(roomId);
+    await this.broadcastTableState(roomId, table);
+  }
 }
