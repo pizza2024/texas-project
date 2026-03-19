@@ -4,3 +4,15 @@ dist
 .env
 .turbo
 coverage
+
+# Environment files — commit .env.development and .env.test (local docker defaults)
+# but never commit .env.production or personal overrides
+.env.production
+.env.*.local
+
+# SQLite legacy files
+*.db
+*.db-journal
+
+# Uploaded files (generated at runtime)
+apps/backend/uploads/

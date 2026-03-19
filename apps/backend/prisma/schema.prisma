@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -41,7 +41,7 @@ model AdminLog {
   detail      String?
   createdAt   DateTime @default(now())
 
-  admin       User     @relation(fields: [adminId], references: [id])
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@map("admin_logs")
 }
@@ -52,9 +52,7 @@ model Wallet {
   balance       Float    @default(0)       // Real-money balance (reserved for future USDT top-up)
   chips         Float    @default(0)       // Game chips (migrated from old balance field)
   frozenChips   Float    @default(0)       // Chips locked at a table (prevents double-spend)
-  user          User     @relation(fields: [userId], references: [id])
-  
-  @@map("wallets")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Room {
@@ -81,7 +79,7 @@ model Table {
   state          String   @default("WAITING") // WAITING, DEALING, PREFLOP, FLOP, TURN, RIVER, SHOWDOWN
   stateSnapshot  String?
   snapshotUpdatedAt DateTime?
-  room           Room     @relation(fields: [roomId], references: [id])
+  room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   
   hands          Hand[]
 
@@ -95,8 +93,8 @@ model Hand {
   potSize   Float    @default(0)
   createdAt DateTime @default(now())
   
-  table     Table    @relation(fields: [tableId], references: [id])
-  winner    User?    @relation(fields: [winnerId], references: [id])
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  winner    User?    @relation(fields: [winnerId], references: [id], onDelete: SetNull)
   actions   HandAction[]
   settlements Settlement[]
 
@@ -111,8 +109,8 @@ model HandAction {
   amount    Float    @default(0)
   createdAt DateTime @default(now())
 
-  hand      Hand     @relation(fields: [handId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  hand      Hand     @relation(fields: [handId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("hand_actions")
 }
@@ -124,9 +122,7 @@ model Settlement {
   amount    Float
   createdAt DateTime @default(now())
 
-  hand      Hand     @relation(fields: [handId], references: [id])
-
-  @@map("settlements")
+  hand      Hand     @relation(fields: [handId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
@@ -136,7 +132,5 @@ model Transaction {
   type      String   // DEPOSIT, WITHDRAW, GAME_WIN, GAME_LOSS
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@map("transactions")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -9,7 +9,7 @@ export const getSocket = (token: string): Socket => {
       socket.disconnect();
     }
 
-    socket = io('http://localhost:4000', {
+    socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000', {
       query: { token },
       transports: ['websocket'],
     });
