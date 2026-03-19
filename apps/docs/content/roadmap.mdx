@@ -1,0 +1,38 @@
+# 开发路线图 / Roadmap
+
+待规划和待实现的功能点，按优先级和依赖关系排列。
+
+---
+
+## 待规划功能
+
+### 📱 Telegram Mini App 集成
+
+**优先级：** 待定（需先完成部署上线）  
+**依赖：** HTTPS 域名 + 服务器部署
+
+**方案：** Telegram Mini App（方案一）
+
+将现有 Next.js 游戏前端以 Mini App 形式嵌入 Telegram，用户可直接在 Telegram 内打开并游玩。
+
+**核心改动点：**
+
+| 模块 | 改动内容 |
+|------|----------|
+| Bot 注册 | 通过 `@BotFather` 创建 Bot，绑定 Mini App 域名 |
+| 后端登录 | 新增 `POST /auth/telegram` 接口，验证 Telegram `initData` HMAC 签名，自动注册/登录用户 |
+| 前端 SDK | 引入 `@twa-dev/sdk`，初始化 `WebApp.ready()`，适配主题色与安全区域 |
+| 单点登录 | Telegram userId 作为唯一标识，与现有单点登录系统集成 |
+| 支付（可选）| 使用 Telegram Payments API 实现筹码充值（Stars 或第三方支付）|
+
+**参考文档：**
+- https://core.telegram.org/bots/webapps
+- https://github.com/twa-dev/SDK
+
+---
+
+## 已完成功能
+
+- 单点登录（同一账号同时只能在一个设备登录）
+- 顶出旧设备并自动登出（WebSocket `force_logout` 事件）
+- 游戏重连支持（断线重连 + `rejoin_available` 事件）
