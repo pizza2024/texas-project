@@ -53,11 +53,12 @@ model Wallet {
   chips         Float    @default(0)       // Game chips (migrated from old balance field)
   frozenChips   Float    @default(0)       // Chips locked at a table (prevents double-spend)
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
 }
 
 model Room {
   id            String   @id @default(uuid())
-  name          String
   blindSmall    Float
   blindBig      Float
   maxPlayers    Int
@@ -123,6 +124,8 @@ model Settlement {
   createdAt DateTime @default(now())
 
   hand      Hand     @relation(fields: [handId], references: [id], onDelete: Cascade)
+
+  @@map("settlements")
 }
 
 model Transaction {
@@ -133,4 +136,6 @@ model Transaction {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
 }

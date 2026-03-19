@@ -29,20 +29,19 @@ CREATE TABLE "admin_logs" (
 );
 
 -- CreateTable
-CREATE TABLE "Wallet" (
+CREATE TABLE "wallets" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "chips" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "frozenChips" DOUBLE PRECISION NOT NULL DEFAULT 0,
 
-    CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "wallets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "rooms" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
     "blindSmall" DOUBLE PRECISION NOT NULL,
     "blindBig" DOUBLE PRECISION NOT NULL,
     "maxPlayers" INTEGER NOT NULL,
@@ -91,25 +90,25 @@ CREATE TABLE "hand_actions" (
 );
 
 -- CreateTable
-CREATE TABLE "Settlement" (
+CREATE TABLE "settlements" (
     "id" TEXT NOT NULL,
     "handId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Settlement_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "settlements_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Transaction" (
+CREATE TABLE "transactions" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "type" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -119,13 +118,13 @@ CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
 CREATE UNIQUE INDEX "users_nickname_key" ON "users"("nickname");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Wallet_userId_key" ON "Wallet"("userId");
+CREATE UNIQUE INDEX "wallets_userId_key" ON "wallets"("userId");
 
 -- AddForeignKey
 ALTER TABLE "admin_logs" ADD CONSTRAINT "admin_logs_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Wallet" ADD CONSTRAINT "Wallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tables" ADD CONSTRAINT "tables_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "rooms"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -143,7 +142,7 @@ ALTER TABLE "hand_actions" ADD CONSTRAINT "hand_actions_handId_fkey" FOREIGN KEY
 ALTER TABLE "hand_actions" ADD CONSTRAINT "hand_actions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Settlement" ADD CONSTRAINT "Settlement_handId_fkey" FOREIGN KEY ("handId") REFERENCES "hands"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "settlements" ADD CONSTRAINT "settlements_handId_fkey" FOREIGN KEY ("handId") REFERENCES "hands"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
