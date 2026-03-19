@@ -127,10 +127,20 @@ export class TableManagerService {
   async clearTableState(roomId: string): Promise<void> {
     // Remove from Redis
     await this.redis.del(TABLE_KEY(roomId));
-    // Remove from SQLite
-    await this.prisma.table.deleteMany({
-      where: { id: roomId },
-    });
+    // Remove from SQLite; if the table has associated hand records Prisma's
+    // client-side referential integrity will reject the delete (P2003).
+    // In that case, at minimum nullify the snapshot so getUserCurrentRoom
+    // will no longer find any player in this table.
+    try {
+      await this.prisma.table.deleteMany({
+        where: { id: roomId },
+      });
+    } catch {
+      await this.prisma.table.updateMany({
+        where: { id: roomId },
+        data: { stateSnapshot: null },
+      }).catch(() => {});
+    }
   }
 
   async persistTableBalances(roomId: string): Promise<void> {
