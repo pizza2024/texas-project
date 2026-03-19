@@ -59,6 +59,7 @@ model Wallet {
 
 model Room {
   id            String   @id @default(uuid())
+  name          String
   blindSmall    Float
   blindBig      Float
   maxPlayers    Int

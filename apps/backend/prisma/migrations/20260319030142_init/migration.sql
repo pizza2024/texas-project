@@ -42,6 +42,7 @@ CREATE TABLE "wallets" (
 -- CreateTable
 CREATE TABLE "rooms" (
     "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "blindSmall" DOUBLE PRECISION NOT NULL,
     "blindBig" DOUBLE PRECISION NOT NULL,
     "maxPlayers" INTEGER NOT NULL,
