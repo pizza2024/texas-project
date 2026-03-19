@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -26,8 +26,11 @@ const ELO_MIN = 100;
 const ELO_MATCH_RANGE = 200;
 const COLLUSION_HAND_THRESHOLD = 20; // shared hands in last 24h before we consider collusion risk
 
+/** In production, block multiple players with the same IP from sharing a room. */
+const IP_CHECK_ENABLED = process.env.NODE_ENV === 'production';
+
 @Injectable()
-export class MatchmakingService {
+export class MatchmakingService implements OnModuleInit {
   private readonly logger = new Logger(MatchmakingService.name);
 
   /** roomId → { userId → elo } — tracks ELOs of seated players for avg-ELO matching */
@@ -37,6 +40,23 @@ export class MatchmakingService {
   private readonly roomIps = new Map<string, Set<string>>();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * On startup, close any matchmaking rooms left open from a previous server
+   * session. Their in-memory state (roomElos / roomIps) was lost on restart,
+   * so we can't safely reuse them — mark them INACTIVE to force fresh rooms.
+   */
+  async onModuleInit() {
+    const stale = await this.prisma.room.updateMany({
+      where: { isMatchmaking: true, status: 'ACTIVE' },
+      data: { status: 'INACTIVE' },
+    });
+    if (stale.count > 0) {
+      this.logger.log(
+        `Closed ${stale.count} stale matchmaking room(s) from previous session`,
+      );
+    }
+  }
 
   // ─── Public helpers ─────────────────────────────────────────────────────────
 
@@ -179,9 +199,11 @@ export class MatchmakingService {
       if (Math.abs(avgElo - playerElo) > ELO_MATCH_RANGE) return false;
     }
 
-    // IP anti-cheat: reject if same IP already in room
-    const ips = this.roomIps.get(roomId);
-    if (ips?.has(ipHash)) return false;
+    // IP anti-cheat: only enforced in production (dev users share localhost IP)
+    if (IP_CHECK_ENABLED) {
+      const ips = this.roomIps.get(roomId);
+      if (ips?.has(ipHash)) return false;
+    }
 
     // Collusion check: don't match players who've been at the same table too recently
     if (eloMap && eloMap.size > 0) {
