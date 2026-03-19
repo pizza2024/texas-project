@@ -26,7 +26,11 @@
     "db:reset:dev": "dotenv -e .env.development -- npx prisma migrate reset",
     "db:reset:test": "dotenv -e .env.test -- npx prisma migrate reset --force",
     "db:studio": "dotenv -e .env.development -- npx prisma studio",
-    "db:generate": "npx prisma generate"
+    "db:generate": "npx prisma generate",
+    "db:seed": "dotenv -e .env.development -- npx ts-node prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
