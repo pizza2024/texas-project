@@ -165,7 +165,7 @@
   "lobby.quickMatchDesc": "Get matched to a table based on your skill level",
   "lobby.selectTier": "Select Stake Level",
   "lobby.tierMinChips": "Min {amount} chips",
-  "lobby.tierBlinds": "Blinds {blinds}",
+  "lobby.tierBlinds": "Blinds {{blinds}}",
   "lobby.tierMaxSeats": "{seats} seats",
   "lobby.searching": "Finding a table...",
   "lobby.searchingCancel": "Cancel",

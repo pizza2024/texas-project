@@ -165,7 +165,7 @@
   "lobby.quickMatchDesc": "スキルレベルに合わせたテーブルに自動マッチ",
   "lobby.selectTier": "ステークレベルを選択",
   "lobby.tierMinChips": "最低 {amount} チップ",
-  "lobby.tierBlinds": "ブラインド {blinds}",
+  "lobby.tierBlinds": "ブラインド {{blinds}}",
   "lobby.tierMaxSeats": "{seats} 席",
   "lobby.searching": "テーブルを探しています...",
   "lobby.searchingCancel": "キャンセル",

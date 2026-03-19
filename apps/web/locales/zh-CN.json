@@ -165,7 +165,7 @@
   "lobby.quickMatchDesc": "根据您的技术水平自动匹配桌位",
   "lobby.selectTier": "选择盲注档位",
   "lobby.tierMinChips": "最低 {amount} 筹码",
-  "lobby.tierBlinds": "盲注 {blinds}",
+  "lobby.tierBlinds": "盲注 {{blinds}}",
   "lobby.tierMaxSeats": "{seats} 人桌",
   "lobby.searching": "正在为您寻找桌位...",
   "lobby.searchingCancel": "取消",
