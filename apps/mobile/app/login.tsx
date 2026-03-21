@@ -11,10 +11,12 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { setStoredToken } from '../lib/auth';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +24,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('提示', '请输入用户名和密码');
+      Alert.alert(t('common.tips'), t('auth.inputRequired', { field: t('auth.username') + '和' + t('auth.password') }));
       return;
     }
     setLoading(true);
@@ -34,7 +36,7 @@ export default function LoginScreen() {
       await setStoredToken(res.data.access_token);
       router.replace('/rooms');
     } catch {
-      Alert.alert('登录失败', '用户名或密码错误');
+      Alert.alert(t('auth.loginFailed'), t('auth.loginFailedMsg'));
     } finally {
       setLoading(false);
     }
@@ -47,11 +49,11 @@ export default function LoginScreen() {
     >
       <View style={styles.card}>
         <Text style={styles.title}>♠ Texas Hold'em</Text>
-        <Text style={styles.subtitle}>登录您的账户</Text>
+        <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="用户名"
+          placeholder={t('auth.username')}
           placeholderTextColor="#6b7280"
           value={username}
           onChangeText={setUsername}
@@ -60,7 +62,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="密码"
+          placeholder={t('auth.password')}
           placeholderTextColor="#6b7280"
           value={password}
           onChangeText={setPassword}
@@ -75,9 +77,16 @@ export default function LoginScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>登录</Text>
+            <Text style={styles.buttonText}>{t('auth.loginBtn')}</Text>
           )}
         </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
+          <TouchableOpacity onPress={() => router.push('/register')}>
+            <Text style={styles.footerLink}>{t('auth.register')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -134,5 +143,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 6,
+  },
+  footerText: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  footerLink: {
+    color: '#4ade80',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
