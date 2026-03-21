@@ -10,6 +10,8 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "expo-router": "~55.0.7",
     "prettier": "^3.0.0",
     "turbo": "latest"
   },
@@ -20,6 +22,7 @@
   ],
   "dependencies": {
     "axios": "^1.13.5",
+    "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
     "socket.io-client": "^4.8.3",

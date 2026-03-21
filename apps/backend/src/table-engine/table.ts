@@ -220,6 +220,66 @@ export class Table {
     return null;
   }
 
+  /**
+   * Force-fold a player who is leaving mid-hand.
+   * Only acts during active betting stages (PREFLOP/FLOP/TURN/RIVER).
+   * Triggers fold-win if only one non-folded player remains, or advances
+   * the turn/street when the leaving player was active or their fold
+   * completes the betting round.
+   * Returns true if the hand reached SETTLEMENT as a result.
+   */
+  foldPlayerOnLeave(playerId: string): boolean {
+    if (!this.isActionStage()) return false;
+
+    const playerIndex = this.players.findIndex(p => p && p.id === playerId);
+    if (playerIndex === -1) return false;
+
+    const player = this.players[playerIndex];
+    if (!player) return false;
+
+    // Already out of betting action — nothing to fold.
+    if (player.status === PlayerStatus.FOLD || player.status === PlayerStatus.ALLIN) return false;
+
+    player.status = PlayerStatus.FOLD;
+    this.actionEndsAt = null;
+
+    // Check if only one non-folded player remains → fold-win.
+    const notFolded = this.players.filter(p => p && p.status !== PlayerStatus.FOLD) as Player[];
+    if (notFolded.length === 1) {
+      const winner = notFolded[0];
+      const RAKE_RATE = 0.03;
+      const RAKE_CAP = 30;
+      const rake = Math.min(Math.floor(this.pot * RAKE_RATE), RAKE_CAP);
+      const winAmount = this.pot - rake;
+      winner.stack += winAmount;
+      this.pot = 0;
+      this.lastHandResult = this.players
+        .filter(p => p !== null)
+        .map(p => ({
+          playerId: p!.id,
+          nickname: p!.nickname,
+          handName: p!.id === winner.id ? '其他玩家弃牌' : '弃牌',
+          winAmount: p!.id === winner.id ? winAmount : 0,
+          totalBet: p!.totalBet,
+        }));
+      this.isFoldWin = true;
+      this.foldWinnerRevealed = false;
+      this.currentStage = GameStage.SETTLEMENT;
+      return true;
+    }
+
+    // Advance turn or street when appropriate.
+    if (this.activePlayerIndex === playerIndex || this.isBettingRoundComplete()) {
+      if (this.isBettingRoundComplete()) {
+        this.advanceStreet();
+      } else {
+        this.activePlayerIndex = this.nextActiveFrom(this.activePlayerIndex);
+      }
+    }
+
+    return this.currentStage === GameStage.SETTLEMENT;
+  }
+
   // Toggle ready state for a player. Returns whether all seated players are ready afterwards.
   setPlayerReady(playerId: string): boolean {
     if (this.currentStage !== GameStage.WAITING) return false;

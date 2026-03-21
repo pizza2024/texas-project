@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Texas Hold'em",
+    "slug": "texas-holdem-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "texasholdem",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#060e10"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.texas.holdem"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#060e10",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.texas.holdem",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -25,6 +25,7 @@ import {
   roomEvents,
 } from './room-events';
 import { MatchmakingService, BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
+import { RedisService } from '../redis/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -61,6 +62,7 @@ export class AppGateway
     private jwtService: JwtService,
     private userService: UserService,
     private matchmakingService: MatchmakingService,
+    private redisService: RedisService,
   ) {}
 
   /**
@@ -396,12 +398,31 @@ export class AppGateway
         return;
       }
 
-      const result = await this.tableManager.leaveCurrentRoom(userId);
-      if (!result) {
-        return;
-      }
+      const roomId = await this.tableManager.getUserCurrentRoomId(userId);
+      if (!roomId) return;
 
-      await this.syncRoomAfterPlayerExit(result.roomId, result.dissolved);
+      await this.withRoomLock(roomId, async () => {
+        const result = await this.tableManager.leaveCurrentRoom(userId);
+        if (!result) return;
+
+        if (result.dissolved) {
+          this.clearRoundTimers(roomId);
+        } else if (result.reachedSettlement) {
+          const table = await this.tableManager.getTable(roomId);
+          if (table) {
+            await this.schedulePostHandFlow(roomId, table);
+            await this.broadcastTableState(roomId, table);
+          }
+        } else {
+          const table = await this.tableManager.getTable(roomId);
+          if (table) {
+            if (this.isActionStage(table.currentStage)) {
+              await this.scheduleActionTimeout(roomId, table);
+            }
+            await this.broadcastTableState(roomId, table);
+          }
+        }
+      });
     }, AppGateway.DISCONNECT_GRACE_PERIOD_MS);
 
     this.pendingDisconnects.set(userId, timeout);
@@ -419,8 +440,47 @@ export class AppGateway
         return;
       }
       const payload = this.jwtService.verify(token);
+
+      // Set user data immediately — handleConnection is async, and the client can
+      // emit events (e.g. join_room) before the awaits below complete.
       client.data.user = payload;
+
+      // Enforce single-device login: validate sessionId against Redis
+      if (payload.sessionId && this.redisService.isAvailable) {
+        const stored = await this.redisService.get(`user_session:${payload.sub}`);
+        if (stored !== payload.sessionId) {
+          client.data.user = null;
+          client.emit('force_logout', { reason: 'SESSION_REPLACED' });
+          client.disconnect();
+          return;
+        }
+      }
+
       this.clearPendingDisconnect(payload.sub);
+
+      // Notify new client if they have an active game to rejoin
+      const currentRoomId = await this.tableManager.getUserCurrentRoomId(payload.sub);
+      let isInActiveGame = false;
+      if (currentRoomId) {
+        const table = await this.tableManager.getTable(currentRoomId);
+        if (table && table.hasPlayer(payload.sub) && table.currentStage !== GameStage.WAITING) {
+          isInActiveGame = true;
+          client.emit('rejoin_available', { roomId: currentRoomId });
+        }
+      }
+
+      // Disconnect any other sockets belonging to the same user (single-device enforcement)
+      const allSockets = await this.server.fetchSockets();
+      for (const other of allSockets) {
+        if (other.id !== client.id && (other.data.user?.sub as string | undefined) === payload.sub) {
+          other.emit('force_logout', {
+            reason: 'SESSION_REPLACED',
+            roomId: isInActiveGame ? currentRoomId : undefined,
+          });
+          other.disconnect();
+        }
+      }
+
       this.logger.log(
         `Client connected: ${client.id} User: ${payload.username}`,
       );
@@ -597,23 +657,45 @@ export class AppGateway
   async handleLeaveRoom(@ConnectedSocket() client: Socket) {
     const userId = client.data.user?.sub as string;
     this.clearPendingDisconnect(userId);
-    const result = await this.tableManager.leaveCurrentRoom(userId);
 
-    if (!result) {
+    const roomId = await this.tableManager.getUserCurrentRoomId(userId);
+    if (!roomId) {
       return { event: 'error', data: 'Not in any room' };
     }
 
-    const roomId = result.roomId;
-    this.matchmakingService.recordPlayerLeft(roomId, userId);
+    return this.withRoomLock(roomId, async () => {
+      const result = await this.tableManager.leaveCurrentRoom(userId);
+      if (!result) {
+        return { event: 'error', data: 'Not in any room' };
+      }
 
-    client.leave(roomId);
-    await this.syncRoomAfterPlayerExit(roomId, result.dissolved);
-    client.emit('left_room', { roomId, dissolved: result.dissolved });
+      this.matchmakingService.recordPlayerLeft(roomId, userId);
+      client.leave(roomId);
 
-    return {
-      event: 'left_room',
-      data: { roomId, dissolved: result.dissolved },
-    };
+      if (result.dissolved) {
+        this.clearRoundTimers(roomId);
+      } else if (result.reachedSettlement) {
+        const table = await this.tableManager.getTable(roomId);
+        if (table) {
+          await this.schedulePostHandFlow(roomId, table);
+          await this.broadcastTableState(roomId, table);
+        }
+      } else {
+        const table = await this.tableManager.getTable(roomId);
+        if (table) {
+          if (this.isActionStage(table.currentStage)) {
+            await this.scheduleActionTimeout(roomId, table);
+          }
+          await this.broadcastTableState(roomId, table);
+        }
+      }
+
+      client.emit('left_room', { roomId, dissolved: result.dissolved });
+      return {
+        event: 'left_room',
+        data: { roomId, dissolved: result.dissolved },
+      };
+    });
   }
 
   /**

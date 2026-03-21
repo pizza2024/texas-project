@@ -48,4 +48,14 @@ export class AuthController {
   async getProfile(@Req() req: AuthenticatedRequest): Promise<AuthUserDto> {
     return this.authService.getProfile(req.user.userId);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('logout')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout and invalidate session' })
+  @ApiOkResponse({ description: 'Logged out successfully' })
+  async logout(@Req() req: AuthenticatedRequest): Promise<{ message: string }> {
+    await this.authService.logout(req.user.userId);
+    return { message: 'Logged out successfully' };
+  }
 }

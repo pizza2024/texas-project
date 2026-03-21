@@ -244,6 +244,7 @@ export class TableManagerService {
   async leaveCurrentRoom(userId: string): Promise<{
     roomId: string;
     dissolved: boolean;
+    reachedSettlement: boolean;
   } | null> {
     const roomId = await this.getUserCurrentRoomId(userId);
     if (!roomId) {
@@ -255,6 +256,9 @@ export class TableManagerService {
       return null;
     }
 
+    // Fold the player if they leave during an active hand.
+    const reachedSettlement = table.foldPlayerOnLeave(userId);
+
     const removedPlayer = table.removePlayer(userId);
     if (removedPlayer) {
       await this.walletService.setBalance(removedPlayer.id, removedPlayer.stack);
@@ -265,7 +269,7 @@ export class TableManagerService {
     if (!hasNoPlayers) {
       await this.persistTableState(roomId);
       await this.broadcastRoomStatus(roomId);
-      return { roomId, dissolved: false };
+      return { roomId, dissolved: false, reachedSettlement };
     }
 
     this.tables.delete(roomId);
@@ -274,9 +278,9 @@ export class TableManagerService {
     try {
       await this.roomService.deleteRoom(roomId);
       roomEvents.emit(ROOM_DISSOLVED_EVENT, { id: roomId });
-      return { roomId, dissolved: true };
+      return { roomId, dissolved: true, reachedSettlement: false };
     } catch {
-      return { roomId, dissolved: false };
+      return { roomId, dissolved: false, reachedSettlement: false };
     }
   }
 

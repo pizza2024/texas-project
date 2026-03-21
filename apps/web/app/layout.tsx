@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SystemMessageProvider } from "@/components/system-message-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SocketSessionProvider } from "@/components/socket-session-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <I18nProvider>
-          <SystemMessageProvider>{children}</SystemMessageProvider>
+          <SystemMessageProvider>
+            <SocketSessionProvider>{children}</SocketSessionProvider>
+          </SystemMessageProvider>
         </I18nProvider>
       </body>
     </html>

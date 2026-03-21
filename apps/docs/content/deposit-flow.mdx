@@ -1,0 +1,349 @@
+# 充值流程技术文档
+
+> 版本：v2.0 | 最后更新：2026-03-20
+
+---
+
+## 目录
+
+1. [整体架构](#整体架构)
+2. [测试环境流程](#测试环境流程)
+3. [生产环境流程](#生产环境流程)
+4. [测试 vs 生产差异对比](#测试-vs-生产差异对比)
+5. [生产环境风险与应对](#生产环境风险与应对)
+6. [配置文件规范](#配置文件规范)
+7. [数据库结构](#数据库结构)
+8. [已知问题与修复记录](#已知问题与修复记录)
+9. [上线检查清单](#上线检查清单)
+
+---
+
+## 整体架构
+
+### 通用流程（测试 & 生产共用）
+
+```
+用户打开充值页面
+      ↓
+GET /deposit/address
+      ↓
+HD 钱包按用户 index 派生专属充值地址（首次创建，后续复用）
+      ↓
+用户向该地址转入 USDT
+      ↓
+后端轮询链上 Transfer 事件（每 30 秒）
+      ↓
+检测到到账 → txHash 去重 → 写 DepositRecord → 更新筹码余额
+```
+
+### HD 钱包地址派生规则
+
+| index | 用途 |
+|-------|------|
+| 0 | **保留** — Owner 钱包（合约部署 / Faucet 签名账户） |
+| 1, 2, 3, … | 用户充值地址，每用户唯一，永久绑定 |
+
+派生路径：`m/44'/60'/0'/0/{index}`
+
+---
+
+## 测试环境流程
+
+### 特有组件：Faucet（测试水龙头）
+
+```
+用户点击"领取 100 测试 USDT"
+      ↓
+POST /deposit/faucet
+      ↓
+后端用 HD index=0 钱包调用自部署 USDT 合约的 mint() 方法
+      ↓
+合约 mint 100 USDT 到用户充值地址（on-chain）
+      ↓
+返回 txHash → 前端展示浏览器链接
+      ↓
+30 秒内轮询检测到 Transfer 事件 → 自动到账
+```
+
+### 测试环境参数
+
+| 参数 | 值 |
+|------|----|
+| 网络 | Ethereum Sepolia Testnet |
+| USDT 合约 | `0xE660f7D9cA6eB6dF6c7eF531c5Eb91a2Eb0a64ea`（自部署） |
+| RPC | `https://ethereum-sepolia-rpc.publicnode.com`（免费公共节点） |
+| 区块浏览器 | `https://sepolia.etherscan.io` |
+| 确认数 | 1 |
+| 汇率 | 1 USDT = 100 chips |
+| Faucet | 开启，每用户 60s 冷却，单次 100 USDT |
+
+---
+
+## 生产环境流程
+
+### 无 Faucet，用户真实转账
+
+```
+用户在充值页面获取专属 ETH 地址
+      ↓
+用户从自己的钱包（MetaMask / 交易所）转出真实 USDT
+      ↓
+后端轮询 Ethereum Mainnet 的 Transfer 事件
+      ↓
+等待足够确认数（建议 6 个区块 ≈ 72s）
+      ↓
+写 DepositRecord → 更新筹码余额 → （可选）推送通知用户
+```
+
+### 生产环境参数（建议值）
+
+| 参数 | 建议值 |
+|------|----|
+| 网络 | Ethereum Mainnet（或 BSC/Polygon，视运营需求） |
+| USDT 合约 | 官方 Tether USDT：`0xdAC17F958D2ee523a2206206994597C13D831ec7` |
+| RPC | Alchemy / Infura 付费节点（WebSocket 优先） |
+| 区块浏览器 | `https://etherscan.io` |
+| 确认数 | ≥ 6（防止链重组导致误到账） |
+| 汇率 | 按运营决策配置 |
+| Faucet | **关闭**（`FAUCET_ENABLED=false`） |
+| 扫块范围 | 持久化 `lastScannedBlock`，不限 1000 块 |
+
+---
+
+## 测试 vs 生产差异对比
+
+| 维度 | 测试环境 | 生产环境 | 风险等级 |
+|------|---------|---------|---------|
+| **网络** | Sepolia 测试链 | Ethereum Mainnet | 🔴 关键 |
+| **USDT 合约** | 自部署（可 mint） | 官方 Tether 合约（只读监听） | 🔴 关键 |
+| **Faucet** | 开启（免费领取） | **必须关闭** | 🔴 关键 |
+| **RPC 节点** | 免费公共节点（不稳定） | 付费专用节点 | 🟠 高 |
+| **确认数** | 1（快速） | ≥ 6（安全） | 🟠 高 |
+| **扫块范围** | 最近 1000 块（≈3.3h） | 持久化进度，全量扫描 | 🟠 高 |
+| **助记词存储** | 本地 `.env.local` 文件 | KMS / 硬件钱包 / Secret Manager | 🔴 关键 |
+| **冷却时间** | 内存 Map（重启清空） | Redis 持久化 | 🟡 中 |
+| **事件监听** | 定时轮询 | WebSocket 实时监听 + 轮询兜底 | 🟡 中 |
+| **精度处理** | `Number()` 转换（有溢出风险） | `BigInt` 全程精确计算 | 🟠 高 |
+| **区块浏览器** | sepolia.etherscan.io | etherscan.io | 🟢 低 |
+| **最低充值额** | 无限制 | 建议设置最低额（如 10 USDT） | 🟡 中 |
+| **到账通知** | 无 | WebSocket 推送 / 邮件通知 | 🟡 中 |
+
+---
+
+## 生产环境风险与应对
+
+### 🔴 风险 1：助记词泄露导致用户资金被盗
+
+**问题**：所有用户充值地址均由同一助记词派生，泄露即全损。
+
+**应对**：
+- 生产环境不得使用文件存储助记词
+- 使用云端 KMS（AWS KMS / GCP Cloud KMS / Azure Key Vault）或硬件安全模块（HSM）
+- 仅在内存中加载，不落盘、不打日志
+- 定期轮换（需提前通知用户迁移充值地址）
+
+```env
+# 生产环境不配置 HD_WALLET_MNEMONIC 明文
+# 改由 KMS SDK 在运行时注入
+HD_WALLET_MNEMONIC_KMS_KEY_ID=arn:aws:kms:us-east-1:xxx
+```
+
+---
+
+### 🔴 风险 2：Faucet 未关闭导致无限铸币
+
+**问题**：若 `FAUCET_ENABLED=true` 上生产，任何用户可无限领取筹码。
+
+**应对**：
+```env
+# 生产必须设置
+FAUCET_ENABLED=false
+```
+
+建议在后端启动时做强检验：
+
+```typescript
+if (process.env.NODE_ENV === 'production' && process.env.FAUCET_ENABLED === 'true') {
+  throw new Error('FATAL: Faucet must be disabled in production!');
+}
+```
+
+---
+
+### 🟠 风险 3：`Number()` 精度溢出导致筹码计算错误
+
+**问题**：当前代码用 `Number(value) / 10 ** 6` 转换金额。JavaScript `Number` 最大安全整数为 `2^53 ≈ 9 × 10^15`，大额 USDT 转账（如 100 亿 USDT = `10^16` units）会丢失精度。
+
+**当前代码（有风险）**：
+```typescript
+const amount = Number(value) / 10 ** USDT_DECIMALS;  // value 是 BigInt
+const chips = amount * USDT_TO_CHIPS_RATE;
+```
+
+**生产需改为**：
+```typescript
+// 全程 BigInt，最后才转 Number（精确到分）
+const RATE = BigInt(USDT_TO_CHIPS_RATE);
+const DECIMALS = BigInt(10 ** USDT_DECIMALS);
+const chipsRaw = (value * RATE) / DECIMALS;  // BigInt 整除
+const chips = Number(chipsRaw);              // 此时已是合理范围
+const amount = Number(value) / Number(DECIMALS);
+```
+
+---
+
+### 🟠 风险 4：扫块范围有限，充值可能漏单
+
+**问题**：当前每次从 `latestBlock - 1000` 开始扫，若后端停机 >3.3 小时（约 1000 个 Ethereum 区块），期间发生的充值将永久丢失。
+
+**应对**：持久化扫描进度到数据库。
+
+```prisma
+// schema.prisma 新增
+model DepositScanState {
+  id             Int    @id @default(1)
+  lastScannedBlock Int
+}
+```
+
+```typescript
+// 每次从上次扫描结束的块开始
+const state = await prisma.depositScanState.findUnique({ where: { id: 1 } });
+const fromBlock = state?.lastScannedBlock ?? contractDeployBlock;
+// ... 扫描完成后更新
+await prisma.depositScanState.upsert({
+  where: { id: 1 },
+  update: { lastScannedBlock: latestBlock },
+  create: { id: 1, lastScannedBlock: latestBlock },
+});
+```
+
+---
+
+### 🟠 风险 5：RPC 节点故障导致漏单
+
+**问题**：单一公共 RPC 节点故障时，轮询直接失败，充值不到账。
+
+**应对**：
+1. 使用付费节点（Alchemy/Infura），SLA 99.9%+
+2. 配置备用 RPC（主备切换）
+3. WebSocket 监听 + 轮询双保险
+
+```env
+ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}
+ETH_RPC_FALLBACK_URL=https://mainnet.infura.io/v3/${INFURA_KEY}
+```
+
+---
+
+### 🟡 风险 6：链重组（Reorg）导致已到账筹码被撤销
+
+**问题**：区块确认数 =1 时，若发生链重组，已处理的转账可能被回滚，但筹码已发放。
+
+**应对**：
+- 生产确认数 ≥ 6
+- 在 `DepositRecord` 中记录 `blockNumber`，实现 pending → confirmed 两阶段状态
+
+```prisma
+model DepositRecord {
+  // ...
+  blockNumber Int?
+  status      String  // PENDING | CONFIRMED | CANCELLED
+}
+```
+
+---
+
+### 🟡 风险 7：并发轮询导致双重到账
+
+**问题**：若两个 pod 同时运行 `pollDeposits()`，同一 txHash 可能被处理两次（在 DB 写入之前都通过了 `findUnique` 检查）。
+
+**应对**：
+- 利用 `DepositRecord.txHash` 唯一索引（`P2002` 捕获）
+- 或在处理前用 Redis 分布式锁锁定 txHash
+
+---
+
+## 配置文件规范
+
+### 测试环境 `.env.development`
+```env
+ETH_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+USDT_CONTRACT_ADDRESS=0xE660f7D9cA6eB6dF6c7eF531c5Eb91a2Eb0a64ea
+USDT_DECIMALS=6
+USDT_TO_CHIPS_RATE=100
+DEPOSIT_MIN_CONFIRMATIONS=1
+FAUCET_AMOUNT_USDT=100
+FAUCET_ENABLED=true
+NEXT_PUBLIC_BLOCK_EXPLORER_URL=https://sepolia.etherscan.io
+```
+
+### 测试环境 `.env.development.local`（本地，不提交）
+```env
+HD_WALLET_MNEMONIC=<12 词助记词>
+```
+
+### 生产环境 `.env.production`（参考）
+```env
+ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}
+ETH_RPC_FALLBACK_URL=https://mainnet.infura.io/v3/${INFURA_KEY}
+USDT_CONTRACT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7
+USDT_DECIMALS=6
+USDT_TO_CHIPS_RATE=100
+DEPOSIT_MIN_CONFIRMATIONS=6
+FAUCET_ENABLED=false
+NEXT_PUBLIC_BLOCK_EXPLORER_URL=https://etherscan.io
+# HD_WALLET_MNEMONIC 由 KMS 或 Secret Manager 注入，不在此配置
+```
+
+---
+
+## 数据库结构
+
+### `DepositAddress`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `userId` | String (unique) | 关联用户 |
+| `address` | String (unique) | 派生的 ETH 地址 |
+| `index` | Int (unique) | HD 钱包派生 index（0 保留给 owner） |
+
+### `DepositRecord`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `userId` | String | 关联用户 |
+| `txHash` | String (unique) | 链上交易哈希（防重复处理） |
+| `amount` | Float | USDT 数量 |
+| `chips` | Float | 兑换的筹码数量 |
+| `status` | String | `CONFIRMED`（生产建议增加 `PENDING`） |
+
+---
+
+## 已知问题与修复记录
+
+| 日期 | 问题 | 根因 | 修复 |
+|------|------|------|------|
+| 2026-03-20 | 用户余额显示 1 亿 | HD index=0 是 owner 地址，合约部署 mint 被误识别为用户充值 | 去掉 ZeroAddress 过滤改为 index=0 不分配给用户；迁移存量 test1 地址至 index=2 |
+| 2026-03-20 | 充值成功但筹码不到账 | ZeroAddress 过滤导致 Faucet mint 事件被跳过 | 移除 ZeroAddress 过滤（owner 地址不再被监听） |
+| 2026-03-20 | 首次进入充值页面报 500 | 并发请求同时触发 `depositAddress.create()` 导致唯一约束冲突 | 捕获 P2002，fallback 到 `findUnique` |
+| 2026-03-20 | Faucet 报 `invalid BytesLike` | `ETH_OWNER_PRIVATE_KEY` 配成了助记词 | 改为从 `HD_WALLET_MNEMONIC` index=0 派生 owner 钱包，废弃该环境变量 |
+
+---
+
+## 上线检查清单
+
+上线前逐项确认：
+
+- [ ] `FAUCET_ENABLED=false`
+- [ ] `USDT_CONTRACT_ADDRESS` 已替换为主网官方 Tether 合约
+- [ ] `ETH_RPC_URL` 已替换为付费节点（Alchemy/Infura）
+- [ ] `DEPOSIT_MIN_CONFIRMATIONS` ≥ 6
+- [ ] `HD_WALLET_MNEMONIC` 通过 KMS/Secret Manager 注入，不存在任何配置文件中
+- [ ] 代码中无助记词日志输出
+- [ ] `NEXT_PUBLIC_BLOCK_EXPLORER_URL` 已改为 `https://etherscan.io`
+- [ ] 持久化扫块进度（`DepositScanState` 表）已实现
+- [ ] BigInt 精度计算已替换 Number 转换（大额充值安全）
+- [ ] 部署多实例时 Redis 分布式锁防重处理已就绪
+- [ ] 生产环境启动时检测到 `FAUCET_ENABLED=true` 自动 panic
+

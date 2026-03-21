@@ -1,5 +1,7 @@
 import * as dotenv from 'dotenv';
+// 先加载基础配置，再用 .local 覆盖（.local 不提交 Git，存放敏感值）
 dotenv.config({ path: `.env.${process.env.NODE_ENV ?? 'development'}` });
+dotenv.config({ path: `.env.${process.env.NODE_ENV ?? 'development'}.local`, override: true });
 
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';

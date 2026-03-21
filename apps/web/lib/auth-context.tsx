@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          // Verify token and get user profile
           const { data } = await api.get('/auth/profile');
           setUser(data);
         } catch (error) {
@@ -53,7 +52,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push('/');
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignore errors — proceed with local logout regardless
+    }
     localStorage.removeItem('token');
     setUser(null);
     router.push('/login');

@@ -15,6 +15,7 @@ import {
   handleExpiredSession,
   isTokenExpired,
 } from '@/lib/auth';
+import confetti from 'canvas-confetti';
 import { normalizeSoundVolume } from '@/lib/sound-settings';
 import { useSoundSettings } from '@/lib/use-sound-settings';
 import { showSystemMessage } from '@/lib/system-message';
@@ -85,18 +86,6 @@ interface PayoutFlight {
   active: boolean;
 }
 
-interface WinnerReveal {
-  id: string;
-  playerId: string;
-  nickname: string;
-  handName: string;
-  winAmount: number;
-  cards: string[];
-  top: number;
-  left: number;
-  centerOffsetX: number;
-  active: boolean;
-}
 
 function getSeatPosition(index: number) {
   const angle = (index / TABLE_SEAT_COUNT) * 2 * Math.PI;
@@ -189,7 +178,6 @@ export default function RoomPage() {
   const [dealAnimations, setDealAnimations] = useState<Record<string, number>>({});
   const [chipFlights, setChipFlights] = useState<ChipFlight[]>([]);
   const [payoutFlights, setPayoutFlights] = useState<PayoutFlight[]>([]);
-  const [winnerReveals, setWinnerReveals] = useState<WinnerReveal[]>([]);
   const [winnerHighlights, setWinnerHighlights] = useState<string[]>([]);
   const [loserHighlights, setLoserHighlights] = useState<string[]>([]);
   const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
@@ -199,7 +187,6 @@ export default function RoomPage() {
   const chipActivationRef = useRef<number | null>(null);
   const payoutCleanupRef = useRef<number | null>(null);
   const payoutActivationRef = useRef<number | null>(null);
-  const winnerRevealActivationRef = useRef<number | null>(null);
   const winnerHighlightCleanupRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastCountdownToneRef = useRef<string | null>(null);
@@ -404,25 +391,6 @@ export default function RoomPage() {
     }, CHIP_FLIGHT_MS + maxDelay + 220);
   };
 
-  const queueWinnerReveals = (reveals: Omit<WinnerReveal, 'active'>[]) => {
-    if (winnerRevealActivationRef.current !== null) {
-      window.cancelAnimationFrame(winnerRevealActivationRef.current);
-      winnerRevealActivationRef.current = null;
-    }
-
-    if (reveals.length === 0) {
-      setWinnerReveals([]);
-      return;
-    }
-
-    setWinnerReveals(reveals.map((reveal) => ({ ...reveal, active: false })));
-
-    winnerRevealActivationRef.current = window.requestAnimationFrame(() => {
-      setWinnerReveals((prev) => prev.map((reveal) => ({ ...reveal, active: true })));
-      winnerRevealActivationRef.current = null;
-    });
-  };
-
   const queueWinnerHighlights = (playerIds: string[]) => {
     if (winnerHighlightCleanupRef.current !== null) {
       window.clearTimeout(winnerHighlightCleanupRef.current);
@@ -484,7 +452,7 @@ export default function RoomPage() {
       }, 1200);
 
       socket.once('left_room', handleLeftRoom);
-      socket.emit('leave_room');
+      socket.emit('leave_room', { roomId: id as string });
     });
   };
 
@@ -542,7 +510,7 @@ export default function RoomPage() {
       const passwordKey = `room-password:${id as string}`;
       const roomPassword = sessionStorage.getItem(passwordKey) ?? undefined;
       sessionStorage.removeItem(passwordKey);
-      socket.emit('join_room', { roomId: id, password: roomPassword });
+      socket.emit('join_room', { roomId: id as string, password: roomPassword });
     });
 
     socket.on('room_update', (data: TableState) => {
@@ -655,7 +623,6 @@ export default function RoomPage() {
       const nextAnimations: Array<[string, number]> = [];
       const nextChipFlights: Omit<ChipFlight, 'active'>[] = [];
       const nextPayoutFlights: Omit<PayoutFlight, 'active'>[] = [];
-      const nextWinnerReveals: Omit<WinnerReveal, 'active'>[] = [];
       const nextWinnerHighlights: string[] = [];
       const nextLoserHighlights: string[] = [];
       let animationIndex = 0;
@@ -725,9 +692,10 @@ export default function RoomPage() {
         table.lastHandResult
       ) {
         setFoldWinChoiceMade(false);
-        const isFoldWin = table.isFoldWin ?? false;
         const winners = table.lastHandResult.filter((entry) => entry.winAmount > 0);
         const losers = table.lastHandResult.filter((entry) => entry.winAmount <= 0);
+        const myResult = table.lastHandResult.find((entry) => entry.playerId === myUserId);
+        const didIFold = myResult?.handName === '弃牌';
         winners.forEach((entry, winnerIndex) => {
             const playerIndex = table.players.findIndex((player) => player?.id === entry.playerId);
             if (playerIndex === -1) {
@@ -745,23 +713,19 @@ export default function RoomPage() {
             });
             payoutAnimationIndex += 1;
 
-            // For fold-wins: winner animation is shown to all (no hidden cards at showdown).
-            // For showdowns: only show the floating reveal to the winner themselves.
+            // Fire confetti when the current user wins and hasn't folded.
             const isMyWin = entry.playerId === myUserId;
-            if (!isFoldWin && !isMyWin) {
-              // Non-winner viewer in showdown: skip floating animation, show highlight via bestCards
-            } else {
-              nextWinnerReveals.push({
-                id: `winner-reveal-${Date.now()}-${entry.playerId}-${winnerIndex}`,
-                playerId: entry.playerId,
-                nickname: entry.nickname,
-                handName: entry.handName,
-                winAmount: entry.winAmount,
-                cards: player?.cards ?? [],
-                top: seat.top - 10,
-                left: seat.left,
-                centerOffsetX: (winnerIndex - (winners.length - 1) / 2) * 160,
-              });
+            if (isMyWin && !didIFold) {
+              const burst = (originX: number) =>
+                confetti({
+                  particleCount: 90,
+                  spread: 65,
+                  startVelocity: 45,
+                  origin: { x: originX, y: 0.55 },
+                  colors: ['#facc15', '#86efac', '#60a5fa', '#f472b6', '#fb923c'],
+                });
+              burst(0.35);
+              burst(0.65);
             }
             nextWinnerHighlights.push(entry.playerId);
           });
@@ -773,11 +737,9 @@ export default function RoomPage() {
       queueDealAnimations(nextAnimations);
       queueChipFlights(nextChipFlights);
       queuePayoutFlights(nextPayoutFlights);
-      queueWinnerReveals(nextWinnerReveals);
       queueWinnerHighlights(nextWinnerHighlights);
       queueLoserHighlights(nextLoserHighlights);
     } else if (!table.lastHandResult) {
-      queueWinnerReveals([]);
       queueWinnerHighlights([]);
       queueLoserHighlights([]);
     }
@@ -802,9 +764,6 @@ export default function RoomPage() {
       if (payoutActivationRef.current !== null) {
         window.cancelAnimationFrame(payoutActivationRef.current);
       }
-      if (winnerRevealActivationRef.current !== null) {
-        window.cancelAnimationFrame(winnerRevealActivationRef.current);
-      }
       if (winnerHighlightCleanupRef.current !== null) {
         window.clearTimeout(winnerHighlightCleanupRef.current);
       }
@@ -819,7 +778,7 @@ export default function RoomPage() {
       return;
     }
 
-    socket.emit('player_action', { roomId: id, action, amount });
+    socket.emit('player_action', { roomId: id as string, action, amount });
   };
 
   const handleReady = () => {
@@ -828,7 +787,7 @@ export default function RoomPage() {
       return;
     }
 
-    socket.emit('player_ready');
+    socket.emit('player_ready', { roomId: id as string });
   };
 
   const settlementCountdown = table?.settlementEndsAt
@@ -852,7 +811,7 @@ export default function RoomPage() {
   const handleShowCards = () => {
     const socket = getAuthorizedSocket();
     if (!socket) return;
-    socket.emit('show_cards');
+    socket.emit('show_cards', { roomId: id as string });
     setFoldWinChoiceMade(true);
   };
   const handleMuckCards = () => {
@@ -912,15 +871,21 @@ export default function RoomPage() {
   const canCheck = callAmount === 0;
   const minRaiseTo = (table.currentBet ?? 0) + (table.bigBlind ?? 0);
   const timeoutActionLabel = canCheck ? t('room.autoCheck') : t('room.autoFold');
-  const winnerRevealPlayerIds = new Set(winnerReveals.map((reveal) => reveal.playerId));
   const winnerHighlightPlayerIds = new Set(winnerHighlights);
   const loserHighlightPlayerIds = new Set(loserHighlights);
   // Build a map of playerId → bestCards set for showdown card highlighting
   const winnerBestCardsMap = new Map<string, Set<string>>();
+  const highlightedCommunityCardsSet = new Set<string>();
   if (isSettlement && !(table?.isFoldWin)) {
     table?.lastHandResult?.forEach((entry) => {
       if (entry.winAmount > 0 && entry.bestCards && entry.bestCards.length > 0) {
         winnerBestCardsMap.set(entry.playerId, new Set(entry.bestCards));
+        // Collect community cards that appear in any winner's best hand
+        entry.bestCards.forEach((card) => {
+          if (table.communityCards.includes(card)) {
+            highlightedCommunityCardsSet.add(card);
+          }
+        });
       }
     });
   }
@@ -1117,7 +1082,7 @@ export default function RoomPage() {
               {table.communityCards.length > 0
                 ? table.communityCards.map((card, i) => (
                     <div key={i} style={getDealAnimationStyle(`community-${i}`)}>
-                      <CardDisplay card={card} large />
+                      <CardDisplay card={card} large highlight={highlightedCommunityCardsSet.has(card)} />
                     </div>
                   ))
                 : <span className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.15)' }}>{t('room.waitingForDeal')}</span>
@@ -1139,50 +1104,6 @@ export default function RoomPage() {
               💰 ${table.pot}
             </div>
           </div>
-
-          {winnerReveals.map((reveal) => (
-            <div
-              key={reveal.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
-              style={{
-                top: reveal.active ? '52%' : `${reveal.top}%`,
-                left: reveal.active ? '50%' : `${reveal.left}%`,
-                opacity: reveal.active ? 1 : 0.3,
-                transform: reveal.active
-                  ? `translate(calc(-50% + ${reveal.centerOffsetX}px), -50%) scale(1)`
-                  : 'translate(-50%, -50%) scale(0.72)',
-                transition:
-                  'top 620ms cubic-bezier(0.22, 1, 0.36, 1), left 620ms cubic-bezier(0.22, 1, 0.36, 1), transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease',
-                willChange: 'top, left, transform, opacity',
-              }}
-            >
-              <div
-                className="rounded-2xl px-4 py-3 min-w-[200px]"
-                style={{
-                  background: 'linear-gradient(160deg, rgba(20,83,45,0.86) 0%, rgba(6,78,59,0.95) 100%)',
-                  border: '1px solid rgba(250,204,21,0.42)',
-                  boxShadow: '0 0 30px rgba(250,204,21,0.16), 0 16px 36px rgba(0,0,0,0.45)',
-                }}
-              >
-                <div className="flex justify-center gap-2 mb-3">
-                  {reveal.cards.map((card, index) => (
-                    <CardDisplay key={`${reveal.id}-${index}`} card={card} reveal />
-                  ))}
-                </div>
-                <div className="text-center">
-                  <div className="text-base font-black tracking-[0.08em] uppercase" style={{ color: '#fef3c7' }}>
-                    🏆 {reveal.nickname}
-                  </div>
-                  <div className="text-xs mt-1" style={{ color: 'rgba(220,252,231,0.92)' }}>
-                    {reveal.handName}
-                  </div>
-                  <div className="text-sm font-black mt-2" style={{ color: '#86efac' }}>
-                    +${reveal.winAmount}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
 
           {/* Flying chips */}
           {chipFlights.map((flight) => (
@@ -1282,8 +1203,21 @@ export default function RoomPage() {
                 className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                 style={{ top: `${top}%`, left: `${left}%` }}
               >
+                {/* Current user indicator */}
+                {isMe && (
+                  <div
+                    className="mb-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest uppercase"
+                    style={{
+                      background: 'rgba(14,165,233,0.18)',
+                      border: '1px solid rgba(125,211,252,0.55)',
+                      color: 'rgba(186,230,253,0.95)',
+                    }}
+                  >
+                    {t('room.youLabel')}
+                  </div>
+                )}
                 {/* Hole cards above avatar */}
-                {player.cards.length > 0 && !winnerRevealPlayerIds.has(player.id) && (
+                {player.cards.length > 0 && (
                   <div className="flex gap-1 mb-1">
                     {player.cards.map((c, ci) => (
                       <div key={ci} style={getDealAnimationStyle(`player-${i}-card-${ci}`)}>
@@ -1320,7 +1254,7 @@ export default function RoomPage() {
                         : isWinnerHighlighted
                           ? '2px solid rgba(250,204,21,0.85)'
                         : isMe
-                          ? '2px solid rgba(234,179,8,0.35)'
+                          ? '2px solid rgba(125,211,252,0.8)'
                           : '2px solid rgba(255,255,255,0.1)',
                       boxShadow: isActive
                         ? '0 0 16px rgba(250,204,21,0.5), 0 0 32px rgba(250,204,21,0.2)'
@@ -1328,7 +1262,9 @@ export default function RoomPage() {
                           ? '0 0 20px rgba(250,204,21,0.35), 0 0 36px rgba(74,222,128,0.14)'
                         : isLoserHighlighted
                           ? '0 2px 8px rgba(0,0,0,0.45)'
-                        : '0 4px 12px rgba(0,0,0,0.5)',
+                        : isMe
+                          ? '0 0 0 3px rgba(56,189,248,0.12), 0 0 18px rgba(56,189,248,0.45), 0 4px 16px rgba(0,0,0,0.5)'
+                          : '0 4px 12px rgba(0,0,0,0.5)',
                     }}
                   />
                   {/* Nickname overlay at bottom */}

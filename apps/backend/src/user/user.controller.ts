@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Delete,
   UseGuards,
@@ -39,7 +40,14 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard('jwt'))
-  @Post('avatar')
+  @Get('stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user game statistics' })
+  async getStats(@Req() req: AuthenticatedRequest) {
+    return this.userService.getUserStats(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Upload or replace user avatar' })
   @ApiConsumes('multipart/form-data')

@@ -852,6 +852,20 @@ export default function RoomsPage() {
               {t('lobby.createTable')}
             </Button>
 
+            {/* Deposit button */}
+            <Button
+              onClick={() => router.push('/deposit')}
+              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, #064e3b 0%, #065f46 40%, #4ade80 100%)',
+                color: '#ecfdf5',
+                border: 'none',
+                boxShadow: '0 0 20px rgba(74,222,128,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              }}
+            >
+              💰 {t('common.deposit')}
+            </Button>
+
           {/* Avatar + click dropdown */}
           <div className="relative">
             {/* Click-outside overlay */}
@@ -918,6 +932,14 @@ export default function RoomsPage() {
                   <button
                     className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
                     style={{ color: 'rgba(245,158,11,0.85)' }}
+                    onClick={() => { setShowDropdown(false); router.push('/stats'); }}
+                  >
+                    <span>📊</span>
+                    {t('common.stats')}
+                  </button>
+                  <button
+                    className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
+                    style={{ color: 'rgba(245,158,11,0.85)' }}
                     onClick={() => { setShowDropdown(false); router.push('/settings'); }}
                   >
                     <span>⚙️</span>
@@ -927,7 +949,7 @@ export default function RoomsPage() {
                   <button
                     className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-red-900/20"
                     style={{ color: 'rgba(248,113,113,0.75)' }}
-                    onClick={() => { setShowDropdown(false); localStorage.removeItem('token'); router.push('/login'); }}
+                    onClick={async () => { setShowDropdown(false); try { await api.post('/auth/logout'); } catch { /* best-effort */ } disconnectSocket(); localStorage.removeItem('token'); router.push('/login'); }}
                   >
                     <span>🚪</span>
                     {t('common.logout')}

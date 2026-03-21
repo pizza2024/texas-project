@@ -1,0 +1,202 @@
+# 移动端 APP 技术方案
+
+> 状态：规划中  
+> 目标：在现有 monorepo 中新增 `apps/mobile`，实现与 Web 完整功能对齐的 React Native 移动端应用
+
+---
+
+## 架构概览
+
+```
+texas-project/
+├── apps/
+│   ├── backend/          现有 NestJS 后端（不变）
+│   ├── web/              现有 Next.js Web（迁移共享逻辑到 packages/shared）
+│   ├── mobile/           新建 Expo 移动端
+│   └── docs/             文档站（不变）
+└── packages/
+    └── shared/           新建 共享工具包（api / socket / auth / types）
+```
+
+---
+
+## 技术选型
+
+| 层级 | 技术 | 选型理由 |
+|------|------|---------|
+| 框架 | **Expo SDK（managed workflow）** | 免原生配置，OTA 更新，开发效率高 |
+| 路由 | **Expo Router**（file-based） | 与 Next.js 文件路由一致，降低切换成本 |
+| 样式 | **NativeWind**（Tailwind for RN） | 与 Web 端类名体系统一，减少重新学习 |
+| 共享包 | **packages/shared**（TypeScript） | api / socket / auth / 类型定义跨端复用 |
+| token 存储 | **expo-secure-store** | 移动端安全存储（对应 Web 的 localStorage） |
+| 二维码 | **react-native-qrcode-svg** | 对应 Web 的 qrcode.react |
+| 剪贴板 | **expo-clipboard** | 对应 Web 的 navigator.clipboard |
+| 充值通知 | **Expo Notifications** | 本地推送（WebSocket 充值到账时触发） |
+
+---
+
+## packages/shared 设计
+
+### 目录结构
+
+```
+packages/shared/
+├── package.json          name: "@texas/shared"
+├── tsconfig.json
+└── src/
+    ├── api.ts            Axios client（baseURL 通过参数传入）
+    ├── socket.ts         Socket.io client + 事件类型定义
+    ├── auth.ts           token 核心逻辑（存储通过 adapter 注入）
+    └── types/
+        └── game.ts       Room、Player、Hand、DepositRecord 等公共类型
+```
+
+### auth.ts 平台适配方案
+
+web 和 mobile 的 token 存储机制不同，通过依赖注入 adapter 解耦：
+
+```typescript
+// packages/shared/src/auth.ts
+export interface StorageAdapter {
+  getItem(key: string): string | null | Promise<string | null>;
+  setItem(key: string, value: string): void | Promise<void>;
+  removeItem(key: string): void | Promise<void>;
+}
+
+export function createAuthService(storage: StorageAdapter) {
+  return {
+    getToken: () => storage.getItem('token'),
+    setToken: (t: string) => storage.setItem('token', t),
+    removeToken: () => storage.removeItem('token'),
+  };
+}
+```
+
+```typescript
+// apps/web — 初始化时传入 localStorage
+const auth = createAuthService(localStorage);
+
+// apps/mobile — 初始化时传入 SecureStore
+import * as SecureStore from 'expo-secure-store';
+const auth = createAuthService(SecureStore);
+```
+
+### api.ts 适配
+
+```typescript
+// packages/shared/src/api.ts
+export function createApiClient(baseURL: string) {
+  const client = axios.create({ baseURL });
+  // 拦截器：自动注入 token（由调用方在初始化后配置）
+  return client;
+}
+```
+
+---
+
+## apps/mobile 功能范围
+
+与 Web 端完整对齐：
+
+| 页面 | 路由 | 功能 |
+|------|------|------|
+| 登录 | `/login` | 用户名/密码登录，token 存 SecureStore |
+| 大厅 | `/rooms` | 房间列表、快速匹配、实时状态更新 |
+| 牌桌 | `/room/[id]` | 完整游戏 UI（发牌/下注/结算动画） |
+| 充值 | `/deposit` | 充值地址 + 二维码 + Faucet + 历史记录 |
+| 设置 | `/settings` | 头像/昵称修改 |
+
+### 充值到账通知（移动端增强）
+
+Web 端通过 WebSocket 事件在页面内弹窗。移动端额外支持本地推送通知（用户在后台时也能收到）：
+
+```
+后端 deposit_confirmed 事件
+        ↓
+mobile WebSocket 监听
+        ↓
+Expo Notifications.scheduleNotificationAsync()
+        ↓
+系统通知："充值到账：+100 USDT / +10,000 筹码"
+```
+
+---
+
+## Monorepo 集成
+
+### turbo.json 更新
+
+```json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", ".expo/**"]
+    }
+  }
+}
+```
+
+### package.json workspaces（已支持）
+
+```json
+{
+  "workspaces": ["apps/*", "packages/*"]
+}
+```
+
+`packages/shared` 会自动被 workspaces 识别，在 mobile 中通过 `"@texas/shared": "*"` 引用。
+
+---
+
+## 实施计划
+
+### 阶段一：packages/shared（前置）
+
+| 任务 | 说明 |
+|------|------|
+| 创建包结构 | package.json、tsconfig、入口文件 |
+| 抽取 api.ts | 从 web/lib/api.ts 迁移，解耦 NEXT_PUBLIC_* 环境变量依赖 |
+| 抽取 socket.ts | 迁移 socket 连接逻辑，补充事件类型（含 `deposit_confirmed`） |
+| 抽取 auth.ts | 核心逻辑 + StorageAdapter 接口 |
+| 提取 types/game.ts | 从 web 各页面 interface 聚合 |
+| web 改用 shared | 更新 web/lib/ 引用路径，回归测试 |
+
+### 阶段二：apps/mobile 初始化
+
+| 任务 | 说明 |
+|------|------|
+| Expo 脚手架 | `npx create-expo-app apps/mobile --template blank-typescript` |
+| Expo Router | 安装配置文件路由 |
+| NativeWind | 安装 + tailwind.config.js |
+| 引用 @texas/shared | 配置 metro.config.js 支持 monorepo symlink |
+
+### 阶段三：页面实现（按依赖顺序）
+
+```
+登录 → 大厅 → 牌桌 → 充值 → 设置
+```
+
+### 阶段四：平台适配与测试
+
+- iOS / Android 双端验证
+- 充值通知（Expo Notifications 权限申请）
+- 网络切换、断线重连测试
+
+---
+
+## 已知挑战与应对
+
+| 挑战 | 应对 |
+|------|------|
+| 牌桌 UI 复杂，触摸操作需重新设计 | 优先实现功能完整性，动画后续迭代 |
+| Expo managed 不支持任意原生模块 | 目前依赖均在 Expo SDK 范围内，如需突破可 eject 到 bare workflow |
+| Metro bundler 对 monorepo symlink 支持有限 | 配置 `metro.config.js` 的 `watchFolders` 和 `resolver.nodeModulesPaths` |
+| socket.io-client 在 RN 需要显式配置 | 已在现有 socket.ts 中设置 `transports: ['websocket']`，迁移成本低 |
+
+---
+
+## 相关文档
+
+- [充值流程](./deposit-flow.mdx) — 充值后端实现、WebSocket 通知
+- [路线图](./roadmap.mdx) — 整体功能规划

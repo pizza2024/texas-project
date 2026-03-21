@@ -2,6 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, Prisma } from '@prisma/client';
 
+export interface UserStats {
+  handsPlayed: number;
+  handsWon: number;
+  winRate: number;
+  totalProfit: number;
+  biggestWin: number;
+  biggestLoss: number;
+  recentHands: Array<{
+    id: string;
+    potSize: number;
+    profit: number;
+    createdAt: string;
+  }>;
+}
+
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
@@ -42,5 +57,47 @@ export class UserService {
       select: { avatar: true },
     });
     return user?.avatar ?? null;
+  }
+
+  async getUserStats(userId: string): Promise<UserStats> {
+    const [handsPlayed, handsWon, profitAggregate, biggestWinTx, biggestLossTx, recentTransactions] =
+      await Promise.all([
+        this.prisma.settlement.count({ where: { userId } }),
+        this.prisma.hand.count({ where: { winnerId: userId } }),
+        this.prisma.transaction.aggregate({
+          _sum: { amount: true },
+          where: { userId, type: { in: ['GAME_WIN', 'GAME_LOSS'] } },
+        }),
+        this.prisma.transaction.findFirst({
+          where: { userId, type: 'GAME_WIN' },
+          orderBy: { amount: 'desc' },
+        }),
+        this.prisma.transaction.findFirst({
+          where: { userId, type: 'GAME_LOSS' },
+          orderBy: { amount: 'asc' },
+        }),
+        this.prisma.transaction.findMany({
+          where: { userId, type: { in: ['GAME_WIN', 'GAME_LOSS'] } },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+      ]);
+
+    const winRate = handsPlayed === 0 ? 0 : parseFloat(((handsWon / handsPlayed) * 100).toFixed(2));
+
+    return {
+      handsPlayed,
+      handsWon,
+      winRate,
+      totalProfit: profitAggregate._sum.amount ?? 0,
+      biggestWin: biggestWinTx?.amount ?? 0,
+      biggestLoss: biggestLossTx?.amount ?? 0,
+      recentHands: recentTransactions.map((t) => ({
+        id: t.id,
+        potSize: 0,
+        profit: t.amount,
+        createdAt: t.createdAt.toISOString(),
+      })),
+    };
   }
 }

@@ -45,7 +45,7 @@ describe('AppGateway', () => {
       getUserAvatar: jest.fn().mockResolvedValue(null),
     };
 
-    gateway = new AppGateway(tableManager as any, jwtService as any, userService as any, { getPlayerElo: jest.fn().mockResolvedValue(1000), hashIp: jest.fn().mockReturnValue('hash'), findOrCreateMatchmakingRoom: jest.fn(), recordPlayerJoined: jest.fn(), recordPlayerLeft: jest.fn(), updateElo: jest.fn() } as any);
+    gateway = new AppGateway(tableManager as any, jwtService as any, userService as any, { getPlayerElo: jest.fn().mockResolvedValue(1000), hashIp: jest.fn().mockReturnValue('hash'), findOrCreateMatchmakingRoom: jest.fn(), recordPlayerJoined: jest.fn(), recordPlayerLeft: jest.fn(), updateElo: jest.fn() } as any, { isAvailable: false, get: jest.fn().mockResolvedValue(null) } as any);
     gateway.server = {
       in: jest.fn(),
       emit: jest.fn(),

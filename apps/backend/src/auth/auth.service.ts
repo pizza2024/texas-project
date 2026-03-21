@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { User } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
@@ -8,15 +9,19 @@ import { LoginDto } from './dto/login.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AuthService {
   private static readonly STARTING_BALANCE = 10000;
+  private static readonly SESSION_KEY_PREFIX = 'user_session:';
+  private static readonly SESSION_TTL_SECONDS = 3600;
 
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
     private walletService: WalletService,
+    private redisService: RedisService,
   ) {}
 
   async validateUser(
@@ -36,7 +41,13 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-    const payload = { username: user.username, nickname: user.nickname, sub: user.id, role: (user as any).role ?? 'PLAYER' };
+    const sessionId = randomUUID();
+    await this.redisService.set(
+      `${AuthService.SESSION_KEY_PREFIX}${user.id}`,
+      sessionId,
+      AuthService.SESSION_TTL_SECONDS,
+    );
+    const payload = { username: user.username, nickname: user.nickname, sub: user.id, role: (user as any).role ?? 'PLAYER', sessionId };
     return {
       access_token: this.jwtService.sign(payload),
       user: await this.toAuthUser(user),
@@ -66,6 +77,10 @@ export class AuthService {
     }
 
     return this.toAuthUser(user);
+  }
+
+  async logout(userId: string): Promise<void> {
+    await this.redisService.del(`${AuthService.SESSION_KEY_PREFIX}${userId}`);
   }
 
   private async toAuthUser(user: {

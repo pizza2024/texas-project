@@ -1,0 +1,114 @@
+# 测试网自部署 USDT 方案
+
+> 状态：待评估 / 待实施  
+> 背景：Aave Sepolia 测试 USDT 领取不便，计划自行在 Sepolia 部署 ERC-20 测试代币替代。
+
+---
+
+## 方案一：OpenZeppelin Wizard 快速部署（推荐入门）
+
+**预计耗时：** 10 分钟  
+**无需编写代码**
+
+### 步骤
+1. 打开 https://wizard.openzeppelin.com
+2. 选 **ERC20**，配置：
+   - Name: `Test USDT`
+   - Symbol: `USDT`
+   - Decimals: `6`
+   - ✅ Mintable（可随时铸造，方便测试）
+   - ✅ Ownable
+3. 点「Open in Remix」→ 切换网络到 Sepolia → 一键部署
+4. 部署成功后，你是合约 Owner，可调用 `mint(address, amount)` 给任意地址铸币
+
+### 部署后
+更新 `apps/backend/.env.development`：
+```env
+USDT_CONTRACT_ADDRESS=<你的新合约地址>
+```
+
+---
+
+## 方案二：Hardhat/Foundry 脚本部署（专业方式）
+
+适合后续想写测试用例或自动化部署脚本的场景。
+
+### 合约代码
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract TestUSDT is ERC20, Ownable {
+    constructor() ERC20("Test USDT", "USDT") Ownable(msg.sender) {
+        _mint(msg.sender, 1_000_000 * 10**6); // 预铸 100 万枚
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
+
+    // Owner 可给任意地址铸币（用于 faucet）
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+}
+```
+
+### 部署命令（以 Hardhat 为例）
+```bash
+npx hardhat run scripts/deploy.ts --network sepolia
+```
+
+---
+
+## 方案三：后端 Faucet 接口（搭配上述方案使用）
+
+在后端新增 `POST /deposit/faucet`（**仅开发环境**），由后端用 Owner 私钥签名调用合约 `mint()`，直接向用户充值地址铸入测试 USDT。
+
+### 用户体验流程
+```
+用户点「领取测试 USDT」
+  → 后端调用 mint(userDepositAddress, amount)
+  → ~30 秒后轮询检测到入账
+  → 筹码自动到账
+```
+
+### 新增环境变量
+```env
+ETH_OWNER_PRIVATE_KEY=<合约 owner 的私钥>
+FAUCET_AMOUNT_USDT=100   # 每次领取 100 USDT
+FAUCET_ENABLED=true      # 生产环境设为 false
+```
+
+### 需要实现
+- `DepositService.faucet(userId)` — 调用合约 mint()，向该用户充值地址转入测试 USDT
+- `POST /deposit/faucet` — 接口端点（仅 `NODE_ENV !== 'production'` 时开放）
+- 前端充值页面增加「领取测试 USDT」按钮
+
+---
+
+## 推荐组合
+
+**方案一 + 方案三**
+
+| 步骤 | 操作 |
+|------|------|
+| 1 | 用 OpenZeppelin Wizard 在 Sepolia 部署合约（10 分钟） |
+| 2 | 更新 `USDT_CONTRACT_ADDRESS` 环境变量 |
+| 3 | 实现后端 faucet 接口 + 前端按钮 |
+
+### 前置条件
+- 一个有 Sepolia ETH 的钱包（水龙头：https://faucets.chain.link/sepolia）
+- Owner 私钥（部署合约的钱包）妥善保管，**仅存入 `.env.development`，不提交 Git**
+
+---
+
+## 注意事项
+
+- Owner 私钥绝对不能提交到 Git，确保 `.env.development` 已在 `.gitignore`
+- Faucet 接口须在生产环境禁用（通过 `NODE_ENV` 判断）
+- 合约部署在 Sepolia，主网切换时需重新部署并更换合约地址

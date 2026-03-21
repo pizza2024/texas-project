@@ -23,11 +23,13 @@ model User {
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
   
-  wallet        Wallet?
-  handsWon      Hand[]
-  actions       HandAction[]
-  transactions  Transaction[]
-  adminLogs     AdminLog[]
+  wallet         Wallet?
+  handsWon       Hand[]
+  actions        HandAction[]
+  transactions   Transaction[]
+  adminLogs      AdminLog[]
+  depositAddress DepositAddress?
+  depositRecords DepositRecord[]
 
   @@map("users")
 }
@@ -139,4 +141,30 @@ model Transaction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
+}
+
+model DepositAddress {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  address   String   @unique
+  index     Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposit_addresses")
+}
+
+model DepositRecord {
+  id        String   @id @default(uuid())
+  userId    String
+  txHash    String   @unique
+  amount    Float    // USDT 金额
+  chips     Float    // 兑换的筹码
+  status    String   @default("CONFIRMED")
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposit_records")
 }

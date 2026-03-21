@@ -1,0 +1,108 @@
+# 开发日志
+
+按时间倒序记录已完成的功能模块。
+
+---
+
+## 2026-03-20 — ETH 测试网充值功能
+
+### 概述
+接入 Ethereum Sepolia 测试网，实现 ERC-20 USDT 充值并自动兑换筹码。
+
+### 架构方案
+- **地址方案**：HD 钱包（BIP-44）为每个用户派生唯一充值地址，路径 `m/44'/60'/0'/0/{index}`
+- **监听方式**：后台定时任务每 30 秒轮询链上 Transfer 事件
+- **库**：`ethers@6`、`@nestjs/schedule`
+- **测试网**：Sepolia
+- **代币**：ERC-20 USDT（Aave Sepolia 测试合约 `0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0`）
+- **兑换比例**：1 USDT = 100 筹码
+
+### 新增文件
+| 文件 | 说明 |
+|------|------|
+| `apps/backend/src/deposit/deposit.service.ts` | HD 地址派生、链上轮询、筹码兑换 |
+| `apps/backend/src/deposit/deposit.controller.ts` | `GET /deposit/address`、`GET /deposit/history` |
+| `apps/backend/src/deposit/deposit.module.ts` | NestJS 模块定义 |
+| `apps/web/app/deposit/page.tsx` | 充值页面（地址展示、复制、充值记录） |
+
+### 修改文件
+| 文件 | 改动 |
+|------|------|
+| `prisma/schema.prisma` | 新增 `DepositAddress`、`DepositRecord` 模型 |
+| `src/app.module.ts` | 注册 `ScheduleModule.forRoot()` 和 `DepositModule` |
+| `apps/web/app/rooms/page.tsx` | 用户菜单新增「💰 充值」入口 |
+| `apps/web/locales/*.json` | 新增 `common.deposit` 等 i18n key（6 种语言） |
+| `.env.development` / `.env.example` | 新增 ETH 相关环境变量 |
+
+### 环境变量
+```env
+ETH_RPC_URL=https://rpc.sepolia.org
+HD_WALLET_MNEMONIC=<12 词助记词>
+USDT_CONTRACT_ADDRESS=0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0
+USDT_DECIMALS=6
+USDT_TO_CHIPS_RATE=100
+DEPOSIT_MIN_CONFIRMATIONS=1
+DEPOSIT_POLL_INTERVAL_MS=30000
+```
+
+### 充值流程
+1. 用户进入 `/deposit` 页面，系统自动为其生成唯一 Sepolia 地址（首次）
+2. 用户从测试钱包向该地址转入 USDT
+3. 后端每 30 秒扫描链上 Transfer 事件，发现新入账后：
+   - 防重复检查（txHash 唯一索引）
+   - 更新 `Wallet.chips`
+   - 写入 `DepositRecord` 和 `Transaction(type=DEPOSIT)`
+4. 用户刷新页面可见最新筹码余额和充值记录
+
+### 测试所需资源
+- Sepolia ETH（用于 gas）：https://sepoliafaucet.com
+- Sepolia USDT：从 Aave Sepolia testnet 领取
+
+---
+
+## 2026-03-19 — 用户战绩统计
+
+### 概述
+新增用户战绩统计功能，包括后端 API、统计页面和菜单入口。
+
+### 新增文件
+| 文件 | 说明 |
+|------|------|
+| `apps/web/app/stats/page.tsx` | 战绩统计页面（胜率、盈亏、最近10手） |
+
+### 修改文件
+| 文件 | 改动 |
+|------|------|
+| `apps/backend/src/user/user.service.ts` | 新增 `getUserStats()` 方法 |
+| `apps/backend/src/user/user.controller.ts` | 新增 `GET /user/stats` 端点 |
+| `apps/web/app/rooms/page.tsx` | 用户菜单新增「📊 战绩统计」入口 |
+| `apps/web/locales/*.json` | 新增 `common.stats` 等 i18n key（6 种语言） |
+
+### API
+```
+GET /user/stats
+返回：handsPlayed, handsWon, winRate, totalProfit, biggestWin, biggestLoss, recentHands[]
+```
+
+---
+
+## 2026-03-19 — 单点登录 + 自动登出
+
+### 概述
+实现同一账号同时只能在一个设备登录，新设备登录后旧设备自动弹出。
+
+### 核心机制
+- 登录时生成 `sessionId`（UUID）写入 Redis（TTL 3600s），并嵌入 JWT
+- 每次 HTTP 请求在 JWT Strategy 中校验 sessionId 与 Redis 是否一致
+- WebSocket 连接时：先踢出旧连接（emit `force_logout`），再校验 sessionId
+- 若用户在游戏中被踢出，新连接收到 `rejoin_available` 事件自动重连
+
+### 关键文件
+| 文件 | 改动 |
+|------|------|
+| `apps/backend/src/auth/auth.service.ts` | 登录生成 sessionId，注销删除 Redis key |
+| `apps/backend/src/auth/jwt.strategy.ts` | 每次请求校验 sessionId |
+| `apps/backend/src/auth/auth.controller.ts` | 新增 `POST /auth/logout` |
+| `apps/backend/src/websocket/app.gateway.ts` | handleConnection 踢旧连接、发 rejoin_available |
+| `apps/web/components/socket-session-provider.tsx` | 前端注册 force_logout / rejoin_available 处理器 |
+| `apps/web/app/layout.tsx` | 挂载 SocketSessionProvider |

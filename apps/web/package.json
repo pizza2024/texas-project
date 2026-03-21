@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@texas/shared": "^0.0.1",
     "i18next": "^25.8.18",
     "next": "16.1.6",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-easy-crop": "^5.5.6",
