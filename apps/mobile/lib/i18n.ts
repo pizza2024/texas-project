@@ -44,17 +44,15 @@ export async function saveLocale(code: LocaleCode): Promise<void> {
 export async function initI18n(): Promise<void> {
   const lng = await getStoredLocale();
 
-  await i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng,
-      fallbackLng: 'zh-CN',
-      interpolation: {
-        escapeValue: false,
-      },
-      compatibilityJSON: 'v3',
-    });
+  await i18n.use(initReactI18next).init({
+    resources,
+    lng,
+    fallbackLng: 'zh-CN',
+    interpolation: {
+      escapeValue: false,
+    },
+    compatibilityJSON: 'v4',
+  });
 }
 
 export default i18n;

@@ -12,6 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { getStoredToken, clearStoredToken } from '../lib/auth';
 import { getSocket, setDepositConfirmedHandler } from '../lib/socket';
@@ -24,6 +25,7 @@ interface RoomWithStatus extends Room {
 
 export default function RoomsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<RoomWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,12 +44,12 @@ export default function RoomsScreen() {
       setRooms(roomsRes.data);
       setBalance(profileRes.data.coinBalance);
     } catch {
-      Alert.alert('错误', '加载房间列表失败');
+      Alert.alert(t('common.confirm'), t('lobby.loadingTables'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadRooms();
@@ -64,7 +66,7 @@ export default function RoomsScreen() {
 
     setDepositConfirmedHandler((data: DepositConfirmedPayload) => {
       setBalance((prev) => prev + data.chips);
-      setDepositToast(`充值成功！到账 ${data.chips} 筹码`);
+      setDepositToast(t('lobby.depositSuccess', { chips: data.chips }));
       setTimeout(() => setDepositToast(null), 4000);
     });
 
@@ -73,7 +75,7 @@ export default function RoomsScreen() {
 
   const handleJoinRoom = (room: RoomWithStatus) => {
     if (room.isFull) {
-      Alert.alert('提示', '该房间已满');
+      Alert.alert(t('common.confirm'), t('lobby.roomFull'));
       return;
     }
     setJoinModal({ roomId: room.id, needsPassword: room.isPrivate ?? false });
@@ -90,10 +92,10 @@ export default function RoomsScreen() {
       password: joinModal.needsPassword ? password : undefined,
     });
     socket.once('wrong_password', () => {
-      Alert.alert('错误', '密码错误');
+      Alert.alert(t('lobby.wrongPassword'), t('lobby.wrongPasswordMsg'));
     });
     socket.once('room_full', () => {
-      Alert.alert('提示', '房间已满');
+      Alert.alert(t('common.confirm'), t('lobby.roomFull'));
     });
     socket.once('already_in_room', (data) => {
       router.push(`/room/${data.roomId}`);
@@ -117,7 +119,7 @@ export default function RoomsScreen() {
     });
     socket.once('match_error', (data) => {
       setMatching(false);
-      Alert.alert('匹配失败', data.message);
+      Alert.alert(t('lobby.matchError'), t('lobby.matchErrorMsg', { message: data.message }));
     });
   };
 
@@ -134,7 +136,7 @@ export default function RoomsScreen() {
       <View style={styles.roomInfo}>
         <Text style={styles.roomName}>{item.name}</Text>
         <Text style={styles.roomDetails}>
-          盲注 {item.blindSmall}/{item.blindBig} · 买入 {item.minBuyIn}+
+          {t('lobby.tierBlinds', { blinds: `${item.blindSmall}/${item.blindBig}` })} · {t('lobby.tierMinChips', { amount: item.minBuyIn })}+
           {item.isPrivate ? ' 🔒' : ''}
         </Text>
       </View>
@@ -142,7 +144,7 @@ export default function RoomsScreen() {
         <Text style={[styles.playerCount, item.isFull && styles.fullText]}>
           {item.currentPlayers}/{item.maxPlayers}
         </Text>
-        <Text style={styles.playerLabel}>{item.isFull ? '已满' : '玩家'}</Text>
+        <Text style={styles.playerLabel}>{item.isFull ? t('lobby.roomFull') : t('lobby.players')}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -152,15 +154,18 @@ export default function RoomsScreen() {
       {/* 头部 */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>♠ 大厅</Text>
-          <Text style={styles.balanceText}>筹码：{balance.toLocaleString()}</Text>
+          <Text style={styles.headerTitle}>♠ {t('lobby.title')}</Text>
+          <Text style={styles.balanceText}>{t('lobby.balance')}：{balance.toLocaleString()}</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.depositBtn} onPress={() => router.push('/deposit')}>
-            <Text style={styles.depositBtnText}>充值</Text>
+            <Text style={styles.depositBtnText}>{t('common.deposit')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/settings')}>
+            <Text style={styles.settingsBtnText}>⚙️</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout}>
-            <Text style={styles.logoutText}>退出</Text>
+            <Text style={styles.logoutText}>{t('common.logout')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -181,7 +186,7 @@ export default function RoomsScreen() {
         {matching ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
-          <Text style={styles.matchBtnText}>⚡ 快速匹配</Text>
+          <Text style={styles.matchBtnText}>⚡ {t('lobby.quickMatch')}</Text>
         )}
       </TouchableOpacity>
 
@@ -202,7 +207,7 @@ export default function RoomsScreen() {
           }
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>暂无房间，下拉刷新</Text>
+            <Text style={styles.emptyText}>{t('lobby.noTablesHint')}</Text>
           }
         />
       )}
@@ -211,11 +216,11 @@ export default function RoomsScreen() {
       <Modal visible={!!joinModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>加入房间</Text>
+            <Text style={styles.modalTitle}>{t('lobby.joinTable')}</Text>
             {joinModal?.needsPassword && (
               <TextInput
                 style={styles.input}
-                placeholder="请输入房间密码"
+                placeholder={t('lobby.wrongPasswordMsg')}
                 placeholderTextColor="#6b7280"
                 value={password}
                 onChangeText={setPassword}
@@ -227,10 +232,10 @@ export default function RoomsScreen() {
                 style={[styles.modalBtn, styles.cancelBtn]}
                 onPress={() => setJoinModal(null)}
               >
-                <Text style={styles.cancelBtnText}>取消</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, styles.confirmBtn]} onPress={confirmJoin}>
-                <Text style={styles.confirmBtnText}>加入</Text>
+                <Text style={styles.confirmBtnText}>{t('lobby.joinTable')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -263,6 +268,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   depositBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  settingsBtn: {
+    backgroundColor: '#1f2937',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  settingsBtnText: { fontSize: 16 },
   logoutText: { color: '#9ca3af', fontSize: 13 },
   toast: {
     margin: 12,

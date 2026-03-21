@@ -10,6 +10,7 @@ import {
   Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import api from '../lib/api';
@@ -23,6 +24,7 @@ function txUrl(hash: string) {
 
 export default function DepositScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [depositAddr, setDepositAddr] = useState<DepositAddress | null>(null);
   const [records, setRecords] = useState<DepositRecord[]>([]);
@@ -39,24 +41,24 @@ export default function DepositScreen() {
       setDepositAddr(addrRes.data);
       setRecords(histRes.data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '未知错误';
+      const msg = err instanceof Error ? err.message : t('deposit.loadError');
       if (!retry) {
-        Alert.alert('加载失败', msg, [
-          { text: '重试', onPress: () => loadData(true) },
-          { text: '取消' },
+        Alert.alert(t('deposit.loadError'), msg, [
+          { text: t('common.confirm'), onPress: () => loadData(true) },
+          { text: t('common.cancel') },
         ]);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleCopy = async () => {
     if (!depositAddr?.address) return;
     await Clipboard.setStringAsync(depositAddr.address);
-    Alert.alert('已复制', '充值地址已复制到剪贴板');
+    Alert.alert(t('deposit.copied'), t('deposit.copied'));
   };
 
   const handleShare = async () => {
@@ -71,8 +73,8 @@ export default function DepositScreen() {
       const res = await api.post<{ txHash?: string; message: string }>('/deposit/faucet');
       setFaucetMsg({ text: res.data.message, txHash: res.data.txHash });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '请求失败';
-      Alert.alert('领取失败', msg);
+      const msg = err instanceof Error ? err.message : t('deposit.faucetError');
+      Alert.alert(t('deposit.faucetError'), msg);
     } finally {
       setFaucetLoading(false);
     }
@@ -83,9 +85,9 @@ export default function DepositScreen() {
       {/* 头部 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← 返回</Text>
+          <Text style={styles.backText}>{t('common.backToLobby')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>充值 USDT</Text>
+        <Text style={styles.headerTitle}>{t('deposit.title')}</Text>
         <View style={{ width: 50 }} />
       </View>
 
@@ -96,7 +98,7 @@ export default function DepositScreen() {
           <>
             {/* 二维码 */}
             <View style={styles.qrCard}>
-              <Text style={styles.sectionTitle}>扫码充值</Text>
+              <Text style={styles.sectionTitle}>{t('deposit.yourAddress')}</Text>
               <View style={styles.qrWrap}>
                 <QRCode value={depositAddr.address} size={180} color="#4ade80" backgroundColor="#0d1f14" />
               </View>
@@ -105,24 +107,24 @@ export default function DepositScreen() {
 
             {/* 地址 */}
             <View style={styles.addrCard}>
-              <Text style={styles.addrLabel}>充值地址</Text>
+              <Text style={styles.addrLabel}>{t('deposit.addressLabel')}</Text>
               <Text style={styles.addr} selectable>{depositAddr.address}</Text>
               <View style={styles.addrBtns}>
                 <TouchableOpacity style={styles.copyBtn} onPress={handleCopy}>
-                  <Text style={styles.copyBtnText}>复制地址</Text>
+                  <Text style={styles.copyBtnText}>{t('deposit.copy')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-                  <Text style={styles.shareBtnText}>分享</Text>
+                  <Text style={styles.shareBtnText}>{t('deposit.share')}</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.rateText}>兑换比例：1 USDT = {depositAddr.rate} 筹码</Text>
+              <Text style={styles.rateText}>{t('deposit.rate')}：1 USDT = {depositAddr.rate} {t('deposit.chips')}</Text>
             </View>
 
             {/* 测试网水龙头 */}
             {isFaucetEnabled && (
               <View style={styles.faucetCard}>
-                <Text style={styles.sectionTitle}>测试网水龙头</Text>
-                <Text style={styles.faucetDesc}>领取测试 USDT（每次 100 USDT）</Text>
+                <Text style={styles.sectionTitle}>{t('deposit.faucetTitle')}</Text>
+                <Text style={styles.faucetDesc}>{t('deposit.faucetDesc')}</Text>
                 <TouchableOpacity
                   style={[styles.faucetBtn, faucetLoading && styles.btnDisabled]}
                   onPress={handleFaucet}
@@ -131,7 +133,7 @@ export default function DepositScreen() {
                   {faucetLoading ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={styles.faucetBtnText}>领取测试 USDT</Text>
+                    <Text style={styles.faucetBtnText}>{t('deposit.faucetBtn')}</Text>
                   )}
                 </TouchableOpacity>
                 {faucetMsg && (
@@ -146,14 +148,14 @@ export default function DepositScreen() {
             )}
           </>
         ) : (
-          <Text style={styles.errorText}>获取充值地址失败，请重试</Text>
+          <Text style={styles.errorText}>{t('deposit.loadError')}</Text>
         )}
 
         {/* 充值记录 */}
         <View style={styles.recordsSection}>
-          <Text style={styles.sectionTitle}>充值记录</Text>
+          <Text style={styles.sectionTitle}>{t('deposit.history')}</Text>
           {records.length === 0 ? (
-            <Text style={styles.emptyText}>暂无充值记录</Text>
+            <Text style={styles.emptyText}>{t('deposit.noHistory')}</Text>
           ) : (
             records.map((r) => (
               <View key={r.id} style={styles.recordCard}>

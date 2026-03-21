@@ -12,10 +12,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
@@ -24,23 +26,23 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     // 表单验证
     if (!username.trim()) {
-      Alert.alert('提示', '请输入用户名');
+      Alert.alert(t('common.confirm'), t('auth.inputRequired', { field: t('auth.username') }));
       return;
     }
     if (username.trim().length < 3) {
-      Alert.alert('提示', '用户名至少 3 个字符');
+      Alert.alert(t('common.confirm'), t('auth.usernameMinLength'));
       return;
     }
     if (!nickname.trim()) {
-      Alert.alert('提示', '请输入昵称');
+      Alert.alert(t('common.confirm'), t('auth.inputRequired', { field: t('auth.nickname') }));
       return;
     }
     if (!password.trim()) {
-      Alert.alert('提示', '请输入密码');
+      Alert.alert(t('common.confirm'), t('auth.inputRequired', { field: t('auth.password') }));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('提示', '密码至少 6 个字符');
+      Alert.alert(t('common.confirm'), t('auth.passwordMinLength'));
       return;
     }
 
@@ -52,14 +54,14 @@ export default function RegisterScreen() {
         password,
       });
       Alert.alert(
-        '注册成功',
-        '您的账户已创建成功，请登录',
-        [{ text: '去登录', onPress: () => router.replace('/login') }]
+        t('auth.registerSuccess'),
+        t('auth.registerSuccessMsg'),
+        [{ text: t('auth.goLogin'), onPress: () => router.replace('/login') }]
       );
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      const message = err?.response?.data?.message ?? '注册失败，请稍后重试';
-      Alert.alert('注册失败', message);
+      const message = err?.response?.data?.message ?? t('auth.registerFailedMsg');
+      Alert.alert(t('auth.registerFailed'), message);
     } finally {
       setLoading(false);
     }
@@ -76,11 +78,11 @@ export default function RegisterScreen() {
       >
         <View style={styles.card}>
           <Text style={styles.title}>♠ Texas Hold'em</Text>
-          <Text style={styles.subtitle}>创建您的账户</Text>
+          <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>
 
           <TextInput
             style={styles.input}
-            placeholder="用户名（用于登录）"
+            placeholder={t('auth.usernamePlaceholder')}
             placeholderTextColor="#6b7280"
             value={username}
             onChangeText={setUsername}
@@ -91,7 +93,7 @@ export default function RegisterScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="昵称（游戏中显示）"
+            placeholder={t('auth.nicknamePlaceholder')}
             placeholderTextColor="#6b7280"
             value={nickname}
             onChangeText={setNickname}
@@ -101,7 +103,7 @@ export default function RegisterScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="密码（至少 6 位）"
+            placeholder={t('auth.passwordPlaceholder')}
             placeholderTextColor="#6b7280"
             value={password}
             onChangeText={setPassword}
@@ -117,14 +119,14 @@ export default function RegisterScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>注册</Text>
+              <Text style={styles.buttonText}>{t('auth.registerBtn')}</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>已有账户？</Text>
+            <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <TouchableOpacity onPress={() => router.replace('/login')}>
-              <Text style={styles.footerLink}>立即登录</Text>
+              <Text style={styles.footerLink}>{t('auth.goLogin')}</Text>
             </TouchableOpacity>
           </View>
         </View>
