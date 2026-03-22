@@ -3,7 +3,7 @@
 FROM node:20-alpine AS base
 
 # 安装构建依赖
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ openssl
 
 WORKDIR /app
 
@@ -13,17 +13,22 @@ COPY package*.json ./
 # 安装依赖
 RUN npm install
 
+# 复制 Prisma schema
+COPY prisma ./prisma
+
+# 生成 Prisma Client（必须在构建前）
+RUN npx prisma generate
+
 # 复制源码
 COPY . ./
 
 # 构建
 RUN npm run build
 
-# 生成 Prisma Client
-RUN npx prisma generate
-
 # 生产阶段
 FROM node:20-alpine AS production
+
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
