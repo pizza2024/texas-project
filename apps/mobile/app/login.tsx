@@ -29,14 +29,18 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
+      console.log('🔐 [Login] Attempting login:', { username: username.trim() });
       const res = await api.post<{ access_token: string }>('/auth/login', {
         username: username.trim(),
         password,
       });
+      console.log('✅ [Login] Success:', res.data);
       await setStoredToken(res.data.access_token);
       router.replace('/rooms');
-    } catch {
-      Alert.alert(t('auth.loginFailed'), t('auth.loginFailedMsg'));
+    } catch (error: any) {
+      console.error('❌ [Login] Error:', error.response?.data || error.message || error);
+      const errorMsg = error.response?.data?.message || error.message || t('auth.loginFailedMsg');
+      Alert.alert(t('auth.loginFailed'), errorMsg);
     } finally {
       setLoading(false);
     }
