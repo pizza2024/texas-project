@@ -38,6 +38,10 @@ COPY --from=base /app/dist ./dist
 COPY --from=base /app/package*.json ./
 COPY --from=base /app/prisma ./prisma
 
+# 复制 entrypoint 脚本
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
 ENV NODE_ENV=production
 ENV PORT=4000
 
@@ -47,4 +51,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-CMD ["node", "dist/src/main.js"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
