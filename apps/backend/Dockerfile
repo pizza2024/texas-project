@@ -37,9 +37,8 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/package*.json ./
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/docker-entrypoint.sh /app/
 
-# 复制 entrypoint 脚本
-COPY docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
 ENV NODE_ENV=production
