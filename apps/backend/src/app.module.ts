@@ -13,6 +13,7 @@ import { AdminModule } from './admin/admin.module';
 import { RedisModule } from './redis/redis.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { DepositModule } from './deposit/deposit.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { DepositModule } from './deposit/deposit.module';
     MatchmakingModule,
     DepositModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
