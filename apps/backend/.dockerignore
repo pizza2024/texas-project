@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build output
+dist
+build
+
+# Development files
+.env*
+!.env.production.template
+
+# IDE
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Test
+coverage
+*.test.ts
+test
+
+# Misc
+*.md
+!README.md

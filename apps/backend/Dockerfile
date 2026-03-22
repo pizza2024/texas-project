@@ -1,42 +1,37 @@
-# Multi-stage build for NestJS backend
+# Simplified Dockerfile for Railway deployment
+# Railway build context is apps/backend, so we can't access parent directories
 FROM node:20-alpine AS base
 
 # 安装构建依赖
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# 复制整个 monorepo 的 package files
+# 复制 package files
 COPY package*.json ./
-COPY apps/backend/package*.json ./apps/backend/
 
-# 安装所有依赖
-RUN npm ci
+# 安装依赖
+RUN npm install
 
 # 复制源码
-COPY apps/backend ./apps/backend
-COPY packages ./packages
+COPY . ./
 
 # 构建
-WORKDIR /app/apps/backend
 RUN npm run build
+
+# 生成 Prisma Client
+RUN npx prisma generate
 
 # 生产阶段
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# 只复制必要的文件
+# 复制必要文件
 COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/apps/backend/dist ./dist
-COPY --from=base /app/apps/backend/package*.json ./
-COPY --from=base /app/apps/backend/node_modules ./node_modules
-
-# Prisma 需要
-COPY --from=base /app/apps/backend/prisma ./prisma
-
-# 生成 Prisma Client
-RUN npx prisma generate
+COPY --from=base /app/dist ./dist
+COPY --from=base /app/package*.json ./
+COPY --from=base /app/prisma ./prisma
 
 ENV NODE_ENV=production
 ENV PORT=4000
