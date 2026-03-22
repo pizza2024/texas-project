@@ -29,6 +29,10 @@
     "db:generate": "npx prisma generate",
     "db:seed": "dotenv -e .env.development -- npx ts-node prisma/seed.ts"
   },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
