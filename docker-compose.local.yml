@@ -1,0 +1,39 @@
+# Local-only compose layer.
+# Use explicitly: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+
+services:
+  backend:
+    ports:
+      - '4000:4000'
+    expose: []
+    environment:
+      CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
+      SOCKET_CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
+
+  web:
+    ports:
+      - '3000:3000'
+    expose: []
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+
+  admin:
+    ports:
+      - '3001:3001'
+    expose: []
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+
+  postgres:
+    ports:
+      - '5432:5432'
+    expose: []
+
+  redis:
+    ports:
+      - '6379:6379'
+    expose: []
+
+  # Local mode uses direct app ports; no need for nginx proxy.
+  nginx:
+    profiles: ["disabled"]

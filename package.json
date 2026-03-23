@@ -7,7 +7,11 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "docker:local:up": "docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build",
+    "docker:local:down": "docker compose -f docker-compose.yml -f docker-compose.local.yml down",
+    "docker:staging:up": "docker compose --env-file docker/.env.staging up -d --build",
+    "docker:staging:down": "docker compose --env-file docker/.env.staging down"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",

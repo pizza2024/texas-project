@@ -148,7 +148,10 @@ cd /home/ubuntu/texas-project
 # docker compose pull
 
 # 构建并启动所有容器
-docker compose --env-file docker/.env.staging up -d --build
+npm run docker:staging:up
+
+# 停止容器（需要时）
+# npm run docker:staging:down
 
 # 查看启动状态
 docker compose ps
@@ -301,7 +304,7 @@ cd /home/ubuntu/texas-project
 git pull origin develop
 
 # 2. 重新构建并启动
-docker compose --env-file docker/.env.staging up -d --build
+npm run docker:staging:up
 
 # 3. 查看日志
 docker compose logs -f backend
