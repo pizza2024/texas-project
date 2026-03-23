@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Node artifacts
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/.turbo
+
+# Logs
+**/*.log
+npm-debug.log*
+
+# Local env
+.env
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# IDE
+.vscode
+
+# Docs and outputs not needed for runtime image
+apps/docs/.next

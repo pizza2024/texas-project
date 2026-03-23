@@ -1,263 +1,149 @@
-# Texas Hold'em 项目 Web 端部署技术方案
+# Texas Hold'em Docker 部署方案（测试环境）
 
-**版本**: v1.0  
-**日期**: 2026-03-22  
-**作者**: AI Assistant
+版本: v2.0  
+日期: 2026-03-23
 
----
-
-## 目录
-
-1. [项目概述](#项目概述)
-2. [部署平台评估](#部署平台评估)
-3. [推荐方案](#推荐方案)
-4. [架构设计](#架构设计)
-5. [详细部署步骤](#详细部署步骤)
-6. [CI/CD 配置](#cicd-配置)
-7. [成本估算](#成本估算)
-8. [技术难点与解决方案](#技术难点与解决方案)
-9. [安全性考虑](#安全性考虑)
-10. [监控与维护](#监控与维护)
+本文件已替换旧的 Railway/Vercel 方案，当前测试环境统一使用 Docker Compose 部署 backend、admin、web、PostgreSQL、Redis。
 
 ---
 
-## 项目概述
+## 1. 目标
 
-### 技术栈
-
-- **Web 端**: Next.js 15 (App Router, React 19)
-- **后端**: NestJS (TypeScript)
-- **数据库**: PostgreSQL
-- **缓存**: Redis
-- **实时通信**: Socket.IO (WebSocket)
-- **包管理**: Turborepo (Monorepo)
-
-### 关键需求
-
-1. ✅ **WebSocket 长连接支持**（游戏实时通信）
-2. ✅ **高可用性**（99.9% uptime）
-3. ✅ **低延迟**（< 100ms 响应时间）
-4. ✅ **可扩展性**（支持水平扩展）
-5. ✅ **成本可控**（初期预算 < $50/月）
+- 使用一套可重复的容器编排部署完整测试环境。
+- 保证多端联调一致（Web/Admin/Mobile 全部连接同一后端）。
+- 支持自动发布、健康检查、快速回滚。
 
 ---
 
-## 部署平台评估
+## 2. 部署架构
 
-### 1. Vercel
+- 网关: Nginx 或云负载均衡（建议放在宿主机或独立容器）
+- 应用容器:
+  - backend (NestJS, 4000)
+  - web (Next.js, 3000)
+  - admin (Next.js, 3001)
+- 数据容器:
+  - postgres (5432)
+  - redis (6379)
 
-**优势**:
-- ✅ Next.js 原生支持，零配置部署
-- ✅ 全球 CDN，边缘函数支持
-- ✅ 自动 SSL 证书
-- ✅ GitHub 集成（自动部署）
-- ✅ 免费额度慷慨（100GB 带宽/月）
-
-**劣势**:
-- ❌ **无服务器架构不支持 WebSocket 长连接**
-- ❌ 后端需要单独部署
-- ❌ 冷启动延迟
-
-**适用场景**: 纯静态站点或 SSR，但**不适合此项目**（需要 WebSocket）
+说明:
+- backend 负责 HTTP + WebSocket。
+- web/admin 通过环境变量指向对外 API 域名。
+- 数据卷保证 Postgres/Redis 和上传文件在容器重建后不丢失。
 
 ---
 
-### 2. Railway
+## 3. 服务器建议（测试环境）
 
-**优势**:
-- ✅ **支持 WebSocket 长连接**
-- ✅ PostgreSQL、Redis 一站式托管
-- ✅ 自动 Docker 化部署
-- ✅ Monorepo 支持良好
-- ✅ 简单易用，学习曲线低
-- ✅ 每月 $5 免费额度
+- 规格建议: 4 vCPU / 8 GB RAM / 100 GB SSD
+- 系统建议: Ubuntu 22.04 LTS
+- Docker: 26+
+- Docker Compose: v2
 
-**劣势**:
-- ⚠️ 成本略高（$20-40/月）
-- ⚠️ 部分地区延迟较高
-
-**适用场景**: **全栈应用，WebSocket 项目** ✅
+资源预算（起步）:
+- backend: 1 vCPU / 1 GB
+- web: 0.5 vCPU / 512 MB
+- admin: 0.5 vCPU / 512 MB
+- postgres: 1 vCPU / 2 GB
+- redis: 0.5 vCPU / 512 MB
 
 ---
 
-### 3. Render
+## 4. 三方服务建议
 
-**优势**:
-- ✅ 支持 WebSocket
-- ✅ 免费的 PostgreSQL 数据库
-- ✅ 静态站点免费托管
-- ✅ Docker 支持
+必选:
+- 镜像仓库: GitHub Container Registry 或 Docker Hub
+- 代码仓库: GitHub
 
-**劣势**:
-- ❌ 免费套餐有冷启动（15 分钟无活动后休眠）
-- ⚠️ Redis 无免费套餐
-- ⚠️ 性能一般
+推荐:
+- 反向代理和证书: Nginx + Certbot（或 Cloudflare）
+- 可用性巡检: UptimeRobot/Better Stack
+- 错误监控: Sentry（backend/web/admin）
 
-**适用场景**: 开发测试环境，预算有限
-
----
-
-### 4. Fly.io
-
-**优势**:
-- ✅ **全球多区域部署**（低延迟）
-- ✅ WebSocket 支持
-- ✅ Docker 原生支持
-- ✅ 免费额度（3 个共享 CPU VM）
-
-**劣势**:
-- ⚠️ 配置复杂度较高
-- ⚠️ 数据库需要单独部署
-- ⚠️ 文档相对较少
-
-**适用场景**: 有运维经验，需要全球部署
+可选:
+- 对象存储: S3/R2（替代本地 uploads）
+- 日志平台: Loki + Grafana 或 ELK
 
 ---
 
-### 5. 云服务商（AWS/阿里云/腾讯云）
+## 5. 环境变量规范
 
-**优势**:
-- ✅ 完全可控
-- ✅ 丰富的生态系统
-- ✅ 企业级支持
+backend 核心变量:
+- NODE_ENV=production
+- PORT=4000
+- DATABASE_URL=postgresql://texas:***@postgres:5432/texas_staging?schema=public
+- REDIS_URL=redis://redis:6379
+- JWT_SECRET=<强随机>
+- JWT_EXPIRES_IN=7d
+- CORS_ORIGIN=https://web-staging.example.com
+- SOCKET_CORS_ORIGIN=https://web-staging.example.com
 
-**劣势**:
-- ❌ 配置复杂，学习成本高
-- ❌ 成本较高（运维成本 + 服务成本）
-- ❌ 需要专业运维知识
+web/admin 核心变量:
+- NEXT_PUBLIC_API_URL=https://api-staging.example.com
 
-**适用场景**: 企业级、大规模应用
-
----
-
-## 推荐方案
-
-### 🏆 最佳方案：Railway（生产环境）
-
-**理由**:
-1. **原生支持 WebSocket** - 游戏核心功能必需
-2. **一站式托管** - Web + Backend + PostgreSQL + Redis
-3. **简单易用** - 无需复杂配置，专注业务开发
-4. **成本合理** - 初期 < $30/月，可随业务扩展
-
-### 🎯 备选方案：Render（开发/测试）
-
-**理由**:
-1. **免费额度** - 适合前期测试
-2. **WebSocket 支持** - 功能验证
-3. **轻松迁移** - 与 Railway 配置相似
-
-### 📋 混合方案（最优性价比）
-
-- **Web 前端**: Vercel（免费）
-- **后端 + WebSocket**: Railway（$20/月）
-- **数据库**: Railway PostgreSQL（$5/月）
-- **Redis**: Railway Redis（$5/月）
-
-**总成本**: ~$30/月
+mobile 核心变量:
+- EXPO_PUBLIC_API_URL=https://api-staging.example.com
 
 ---
 
-## 架构设计
+## 6. 发布流程（Docker）
 
-### 系统架构图
+1. 开发合并到 develop。
+2. CI 执行 lint/test/build。
+3. 构建镜像并推送仓库。
+4. 服务器拉取最新镜像。
+5. 执行 compose 滚动重建。
+6. backend 启动前执行 Prisma migrate deploy。
+7. 健康检查通过后通知发布成功。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         用户客户端                            │
-│  (Web 浏览器 / iOS App / Android App)                        │
-└────────────┬────────────────────────────────────────────────┘
-             │
-             │ HTTPS
-             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Vercel (CDN + Edge)                       │
-│  - Next.js SSR/Static                                        │
-│  - 全球 CDN 加速                                              │
-│  - 自动 SSL                                                   │
-└────────────┬────────────────────────────────────────────────┘
-             │
-             │ API Requests (HTTP)
-             │ WebSocket 连接
-             ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Railway - NestJS Backend                        │
-│  - RESTful API (HTTP/HTTPS)                                  │
-│  - Socket.IO (WebSocket)                                     │
-│  - 游戏逻辑处理                                               │
-│  - 认证授权 (JWT)                                             │
-└────────┬───────────────┬─────────────────────────────────────┘
-         │               │
-         │ PostgreSQL    │ Redis
-         ▼               ▼
-┌─────────────────┐ ┌──────────────────┐
-│  Railway DB     │ │  Railway Redis   │
-│  - 用户数据      │ │  - Session       │
-│  - 游戏记录      │ │  - 房间状态       │
-│  - 筹码余额      │ │  - 缓存          │
-└─────────────────┘ └──────────────────┘
-```
-
----
-
-## 详细部署步骤
-
-### Phase 1: 准备工作
-
-#### 1.1 环境变量整理
-
-创建 `.env.production` 文件：
+推荐命令:
 
 ```bash
-# Backend (.env.production)
-NODE_ENV=production
-PORT=4000
-
-# Database
-DATABASE_URL=postgresql://user:password@host:5432/texas_prod
-
-# Redis
-REDIS_URL=redis://default:password@host:6379
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=7d
-
-# CORS
-CORS_ORIGIN=https://your-domain.com
-
-# WebSocket
-SOCKET_CORS_ORIGIN=https://your-domain.com
-
-# 区块链（可选）
-BLOCKCHAIN_RPC_URL=https://...
-PRIVATE_KEY=0x...
+docker compose pull
+docker compose up -d --remove-orphans
+docker compose ps
+docker compose logs -f backend
 ```
 
-创建 Web 端环境变量 `.env.production`:
+---
 
-```bash
-# Web (.env.production)
-NEXT_PUBLIC_API_URL=https://api.your-domain.com
-NEXT_PUBLIC_WS_URL=wss://api.your-domain.com
-```
+## 7. 回滚流程
 
-#### 1.2 代码优化
+1. 在镜像仓库找到上一个稳定 tag（如 2026.03.23-1）。
+2. 修改 compose 使用旧 tag。
+3. 执行 docker compose up -d。
+4. 验证 /health 与核心登录流程。
 
-**Backend - 生产环境配置** (`apps/backend/src/main.ts`):
+---
 
-```typescript
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+## 8. 上线 Gate
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+- /health 返回 status=ok
+- 登录、建房、入房、WebSocket 事件正常
+- Prisma migration 全部执行成功
+- admin 面板可正常访问
+- web 前台可正常访问
+- 告警通道可收到通知
 
-  // CORS 配置
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true,
-  });
+---
+
+## 9. 文档与编排文件
+
+- 主方案: DEPLOYMENT_PLAN.md（本文件）
+- 编排文件: docker-compose.yml
+- 通用镜像构建文件: docker/Dockerfile.app
+- 环境变量模板: docker/.env.staging.example
+
+---
+
+## 10. 说明
+
+以下旧文档已废弃，不再作为测试环境上线依据:
+- RAILWAY_SETUP.md
+- RAILWAY_CHECKLIST.md
+- TEST_ENV_RELEASE_PLAN.md
+
+如需恢复云托管方案，应单独新建文档，不应覆盖本 Docker 基线。
 
   // 全局前缀
   app.setGlobalPrefix('api');

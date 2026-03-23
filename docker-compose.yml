@@ -1,4 +1,93 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+      args:
+        APP_NAME: backend
+    container_name: texas-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://texas:texas_password@postgres:5432/texas_staging?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://web.zo-op.com,https://admin.zo-op.com}
+      SOCKET_CORS_ORIGIN: ${SOCKET_CORS_ORIGIN:-https://web.zo-op.com,https://admin.zo-op.com}
+    command: >
+      sh -c "npm run db:migrate:prod --workspace=backend && npm run start:prod --workspace=backend"
+    expose:
+      - '4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://127.0.0.1:4000/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    volumes:
+      - backend_uploads:/repo/apps/backend/uploads
+    networks:
+      - texas-network
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+      args:
+        APP_NAME: web
+    container_name: texas-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.zo-op.com}
+    command: npm run start --workspace=web
+    expose:
+      - '3000'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://127.0.0.1:3000',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+    networks:
+      - texas-network
+
+  admin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+      args:
+        APP_NAME: admin
+    container_name: texas-admin
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.zo-op.com}
+    command: npm run start --workspace=admin
+    expose:
+      - '3001'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://127.0.0.1:3001',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+    networks:
+      - texas-network
+
   postgres:
     image: postgres:16-alpine
     container_name: texas-postgres
@@ -6,24 +95,26 @@ services:
     environment:
       POSTGRES_USER: texas
       POSTGRES_PASSWORD: texas_password
-      POSTGRES_DB: texas_dev
-    ports:
-      - '5432:5432'
+      POSTGRES_DB: texas_staging
+    expose:
+      - '5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U texas -d texas_dev']
+      test: ['CMD-SHELL', 'pg_isready -U texas -d texas_staging']
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - texas-network
 
   redis:
     image: redis:7-alpine
     container_name: texas-redis
     restart: unless-stopped
-    ports:
-      - '6380:6379'   # Use 6380 if port 6379 is already taken by another container
+    expose:
+      - '6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -31,7 +122,31 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - texas-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: texas-nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - web
+      - admin
+    networks:
+      - texas-network
 
 volumes:
+  backend_uploads:
   postgres_data:
   redis_data:
+
+networks:
+  texas-network:
+    driver: bridge

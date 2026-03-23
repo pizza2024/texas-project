@@ -1,0 +1,45 @@
+# Docker Compose override for local development
+# This file is automatically merged with docker-compose.yml when present
+# No need to manually specify it - just run: docker compose up -d
+
+services:
+  # Expose backend directly for local testing
+  backend:
+    ports:
+      - '4000:4000'
+    expose: []  # Remove internal expose, use ports instead
+    environment:
+      CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
+      SOCKET_CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
+
+  # Expose web directly
+  web:
+    ports:
+      - '3000:3000'
+    expose: []
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+
+  # Expose admin directly
+  admin:
+    ports:
+      - '3001:3001'
+    expose: []
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+
+  # Expose PostgreSQL for local development tools
+  postgres:
+    ports:
+      - '5432:5432'
+    expose: []
+
+  # Expose Redis for local development tools
+  redis:
+    ports:
+      - '6379:6379'
+    expose: []
+
+  # Remove/disable nginx for local - access services directly via localhost:port
+  nginx:
+    profiles: ["disabled"]

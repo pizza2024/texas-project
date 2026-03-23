@@ -20,10 +20,12 @@ const TIERS = [
   { id: 'PREMIUM', label: 'Premium', blinds: '100/200', minChips: 2000, seats: 6, emoji: '💎' },
 ] as const;
 
+type QuickMatchTier = typeof TIERS[number]["id"];
+
 interface QuickMatchDialogProps {
   currentChips: number;
   onClose: () => void;
-  onMatch: (tier: string) => void;
+  onMatch: (tier: QuickMatchTier) => void;
 }
 
 function QuickMatchDialog({ currentChips, onClose, onMatch }: QuickMatchDialogProps) {
@@ -629,7 +631,7 @@ export default function RoomsPage() {
     }
   };
 
-  const handleQuickMatch = (tier: string) => {
+  const handleQuickMatch = (tier: QuickMatchTier) => {
     setShowQuickMatchDialog(false);
     isSearchingRef.current = true;
     setIsSearching(true);
