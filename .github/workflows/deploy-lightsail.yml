@@ -1,0 +1,140 @@
+name: Build And Deploy Lightsail
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: github sha)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          TAG_INPUT='${{ github.event.inputs.image_tag }}'
+          if [ -n "$TAG_INPUT" ]; then
+            TAG="$TAG_INPUT"
+          else
+            TAG="${GITHUB_SHA}"
+          fi
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using image tag: $TAG"
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.app
+          push: true
+          build-args: |
+            APP_NAME=backend
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-backend:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-backend:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.app
+          push: true
+          build-args: |
+            APP_NAME=web
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push admin
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.app
+          push: true
+          build-args: |
+            APP_NAME=admin
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy on Lightsail via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          IMAGE_NAMESPACE: ${{ github.repository_owner }}
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          port: 22
+          envs: IMAGE_TAG,IMAGE_NAMESPACE
+          script: |
+            set -e
+            cd ${{ secrets.LIGHTSAIL_APP_DIR }}
+
+            compose_cmd() {
+              if docker compose version >/dev/null 2>&1; then
+                echo "docker compose"
+              elif docker-compose --version >/dev/null 2>&1; then
+                echo "docker-compose"
+              else
+                echo "No compose command found" >&2
+                exit 1
+              fi
+            }
+
+            COMPOSE="$(compose_cmd)"
+
+            echo "Using compose command: $COMPOSE"
+            echo "Deploy image tag: $IMAGE_TAG"
+
+            docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" -p "${{ secrets.GHCR_TOKEN }}"
+
+            export IMAGE_REGISTRY=ghcr.io
+            export IMAGE_NAMESPACE="$IMAGE_NAMESPACE"
+            export IMAGE_TAG="$IMAGE_TAG"
+
+            $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull
+            $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging up -d
+            $COMPOSE -f docker-compose.remote.yml ps

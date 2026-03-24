@@ -14,6 +14,8 @@ This is a Turborepo monorepo containing:
 - `npm run docker:local:down`: Stop local Docker stack
 - `npm run docker:staging:up`: Start Lightsail/staging Docker stack
 - `npm run docker:staging:down`: Stop Lightsail/staging Docker stack
+- `npm run docker:remote:up`: Start server image-based stack via `docker-compose.remote.yml`
+- `npm run docker:remote:down`: Stop server image-based stack
 
 ## Recommended Flow
 
@@ -31,8 +33,10 @@ This is a Turborepo monorepo containing:
 
 - Baseline deployment plan: `DEPLOYMENT_PLAN.md`
 - Lightsail execution checklist: `LIGHTSAIL_DEPLOYMENT.md`
+- GitHub Actions workflow: `.github/workflows/deploy-lightsail.yml`
 - Main compose: `docker-compose.yml`
 - Local compose layer: `docker-compose.local.yml`
+- Remote image compose: `docker-compose.remote.yml`
 
 ## Documentation
 

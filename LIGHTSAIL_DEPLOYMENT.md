@@ -255,6 +255,36 @@ docker cp texas-backend:/repo/apps/backend/uploads ./uploads-backup
 
 ---
 
+## 第 11 步：GitHub Actions 自动构建与部署（推荐）
+
+仓库中已提供工作流文件：
+
+` .github/workflows/deploy-lightsail.yml `
+
+### 11.1 配置 GitHub Secrets
+
+在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中添加：
+
+- `LIGHTSAIL_HOST`: 服务器公网 IP 或域名
+- `LIGHTSAIL_USER`: SSH 用户（例如 `ec2-user`）
+- `LIGHTSAIL_SSH_KEY`: 私钥内容（PEM 文本）
+- `LIGHTSAIL_APP_DIR`: 项目路径（例如 `/home/ec2-user/workspace/texas-project`）
+- `GHCR_USERNAME`: GHCR 用户名（通常与 GitHub 用户名一致）
+- `GHCR_TOKEN`: 具有 `read:packages` 权限的 PAT
+
+### 11.2 触发方式
+
+- 推送 `develop` 分支会自动触发
+- 也可以在 Actions 页面手动触发 `Build And Deploy Lightsail`
+
+### 11.3 部署机制
+
+1. Actions 构建并推送 `backend/web/admin` 三个镜像到 GHCR
+2. 通过 SSH 登录 Lightsail
+3. 使用 `docker-compose.remote.yml` 执行 `pull + up -d`
+
+---
+
 ## 故障排除
 
 ### 容器无法启动
