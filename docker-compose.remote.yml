@@ -124,9 +124,12 @@ services:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./docker/nginx/certs:/etc/nginx/certs:ro
     depends_on:
-      - backend
-      - web
-      - admin
+      web:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     networks:
       - texas-network
 
