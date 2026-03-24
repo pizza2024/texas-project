@@ -23,10 +23,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'node', '-e', "require('http').get('http://127.0.0.1:4000/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
-      interval: 15s
-      timeout: 5s
-      retries: 8
-      start_period: 30s
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     volumes:
       - backend_uploads:/repo/apps/backend/uploads
     networks:
