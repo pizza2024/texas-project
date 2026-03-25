@@ -4,16 +4,7 @@ on:
   push:
     branches:
       - develop
-      - main
   workflow_dispatch:
-    environment:
-      description: 'Deploy environment (staging/production)'
-      required: true
-      default: 'staging'
-      type: choice
-      options:
-        - staging
-        - production
     inputs:
       image_tag:
         description: 'Image tag to deploy (default: github sha)'
@@ -75,15 +66,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Set API URL
-        id: set_api_url
-        run: |
-          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
-            echo "API_URL=https://api.zo-op.com" >> $GITHUB_ENV
-          else
-            echo "API_URL=https://staging-api.zo-op.com" >> $GITHUB_ENV
-          fi
-          
       - name: Build and push web
         uses: docker/build-push-action@v6
         with:
@@ -92,7 +74,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=web
-            API_URL=${{ env.API_URL }}
+            NEXT_PUBLIC_API_URL=https://api.zo-op.com
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:staging-latest
@@ -107,7 +89,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=admin
-            API_URL=${{ env.API_URL }}
+            NEXT_PUBLIC_API_URL=https://api.zo-op.com
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:staging-latest
@@ -128,7 +110,7 @@ jobs:
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: 22
-          envs: IMAGE_TAG,IMAGE_NAMESPACE,API_URL
+          envs: IMAGE_TAG,IMAGE_NAMESPACE
           script: |
             set -e
             cd ${{ secrets.LIGHTSAIL_APP_DIR }}
