@@ -6,6 +6,8 @@ WORKDIR /repo
 
 ARG APP_NAME
 RUN test -n "$APP_NAME"
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Copy only package manifests. Do not copy the root lockfile because it currently
 # mixes Next 15 and Next 16 SWC packages across workspaces and breaks Docker builds.
