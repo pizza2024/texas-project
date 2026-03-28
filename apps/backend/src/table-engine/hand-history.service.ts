@@ -1,0 +1,286 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { bestHandFrom, HAND_NAMES } from '../table-engine/hand-evaluator';
+
+export interface HandHistoryEntry {
+  handId: string;
+  roomName: string;
+  date: string;
+  players: {
+    id: string;
+    nickname: string;
+    holeCards: string[];
+    finalHand: string;
+    winAmount: number;
+    netProfit: number;
+  }[];
+  communityCards: string[];
+  pot: number;
+  winnerId: string | null;
+}
+
+@Injectable()
+export class HandHistoryService {
+  constructor(private prisma: PrismaService) {}
+
+  async getPlayerHandHistory(
+    userId: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<HandHistoryEntry[]> {
+    const hands = await this.prisma.hand.findMany({
+      where: {
+        actions: {
+          some: { userId },
+        },
+      },
+      include: {
+        table: {
+          include: {
+            room: true,
+          },
+        },
+        settlements: true,
+        actions: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+
+    return Promise.all(
+      hands.map(async (hand) => {
+        const handActions = await this.prisma.handAction.findMany({
+          where: { handId: hand.id },
+          include: { user: true },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        const settlements = await this.prisma.settlement.findMany({
+          where: { handId: hand.id },
+        });
+
+        const playerActions = new Map<
+          string,
+          { bet: number; fold: boolean; allIn: boolean }
+        >();
+        for (const action of handActions) {
+          if (!playerActions.has(action.userId)) {
+            playerActions.set(action.userId, {
+              bet: 0,
+              fold: false,
+              allIn: false,
+            });
+          }
+          const pa = playerActions.get(action.userId)!;
+          if (action.action === 'FOLD') {
+            pa.fold = true;
+          } else if (action.action === 'ALLIN') {
+            pa.allIn = true;
+            pa.bet += action.amount;
+          } else {
+            pa.bet += action.amount;
+          }
+        }
+
+        const playerEntries = playerActions.entries();
+        const players = await Promise.all(
+          [...playerEntries].map(async ([pid, pa]) => {
+            const user = handActions.find((a) => a.userId === pid)?.user;
+            const settlement = settlements.find((s) => s.userId === pid);
+            const netProfit = (settlement?.amount ?? 0) - pa.bet;
+
+            let holeCards: string[] = [];
+            let finalHand = '弃牌';
+            let winAmount = 0;
+
+            if (!pa.fold && hand.table.stateSnapshot) {
+              try {
+                const snapshot = JSON.parse(hand.table.stateSnapshot);
+                const playerData = snapshot.players?.find(
+                  (p: any) => p?.id === pid,
+                );
+                if (playerData) {
+                  holeCards = playerData.cards || [];
+                  if (snapshot.communityCards?.length >= 3) {
+                    const score = bestHandFrom(
+                      holeCards,
+                      snapshot.communityCards,
+                    );
+                    finalHand = score.name;
+                  }
+                }
+                if (settlement) {
+                  winAmount = settlement.amount;
+                }
+              } catch {
+                holeCards = ['??', '??'];
+              }
+            }
+
+            return {
+              id: pid,
+              nickname: user?.nickname ?? user?.username ?? 'Unknown',
+              holeCards,
+              finalHand,
+              winAmount,
+              netProfit,
+            };
+          }),
+        );
+
+        let communityCards: string[] = [];
+        if (hand.table.stateSnapshot) {
+          try {
+            const snapshot = JSON.parse(hand.table.stateSnapshot);
+            communityCards = snapshot.communityCards || [];
+          } catch {
+            communityCards = [];
+          }
+        }
+
+        return {
+          handId: hand.id,
+          roomName: hand.table.room?.name ?? 'Unknown Room',
+          date: hand.createdAt.toISOString(),
+          players,
+          communityCards,
+          pot: hand.potSize,
+          winnerId: hand.winnerId,
+        };
+      }),
+    );
+  }
+
+  async getHandDetail(handId: string): Promise<HandHistoryEntry | null> {
+    const hand = await this.prisma.hand.findUnique({
+      where: { id: handId },
+      include: {
+        table: {
+          include: {
+            room: true,
+          },
+        },
+        settlements: true,
+        actions: {
+          include: { user: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!hand) {
+      return null;
+    }
+
+    const playerActions = new Map<string, { bet: number; fold: boolean }>();
+    for (const action of hand.actions) {
+      if (!playerActions.has(action.userId)) {
+        playerActions.set(action.userId, { bet: 0, fold: false });
+      }
+      const pa = playerActions.get(action.userId)!;
+      if (action.action === 'FOLD') {
+        pa.fold = true;
+      } else {
+        pa.bet += action.amount;
+      }
+    }
+
+    const settlements = await this.prisma.settlement.findMany({
+      where: { handId: hand.id },
+    });
+
+    const players = await Promise.all(
+      [...playerActions.entries()].map(async ([pid, pa]) => {
+        const user = hand.actions.find((a) => a.userId === pid)?.user;
+        const settlement = settlements.find((s) => s.userId === pid);
+        const netProfit = (settlement?.amount ?? 0) - pa.bet;
+
+        let holeCards: string[] = [];
+        let finalHand = '弃牌';
+        let winAmount = 0;
+
+        if (!pa.fold && hand.table.stateSnapshot) {
+          try {
+            const snapshot = JSON.parse(hand.table.stateSnapshot);
+            const playerData = snapshot.players?.find(
+              (p: any) => p?.id === pid,
+            );
+            if (playerData) {
+              holeCards = playerData.cards || [];
+              if (snapshot.communityCards?.length >= 3) {
+                const score = bestHandFrom(holeCards, snapshot.communityCards);
+                finalHand = score.name;
+              }
+            }
+            if (settlement) {
+              winAmount = settlement.amount;
+            }
+          } catch {
+            holeCards = ['??', '??'];
+          }
+        }
+
+        return {
+          id: pid,
+          nickname: user?.nickname ?? user?.username ?? 'Unknown',
+          holeCards,
+          finalHand,
+          winAmount,
+          netProfit,
+        };
+      }),
+    );
+
+    let communityCards: string[] = [];
+    if (hand.table.stateSnapshot) {
+      try {
+        const snapshot = JSON.parse(hand.table.stateSnapshot);
+        communityCards = snapshot.communityCards || [];
+      } catch {
+        communityCards = [];
+      }
+    }
+
+    return {
+      handId: hand.id,
+      roomName: hand.table.room?.name ?? 'Unknown Room',
+      date: hand.createdAt.toISOString(),
+      players,
+      communityCards,
+      pot: hand.potSize,
+      winnerId: hand.winnerId,
+    };
+  }
+
+  exportToText(history: HandHistoryEntry[]): string {
+    let output = '=== Hand History Export ===\n\n';
+
+    for (const hand of history) {
+      output += `Hand #${hand.handId.slice(0, 8)}\n`;
+      output += `Room: ${hand.roomName}\n`;
+      output += `Date: ${hand.date}\n`;
+      output += `Pot: ${hand.pot}\n`;
+      output += `Board: ${hand.communityCards.join(' ')}\n\n`;
+
+      for (const player of hand.players) {
+        const cards =
+          player.holeCards.length > 0 ? player.holeCards.join(' ') : '-- --';
+        output += `${player.nickname}: ${cards} [${player.finalHand}]`;
+        if (player.winAmount > 0) {
+          output += ` +${player.winAmount}`;
+        }
+        if (player.netProfit !== 0) {
+          output += ` (${player.netProfit >= 0 ? '+' : ''}${player.netProfit})`;
+        }
+        output += '\n';
+      }
+
+      output += '\n' + '─'.repeat(40) + '\n\n';
+    }
+
+    return output;
+  }
+}

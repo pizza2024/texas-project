@@ -215,30 +215,40 @@ export default function StatsPage() {
                   {t('stats.noHands')}
                 </div>
               ) : (
-                <div className="divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'rgba(245,158,11,0.08)' } as React.CSSProperties}>
-                  {stats.recentHands.slice(0, 10).map((hand) => (
-                    <div
-                      key={hand.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm"
-                      style={{ background: 'rgba(0,0,0,0.15)' }}
-                    >
-                      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem' }}>
-                        {formatDateTime(hand.createdAt)}
-                      </span>
-                      <ProfitText value={hand.profit} className="font-medium tabular-nums" />
-                      <span
-                        className="px-2 py-0.5 rounded text-xs font-bold"
-                        style={
-                          hand.profit >= 0
-                            ? { background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }
-                            : { background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }
-                        }
+                <>
+                  <div className="divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'rgba(245,158,11,0.08)' } as React.CSSProperties}>
+                    {stats.recentHands.slice(0, 10).map((hand) => (
+                      <div
+                        key={hand.id}
+                        className="flex items-center justify-between px-4 py-3 text-sm"
+                        style={{ background: 'rgba(0,0,0,0.15)' }}
                       >
-                        {hand.profit >= 0 ? t('stats.win') : t('stats.lose')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem' }}>
+                          {formatDateTime(hand.createdAt)}
+                        </span>
+                        <ProfitText value={hand.profit} className="font-medium tabular-nums" />
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-bold"
+                          style={
+                            hand.profit >= 0
+                              ? { background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }
+                              : { background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }
+                          }
+                        >
+                          {hand.profit >= 0 ? t('stats.win') : t('stats.lose')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/hands')}
+                    className="w-full py-3 text-sm font-bold text-center transition-colors"
+                    style={{ color: 'rgba(245,158,11,0.6)', borderTop: '1px solid rgba(245,158,11,0.08)' }}
+                  >
+                    {t('stats.viewFullHistory')}
+                  </button>
+                </>
               )}
             </div>
           </>
