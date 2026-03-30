@@ -1,14 +1,14 @@
 "use client";
 
-import { useTranslation } from "react-i18next";
-import "@/lib/i18n";
-import { useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import api from "@/lib/api";
-import { disconnectSocket, getSocket } from "@/lib/socket";
-import { showSystemMessage } from "@/lib/system-message";
-import { UserAvatar } from "@/components/user-avatar";
+import { useTranslation } from 'react-i18next';
+import '@/lib/i18n';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import api from '@/lib/api';
+import { disconnectSocket, getSocket } from '@/lib/socket';
+import { showSystemMessage } from '@/lib/system-message';
+import { UserAvatar } from '@/components/user-avatar';
 
 /* ---------- Quick Match Dialog ---------- */
 
@@ -578,6 +578,8 @@ export default function RoomsPage() {
   const { t } = useTranslation();
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRooms = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -591,6 +593,8 @@ export default function RoomsPage() {
           api.get("/rooms"),
           api.get("/auth/profile"),
         ]);
+
+        if (cancelled) return;
 
         if (currentRoomRes.data?.roomId) {
           if (currentRoomRes.data?.isMatchmaking) {
@@ -609,6 +613,7 @@ export default function RoomsPage() {
             ? roomsRes.data.data
             : [];
         const roomList: Room[] = rawRooms;
+        if (cancelled) return;
         setRooms(roomList);
         setCurrentBalance(
           typeof profileRes.data?.coinBalance === "number" &&
@@ -640,12 +645,18 @@ export default function RoomsPage() {
           }),
         );
 
-        setRoomStatusMap(Object.fromEntries(statusEntries));
+        if (!cancelled) {
+          setRoomStatusMap(Object.fromEntries(statusEntries));
+        }
       } catch {
-        localStorage.removeItem("token");
-        router.replace("/login");
+        if (!cancelled) {
+          localStorage.removeItem('token');
+          router.replace('/login');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
@@ -654,6 +665,10 @@ export default function RoomsPage() {
       router.replace("/login");
       return;
     }
+
+    // Disconnect any existing stale socket before creating a new one.
+    // This ensures clean state when navigating back from /room/[id].
+    disconnectSocket();
 
     const socket = getSocket(token);
 
@@ -735,16 +750,15 @@ export default function RoomsPage() {
     (router as any).events?.on("routeChangeComplete", handleRouteChange);
 
     return () => {
-      socket.off("room_created", onRoomCreated);
-      socket.off("room_dissolved", onRoomDissolved);
-      socket.off("room_status_updated", onRoomStatusUpdated);
-      socket.off("match_found", onMatchFound);
-      socket.off("match_error", onMatchError);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (router as any).events?.off("routeChangeComplete", handleRouteChange);
+      cancelled = true;
+      socket.off('room_created', onRoomCreated);
+      socket.off('room_dissolved', onRoomDissolved);
+      socket.off('room_status_updated', onRoomStatusUpdated);
+      socket.off('match_found', onMatchFound);
+      socket.off('match_error', onMatchError);
       disconnectSocket();
     };
-  }, [pathname, router]);
+  }, [router, pathname]);
 
   const handleJoinRoom = async (roomId: string) => {
     const room = rooms.find((entry) => entry.id === roomId);
