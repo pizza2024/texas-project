@@ -10,11 +10,13 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { WalletService } from './wallet.service';
 
-type ExchangeDirection = 'balance_to_chips' | 'chips_to_balance';
-
-interface ExchangeDto {
-  direction: ExchangeDirection;
+interface ExchangeToChipsDto {
   amount: number;
+}
+
+interface ExchangeFromChipsDto {
+  amount: number;
+  address: string;
 }
 
 @UseGuards(AuthGuard('jwt'))
@@ -23,35 +25,49 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get()
-  async getWallet(@Request() req: { user: { userId: string } }) {
-    const chips = await this.walletService.getBalance(req.user.userId);
+  async getWallet(@Request() req: { user: { sub: string } }) {
+    const chips = await this.walletService.getBalance(req.user.sub);
     const available = await this.walletService.getAvailableBalance(
-      req.user.userId,
+      req.user.sub,
     );
-    return { chips, availableChips: available };
+    const balance = await this.walletService.getRealBalance(req.user.sub);
+    return { chips, availableChips: available, balance };
   }
 
-  /**
-   * Exchange between real-money balance and game chips.
-   * Rate: 1:1 (placeholder until USDT top-up is implemented).
-   * Currently balance is always 0 for all users — this endpoint is a
-   * forward-compatible stub for when top-up is wired in.
-   */
-  @Post('exchange')
-  async exchange(
+  @Get('history')
+  async getHistory(@Request() req: { user: { sub: string } }) {
+    const withdraws = await this.walletService.getWithdrawHistory(req.user.sub);
+    return { withdraws };
+  }
+
+  @Post('exchange/to-chips')
+  async exchangeToChips(
     @Request() req: { user: { sub: string } },
-    @Body() body: ExchangeDto,
+    @Body() body: ExchangeToChipsDto,
   ) {
-    const { direction, amount } = body;
+    const { amount } = body;
     if (!amount || amount <= 0) {
       throw new BadRequestException('Amount must be positive');
     }
+    return this.walletService.exchangeBalanceToChips(req.user.sub, amount);
+  }
 
-    // TODO: implement actual balance ↔ chips exchange once top-up exists
-    throw new BadRequestException(
-      'Exchange not yet available — top-up feature coming soon',
+  @Post('exchange/to-balance')
+  async exchangeToBalance(
+    @Request() req: { user: { sub: string } },
+    @Body() body: ExchangeFromChipsDto,
+  ) {
+    const { amount, address } = body;
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Amount must be positive');
+    }
+    if (!address) {
+      throw new BadRequestException('Withdraw address is required');
+    }
+    return this.walletService.exchangeChipsToBalance(
+      req.user.sub,
+      amount,
+      address,
     );
-
-    return { direction, amount };
   }
 }

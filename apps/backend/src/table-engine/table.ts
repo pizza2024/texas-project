@@ -56,6 +56,10 @@ export enum GameStage {
   SETTLEMENT = 'SETTLEMENT',
 }
 
+export interface TableConfig {
+  sittingOutTimeout?: number; // milliseconds; defaults to 30000
+}
+
 export class Table {
   id: string;
   roomId: string;
@@ -84,6 +88,10 @@ export class Table {
   straddle: StraddleInfo | null;
   /** Tracks the all-in amount that has been called this street. Prevents re-opening action. */
   calledAllIn: number | null;
+  /** Milliseconds to wait before auto-folding a sitting-out player whose turn it is. */
+  sittingOutTimeout: number;
+  /** Info about the last player auto-folded due to sitting out (playerId + seatIndex). */
+  lastSitoutAutoFold: { playerId: string; seatIndex: number } | null;
 
   constructor(
     id: string,
@@ -93,6 +101,7 @@ export class Table {
     bigBlind: number,
     minBuyIn?: number,
     roomPassword?: string | null,
+    config?: TableConfig,
   ) {
     this.id = id;
     this.roomId = roomId;
@@ -117,6 +126,8 @@ export class Table {
     this.foldWinnerRevealed = false;
     this.straddle = null;
     this.calledAllIn = null;
+    this.sittingOutTimeout = config?.sittingOutTimeout ?? 30000;
+    this.lastSitoutAutoFold = null;
   }
 
   static fromSnapshot(
@@ -126,6 +137,7 @@ export class Table {
     bigBlind: number,
     minBuyIn?: number,
     roomPassword?: string | null,
+    config?: TableConfig,
   ): Table {
     const table = new Table(
       snapshot.id,
@@ -135,6 +147,7 @@ export class Table {
       bigBlind,
       minBuyIn,
       roomPassword,
+      config,
     );
     table.players = snapshot.players;
     table.deck = [...snapshot.deck];
@@ -153,6 +166,8 @@ export class Table {
     table.foldWinnerRevealed = snapshot.foldWinnerRevealed ?? false;
     table.straddle = snapshot.straddle ?? null;
     table.calledAllIn = (snapshot as any).calledAllIn ?? null;
+    table.sittingOutTimeout = config?.sittingOutTimeout ?? 30000;
+    table.lastSitoutAutoFold = null;
     return table;
   }
 
@@ -489,6 +504,83 @@ export class Table {
     );
   }
 
+  /**
+   * Returns true if the player at the given seat index is sitting out
+   * (has a seat, is not ACTIVE, and is not FOLD/ALLIN - i.e. explicitly sitting out).
+   * Only applies during an active betting stage.
+   */
+  isSittingOutPlayer(seatIndex: number): boolean {
+    if (!this.isActionStage()) return false;
+    const player = this.players[seatIndex];
+    if (!player) return false;
+    // SITOUT status means the player is explicitly sitting out (not participating)
+    return player.status === PlayerStatus.SITOUT;
+  }
+
+  /**
+   * Checks if the current active player is sitting out.
+   * If so, auto-folds them, starts the sit-out timeout countdown, and records the event.
+   * Called at the end of each action resolution in processAction.
+   * Returns true if a sit-out player was auto-folded (hand did not end).
+   */
+  checkAndAutoFoldSittingOut(): boolean {
+    if (!this.isActionStage()) return false;
+    if (this.activePlayerIndex < 0) return false;
+
+    const player = this.players[this.activePlayerIndex];
+    if (!player) return false;
+
+    if (player.status !== PlayerStatus.SITOUT) return false;
+
+    // Record the auto-fold event
+    this.lastSitoutAutoFold = {
+      playerId: player.id,
+      seatIndex: this.activePlayerIndex,
+    };
+
+    // Auto-fold: mark player as folded
+    player.status = PlayerStatus.FOLD;
+    player.hasActed = true;
+    this.actionEndsAt = null;
+
+    // Check if this fold results in only one remaining player
+    const notFolded = this.players.filter((p) => p && p.status !== PlayerStatus.FOLD) as Player[];
+    if (notFolded.length === 1) {
+      this.resolveFoldWin(notFolded[0]);
+      return false;
+    }
+
+    // Advance to the next active player
+    if (this.isBettingRoundComplete()) {
+      this.advanceStreet();
+    } else {
+      this.activePlayerIndex = this.nextActiveFrom(this.activePlayerIndex);
+    }
+
+    return true;
+  }
+
+  private resolveFoldWin(winner: Player) {
+    const RAKE_RATE = 0.03;
+    const RAKE_CAP = 30;
+    const rake = Math.min(Math.floor(this.pot * RAKE_RATE), RAKE_CAP);
+    const winAmount = this.pot - rake;
+    winner.stack += winAmount;
+    this.pot = 0;
+    this.lastHandResult = this.players
+      .filter((p) => p !== null)
+      .map((p) => ({
+        playerId: p!.id,
+        nickname: p!.nickname,
+        handName: p!.id === winner.id ? '其他玩家弃牌' : '弃牌',
+        winAmount: p!.id === winner.id ? winAmount : 0,
+        totalBet: p!.totalBet,
+      }));
+    this.isFoldWin = true;
+    this.foldWinnerRevealed = false;
+    this.currentStage = GameStage.SETTLEMENT;
+  }
+
   // Returns the index of the next non-null seat starting from (fromIndex + 1), wrapping around.
   private nextSeatedFrom(fromIndex: number): number {
     const len = this.players.length;
@@ -562,6 +654,8 @@ export class Table {
     this.readyCountdownEndsAt = null;
     this.actionEndsAt = null;
     this.straddle = null;
+    this.calledAllIn = null;
+    this.lastSitoutAutoFold = null;
 
     // Assign positions
     const dealerIdx = this.isPlayablePlayer(this.players[this.dealerIndex])
@@ -776,6 +870,43 @@ export class Table {
         break;
       }
 
+      case 'straddle': {
+        // Straddle is a voluntary blind bet of 2x BB made by the player left of BB (UTG)
+        // before cards are dealt. Acts as the first raise. Only one straddle per hand.
+        if (this.currentStage !== GameStage.PREFLOP) return false;
+        // Can only straddle before any raise (currentBet should equal BB at this point)
+        if (this.currentBet !== this.bigBlind) return false;
+        // Only one straddle per hand
+        if (this.straddle !== null) return false;
+        // Player must not have acted yet
+        if (activePlayer.hasActed) return false;
+
+        const straddleAmount = Math.min(this.bigBlind * 2, activePlayer.stack);
+        if (straddleAmount < this.bigBlind * 2) return false; // must be able to cover full straddle
+
+        activePlayer.stack -= straddleAmount;
+        activePlayer.bet += straddleAmount;
+        activePlayer.totalBet += straddleAmount;
+        this.pot += straddleAmount;
+        this.currentBet = straddleAmount;
+        this.minBet = this.bigBlind; // raise increment is BB
+        activePlayer.hasActed = true;
+        this.straddle = {
+          playerId: activePlayer.id,
+          amount: straddleAmount,
+          position: activePlayer.position,
+        };
+
+        // Re-open action for everyone else still active
+        this.players.forEach((p) => {
+          if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
+            p.hasActed = false;
+          }
+        });
+        handled = true;
+        break;
+      }
+
       default:
         return false;
     }
@@ -822,6 +953,9 @@ export class Table {
     } else {
       this.activePlayerIndex = this.nextActiveFrom(this.activePlayerIndex);
     }
+
+    // After advancing the turn, check if the new active player is sitting out and auto-fold them
+    this.checkAndAutoFoldSittingOut();
 
     return true;
   }
@@ -1039,6 +1173,7 @@ export class Table {
     this.straddle = null;
     this.calledAllIn = null;
     this.currentStage = GameStage.WAITING;
+    this.lastSitoutAutoFold = null;
   }
 
   /** Called when the fold-win winner chooses to reveal their cards. */

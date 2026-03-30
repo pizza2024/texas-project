@@ -167,6 +167,22 @@ function combinations(cards: string[], k: number): string[][] {
   ];
 }
 
+/** Evaluate a 5–7 card hand, returning the best 5-card score. */
+export function evaluateHand(cards: string[]): HandScore {
+  if (cards.length < 5 || cards.length > 7) {
+    throw new Error(`evaluateHand requires 5–7 cards, got ${cards.length}`);
+  }
+  if (cards.length === 5) return evaluate5(cards);
+  // For 6–7 cards, pick the best 5-card combination
+  const combos = combinations(cards, 5);
+  let best: HandScore | null = null;
+  for (const combo of combos) {
+    const score = evaluate5(combo);
+    if (!best || compareScores(score, best) > 0) best = score;
+  }
+  return best!;
+}
+
 /** Pick the best 5-card hand from hole cards + community cards. */
 export function bestHandFrom(
   holeCards: string[],

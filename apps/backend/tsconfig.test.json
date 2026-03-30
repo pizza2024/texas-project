@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "moduleResolution": "node",
+    "resolvePackageJsonExports": false,
+    "resolvePackageJsonImports": false
+  },
+  "ts-jest": {
+    "tsconfig": {
+      "module": "commonjs",
+      "target": "ES2022",
+      "moduleResolution": "node"
+    }
+  }
+}

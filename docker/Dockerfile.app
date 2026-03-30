@@ -7,6 +7,9 @@ WORKDIR /repo
 ARG APP_NAME
 RUN test -n "$APP_NAME"
 
+# Enable corepack and activate the correct package manager version
+RUN corepack enable && corepack prepare npm@10.0.0 --activate
+
 # Copy only package manifests. Do not copy the root lockfile because it currently
 # mixes Next 15 and Next 16 SWC packages across workspaces and breaks Docker builds.
 COPY package.json ./
@@ -21,6 +24,9 @@ COPY packages/shared/package.json ./packages/shared/
 RUN npm install --workspace="$APP_NAME" --include-workspace-root --package-lock=false
 
 COPY . .
+
+# Remove packageManager field that trips up Next.js build (uses npm internally)
+RUN sed -i '/"packageManager"/d' package.json
 
 # Backend needs generated Prisma client types before TypeScript compilation.
 RUN if [ "$APP_NAME" = "backend" ]; then npx prisma generate --schema=apps/backend/prisma/schema.prisma; fi

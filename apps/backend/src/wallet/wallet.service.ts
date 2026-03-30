@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -56,56 +61,63 @@ export class WalletService {
   ): Promise<void> {
     if (entries.length === 0) return;
 
-    // Phase 1: upsert wallets only — skip bots (no wallet record needed for bots)
-    const walletOps = entries.map(async ({ userId, balance }) => {
-      try {
-        const normalized = Math.max(0, balance);
-        await this.prisma.wallet.upsert({
-          where: { userId },
-          update: { chips: normalized, frozenChips: frozen ? normalized : 0 },
-          create: {
-            userId,
-            chips: normalized,
-            frozenChips: frozen ? normalized : 0,
-          },
-        });
-      } catch (err) {
-        this.logger.error(
-          `[Wallet] setBalances wallet.upsert failed for ${userId}: ${err.message}`,
-        );
-      }
-    });
-
-    await Promise.all(walletOps);
-
-    // Phase 2: update User.coinBalance — skip bots and users without a User record
-    const userOps = entries
-      .filter(({ userId }) => !userId.startsWith('bot_'))
-      .map(async ({ userId, balance }) => {
-        try {
+    try {
+      // Phase 1: Upsert wallet records (this works for bots and real users)
+      await this.prisma.$transaction(
+        entries.map(({ userId, balance }) => {
           const normalized = Math.max(0, balance);
+          return this.prisma.wallet.upsert({
+            where: { userId },
+            update: {
+              chips: normalized,
+              frozenChips: frozen ? normalized : 0,
+            },
+            create: {
+              userId,
+              chips: normalized,
+              frozenChips: frozen ? normalized : 0,
+            },
+          });
+        }),
+      );
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        this.logger.error(
+          `Prisma error in setBalances (wallet phase): ${error.code} - ${error.message}`,
+          error.stack,
+        );
+        return;
+      }
+      throw error;
+    }
+
+    // Phase 2: Update user coinBalance individually (non-fatal if user doesn't exist, e.g., bots)
+    await Promise.all(
+      entries.map(async ({ userId, balance }) => {
+        const normalized = Math.max(0, balance);
+        try {
           await this.prisma.user.update({
             where: { id: userId },
             data: { coinBalance: normalized },
           });
-        } catch (err) {
-          if (
-            err instanceof PrismaClientKnownRequestError &&
-            err.code === 'P2025'
-          ) {
-            // User record not found — ignore (e.g. bot users)
-            this.logger.warn(
-              `[Wallet] No User record for ${userId}, skipping coinBalance sync`,
+        } catch (error) {
+          // Bot users (id starts with 'bot_') don't have User records — this is expected
+          if (userId.startsWith('bot_')) {
+            this.logger.debug(
+              `Skipping coinBalance update for bot user: ${userId}`,
             );
-          } else {
-            this.logger.error(
-              `[Wallet] setBalances user.update failed for ${userId}: ${err.message}`,
-            );
+            return;
           }
+          if (error instanceof PrismaClientKnownRequestError) {
+            this.logger.warn(
+              `Failed to update coinBalance for user ${userId}: ${error.code} - ${error.message}`,
+            );
+            return;
+          }
+          throw error;
         }
-      });
-
-    await Promise.all(userOps);
+      }),
+    );
   }
 
   /**
@@ -148,5 +160,182 @@ export class WalletService {
     }
 
     return Math.max(0, wallet.chips - wallet.frozenChips);
+  }
+
+  /**
+   * Get real-money USDT balance (separate from chips).
+   */
+  async getRealBalance(userId: string): Promise<number> {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: { balance: true },
+    });
+    return wallet?.balance ?? 0;
+  }
+
+  /**
+   * Exchange chips to real balance (USDТ).
+   * Creates a withdraw request that can be processed later.
+   * Rate: 100 chips = 1 USDT
+   */
+  async exchangeChipsToBalance(
+    userId: string,
+    chipsAmount: number,
+    withdrawAddress: string,
+  ): Promise<{
+    withdrawId: string;
+    usdtAmount: number;
+    chipsDeducted: number;
+  }> {
+    const CHIPS_TO_USDT_RATE = 100;
+
+    if (chipsAmount <= 0) {
+      throw new BadRequestException('Amount must be positive');
+    }
+
+    const availableChips = await this.getAvailableBalance(userId);
+    if (chipsAmount > availableChips) {
+      throw new BadRequestException('Insufficient available chips');
+    }
+
+    const usdtAmount = chipsAmount / CHIPS_TO_USDT_RATE;
+
+    const withdrawRequest = await this.prisma.withdrawRequest.create({
+      data: {
+        userId,
+        amountChips: chipsAmount,
+        amountUsdt: usdtAmount,
+        toAddress: withdrawAddress,
+        status: 'PENDING',
+      },
+    });
+
+    const currentBalance = await this.getBalance(userId);
+    await this.setBalance(userId, currentBalance - chipsAmount);
+
+    await this.prisma.transaction.create({
+      data: {
+        userId,
+        amount: -chipsAmount,
+        type: 'WITHDRAW_REQUEST',
+      },
+    });
+
+    return {
+      withdrawId: withdrawRequest.id,
+      usdtAmount,
+      chipsDeducted: chipsAmount,
+    };
+  }
+
+  /**
+   * Exchange real balance (USDТ) to chips.
+   * Rate: 1 USDT = 100 chips
+   */
+  async exchangeBalanceToChips(
+    userId: string,
+    usdtAmount: number,
+  ): Promise<{ chipsAdded: number; usdtDeducted: number }> {
+    const CHIPS_TO_USDT_RATE = 100;
+
+    if (usdtAmount <= 0) {
+      throw new BadRequestException('Amount must be positive');
+    }
+
+    const realBalance = await this.getRealBalance(userId);
+    if (usdtAmount > realBalance) {
+      throw new BadRequestException('Insufficient USDT balance');
+    }
+
+    const chipsToAdd = usdtAmount * CHIPS_TO_USDT_RATE;
+
+    await this.prisma.wallet.upsert({
+      where: { userId },
+      update: {
+        balance: { decrement: usdtAmount },
+        chips: { increment: chipsToAdd },
+      },
+      create: {
+        userId,
+        balance: -usdtAmount,
+        chips: chipsToAdd,
+      },
+    });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { coinBalance: { increment: chipsToAdd } },
+    });
+
+    await this.prisma.transaction.create({
+      data: {
+        userId,
+        amount: chipsToAdd,
+        type: 'EXCHANGE',
+      },
+    });
+
+    return {
+      chipsAdded: chipsToAdd,
+      usdtDeducted: usdtAmount,
+    };
+  }
+
+  /**
+   * Get withdraw request history for a user.
+   */
+  async getWithdrawHistory(userId: string) {
+    return this.prisma.withdrawRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  }
+
+  /**
+   * Admin: complete a withdraw request by processing the on-chain transfer.
+   * This would be called after the USDT transfer is confirmed.
+   */
+  async completeWithdrawRequest(
+    withdrawId: string,
+    txHash: string,
+  ): Promise<void> {
+    await this.prisma.withdrawRequest.update({
+      where: { id: withdrawId },
+      data: { status: 'COMPLETED', txHash },
+    });
+  }
+
+  /**
+   * Admin: reject a withdraw request and refund the chips.
+   */
+  async rejectWithdrawRequest(withdrawId: string): Promise<void> {
+    const request = await this.prisma.withdrawRequest.findUnique({
+      where: { id: withdrawId },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Withdraw request not found');
+    }
+
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException('Can only reject pending requests');
+    }
+
+    const currentBalance = await this.getBalance(request.userId);
+    await this.setBalance(request.userId, currentBalance + request.amountChips);
+
+    await this.prisma.withdrawRequest.update({
+      where: { id: withdrawId },
+      data: { status: 'REJECTED' },
+    });
+
+    await this.prisma.transaction.create({
+      data: {
+        userId: request.userId,
+        amount: request.amountChips,
+        type: 'WITHDRAW_REFUND',
+      },
+    });
   }
 }
