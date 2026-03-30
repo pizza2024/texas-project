@@ -29,7 +29,9 @@ export class AdminGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
     if (!user) throw new UnauthorizedException('User not found');
     if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       throw new ForbiddenException('Admin access required');

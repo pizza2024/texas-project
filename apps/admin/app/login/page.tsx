@@ -1,26 +1,30 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { login, setToken } from '@/lib/api';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { login, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const res = await login(username, password);
       setToken(res.access_token);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message === 'HTTP 401' ? '用户名或密码错误，或无管理员权限' : err.message);
+      setError(
+        err.message === "HTTP 401"
+          ? "用户名或密码错误，或无管理员权限"
+          : err.message,
+      );
     } finally {
       setLoading(false);
     }
@@ -32,12 +36,15 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🃏</div>
-          <h1 className="text-2xl font-bold text-white">Texas Hold'em</h1>
+          <h1 className="text-2xl font-bold text-white">Texas Hold&apos;em</h1>
           <p className="text-slate-400 text-sm mt-1">管理员控制台</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-[#161b27] rounded-2xl p-8 border border-[#1e2535] space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-[#161b27] rounded-2xl p-8 border border-[#1e2535] space-y-5"
+        >
           <div>
             <label className="block text-sm text-slate-400 mb-2">用户名</label>
             <input
@@ -72,7 +79,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium py-3 rounded-lg transition-colors"
           >
-            {loading ? '登录中...' : '登录'}
+            {loading ? "登录中..." : "登录"}
           </button>
         </form>
 

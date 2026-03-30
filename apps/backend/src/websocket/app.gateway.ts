@@ -24,8 +24,14 @@ import {
   RoomStatusUpdatedPayload,
   roomEvents,
 } from './room-events';
-import { MatchmakingService, BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
+import {
+  MatchmakingService,
+  BlindTier,
+  BLIND_TIERS,
+} from '../matchmaking/matchmaking.service';
 import { RedisService } from '../redis/redis.service';
+import { BotService } from '../bot/bot.service';
+import { WebSocketManager } from './websocket-manager';
 
 @WebSocketGateway({
   cors: {
@@ -63,6 +69,8 @@ export class AppGateway
     private userService: UserService,
     private matchmakingService: MatchmakingService,
     private redisService: RedisService,
+    private botService: BotService,
+    private wsManager: WebSocketManager,
   ) {}
 
   /**
@@ -80,7 +88,13 @@ export class AppGateway
 
     const prev = this.roomLocks.get(roomId) ?? Promise.resolve();
     const next = prev.then(() => fn()).then(resolve, reject);
-    this.roomLocks.set(roomId, next.then(() => {}, () => {}));
+    this.roomLocks.set(
+      roomId,
+      next.then(
+        () => {},
+        () => {},
+      ),
+    );
     return outer;
   }
 
@@ -125,11 +139,17 @@ export class AppGateway
   }
 
   /** Broadcast masked table state to every socket in the room individually. */
-  private async broadcastTableState(roomId: string, table: import('../table-engine/table').Table) {
+  private async broadcastTableState(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ) {
     const sockets = await this.server.in(roomId).fetchSockets();
     for (const socket of sockets) {
       const userId = socket.data.user?.sub as string | undefined;
-      socket.emit('room_update', userId ? table.getMaskedView(userId) : table.getMaskedView(''));
+      socket.emit(
+        'room_update',
+        userId ? table.getMaskedView(userId) : table.getMaskedView(''),
+      );
     }
   }
 
@@ -149,7 +169,8 @@ export class AppGateway
     const sockets = await this.server.fetchSockets();
     return sockets.some(
       (socket) =>
-        socket.id !== socketId && (socket.data.user?.sub as string | undefined) === userId,
+        socket.id !== socketId &&
+        (socket.data.user?.sub as string | undefined) === userId,
     );
   }
 
@@ -199,12 +220,48 @@ export class AppGateway
       return;
     }
 
+    // SITOUT players must be auto-folded when their action times out.
+    // getTimeoutAction() returns null for non-ACTIVE players, so we must
+    // check sit-out status BEFORE calling getTimeoutAction().
+    if (currentTable.isCurrentPlayerSitOut()) {
+      const processed = currentTable.foldSitOutPlayer();
+      if (!processed) {
+        if (this.isActionStage(currentTable.currentStage)) {
+          await this.scheduleActionTimeout(roomId, currentTable);
+        }
+        return;
+      }
+      const nextStage = currentTable.currentStage as GameStage;
+      await this.tableManager.persistTableState(roomId);
+      await this.tableManager.persistTableBalances(roomId);
+      if (nextStage === GameStage.SETTLEMENT) {
+        await this.schedulePostHandFlow(roomId, currentTable);
+      } else if (this.isActionStage(nextStage)) {
+        await this.scheduleActionTimeout(roomId, currentTable);
+      }
+      await this.broadcastTableState(roomId, currentTable);
+      return;
+    }
+
     const timeoutAction = currentTable.getTimeoutAction();
     if (!timeoutAction) {
       return;
     }
 
-    const processed = currentTable.processAction(timeoutAction.playerId, timeoutAction.action, 0);
+    let processed = false;
+
+    if (timeoutAction.action === 'sitout') {
+      // SITOUT players are folded via foldSitOutPlayer which also handles
+      // fold-win (single remaining player).
+      processed = currentTable.foldSitOutPlayer();
+    } else {
+      processed = currentTable.processAction(
+        timeoutAction.playerId,
+        timeoutAction.action,
+        0,
+      );
+    }
+
     if (!processed) {
       if (this.isActionStage(currentTable.currentStage)) {
         await this.scheduleActionTimeout(roomId, currentTable);
@@ -302,7 +359,9 @@ export class AppGateway
     }
 
     // Capture hand result before it's cleared by persistSettlementRecords / resetToWaiting
-    const handResult = currentTable.lastHandResult ? [...currentTable.lastHandResult] : [];
+    const handResult = currentTable.lastHandResult
+      ? [...currentTable.lastHandResult]
+      : [];
 
     // Persist settlement records BEFORE resetToWaiting clears lastHandResult
     await this.tableManager.persistSettlementRecords(roomId);
@@ -375,7 +434,10 @@ export class AppGateway
       return;
     }
 
-    if (table.currentStage === GameStage.WAITING && table.readyCountdownEndsAt) {
+    if (
+      table.currentStage === GameStage.WAITING &&
+      table.readyCountdownEndsAt
+    ) {
       const remainingMs = table.readyCountdownEndsAt - Date.now();
       if (remainingMs <= 0) {
         await this.finalizeReadyCountdown(roomId);
@@ -429,6 +491,7 @@ export class AppGateway
   }
 
   afterInit(server: Server) {
+    this.wsManager.setServer(server);
     this.logger.log('Init');
   }
 
@@ -447,7 +510,9 @@ export class AppGateway
 
       // Enforce single-device login: validate sessionId against Redis
       if (payload.sessionId && this.redisService.isAvailable) {
-        const stored = await this.redisService.get(`user_session:${payload.sub}`);
+        const stored = await this.redisService.get(
+          `user_session:${payload.sub}`,
+        );
         if (stored !== payload.sessionId) {
           client.data.user = null;
           client.emit('force_logout', { reason: 'SESSION_REPLACED' });
@@ -459,11 +524,17 @@ export class AppGateway
       this.clearPendingDisconnect(payload.sub);
 
       // Notify new client if they have an active game to rejoin
-      const currentRoomId = await this.tableManager.getUserCurrentRoomId(payload.sub);
+      const currentRoomId = await this.tableManager.getUserCurrentRoomId(
+        payload.sub,
+      );
       let isInActiveGame = false;
       if (currentRoomId) {
         const table = await this.tableManager.getTable(currentRoomId);
-        if (table && table.hasPlayer(payload.sub) && table.currentStage !== GameStage.WAITING) {
+        if (
+          table &&
+          table.hasPlayer(payload.sub) &&
+          table.currentStage !== GameStage.WAITING
+        ) {
           isInActiveGame = true;
           client.emit('rejoin_available', { roomId: currentRoomId });
         }
@@ -472,7 +543,10 @@ export class AppGateway
       // Disconnect any other sockets belonging to the same user (single-device enforcement)
       const allSockets = await this.server.fetchSockets();
       for (const other of allSockets) {
-        if (other.id !== client.id && (other.data.user?.sub as string | undefined) === payload.sub) {
+        if (
+          other.id !== client.id &&
+          (other.data.user?.sub as string | undefined) === payload.sub
+        ) {
           other.emit('force_logout', {
             reason: 'SESSION_REPLACED',
             roomId: isInActiveGame ? currentRoomId : undefined,
@@ -534,7 +608,10 @@ export class AppGateway
     // Password check for private rooms (skip if already seated — reconnect)
     const isAlreadySeated = table.hasPlayer(userId);
     if (!isAlreadySeated && table.roomPassword) {
-      const passwordMatch = await bcrypt.compare(password ?? '', table.roomPassword);
+      const passwordMatch = await bcrypt.compare(
+        password ?? '',
+        table.roomPassword,
+      );
       if (!passwordMatch) {
         client.emit('wrong_password', { roomId });
         return { event: 'wrong_password', data: { roomId } };
@@ -542,7 +619,9 @@ export class AppGateway
     }
 
     await this.ensureRecoveredRoundFlow(roomId, table);
-    const balance = isAlreadySeated ? null : await this.tableManager.getUserAvailableBalance(userId);
+    const balance = isAlreadySeated
+      ? null
+      : await this.tableManager.getUserAvailableBalance(userId);
     const minimumRequiredBalance = table.minBuyIn;
     if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
       client.emit('insufficient_balance', {
@@ -565,10 +644,7 @@ export class AppGateway
     const avatar = await this.userService.getUserAvatar(userId);
     const playerData = { ...client.data.user, avatar: avatar ?? '' };
 
-    const joined = table.addPlayer(
-      playerData,
-      balance ?? 0,
-    );
+    const joined = table.addPlayer(playerData, balance ?? 0);
     if (!joined) {
       client.emit('room_full', { roomId });
       return {
@@ -586,7 +662,10 @@ export class AppGateway
     await this.tableManager.persistTableState(roomId);
     await this.broadcastTableState(roomId, table);
     await this.tableManager.broadcastRoomStatus(roomId);
-    return { event: 'joined', data: table.getMaskedView(client.data.user?.sub) };
+    return {
+      event: 'joined',
+      data: table.getMaskedView(client.data.user?.sub),
+    };
   }
 
   @SubscribeMessage('player_ready')
@@ -606,6 +685,15 @@ export class AppGateway
       await this.ensureRecoveredRoundFlow(roomId, table);
 
       const allReady = table.setPlayerReady(userId);
+
+      // Solo mode: 1 player ready, not all ready, no countdown → fill with bots
+      if (!allReady && !table.readyCountdownEndsAt) {
+        this.logger.log(
+          `[SoloMode] TRIGGER CHECK: allReady=${allReady}, countdown=${table.readyCountdownEndsAt}, playerCount=${table.getPlayerCount()}`,
+        );
+        await this.scheduleSoloModeBotFill(roomId, table);
+      }
+
       if (table.readyCountdownEndsAt) {
         await this.tableManager.persistTableState(roomId);
         await this.broadcastTableState(roomId, table);
@@ -636,7 +724,11 @@ export class AppGateway
       if (!table) return;
 
       await this.ensureRecoveredRoundFlow(data.roomId, table);
-      const processed = table.processAction(client.data.user.sub, data.action, data.amount || 0);
+      const processed = table.processAction(
+        client.data.user.sub,
+        data.action,
+        data.amount || 0,
+      );
       if (!processed) {
         return;
       }
@@ -721,14 +813,21 @@ export class AppGateway
     // Ensure player isn't already in a room
     const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
     if (currentRoomId) {
-      client.emit('match_error', { message: 'already_in_room', roomId: currentRoomId });
+      client.emit('match_error', {
+        message: 'already_in_room',
+        roomId: currentRoomId,
+      });
       return;
     }
 
     // Validate available chips
-    const availableChips = await this.tableManager.getUserAvailableBalance(userId);
+    const availableChips =
+      await this.tableManager.getUserAvailableBalance(userId);
     if (availableChips < config.minBuyIn) {
-      client.emit('match_error', { message: 'insufficient_chips', required: config.minBuyIn });
+      client.emit('match_error', {
+        message: 'insufficient_chips',
+        required: config.minBuyIn,
+      });
       return;
     }
 
@@ -745,7 +844,12 @@ export class AppGateway
       );
 
       // Record this player in the matchmaking tracking maps before they officially join
-      this.matchmakingService.recordPlayerJoined(roomId, userId, playerElo, ipHash);
+      this.matchmakingService.recordPlayerJoined(
+        roomId,
+        userId,
+        playerElo,
+        ipHash,
+      );
 
       client.emit('match_found', { roomId, tier });
     } catch (err) {
@@ -767,12 +871,57 @@ export class AppGateway
 
     if (table.currentStage !== GameStage.SETTLEMENT || !table.isFoldWin) return;
 
-    const isWinner = table.lastHandResult?.some(
-      (e) => e.playerId === userId && e.winAmount > 0,
-    ) ?? false;
+    const isWinner =
+      table.lastHandResult?.some(
+        (e) => e.playerId === userId && e.winAmount > 0,
+      ) ?? false;
     if (!isWinner) return;
 
     table.revealFoldWinnerCards();
+    await this.tableManager.persistTableState(roomId);
+    await this.broadcastTableState(roomId, table);
+  }
+
+  /**
+   * Solo mode bot fill: add bots to reach at least 2 playable players.
+   * Bots are added with ready=true so the table can start the hand.
+   */
+  private async scheduleSoloModeBotFill(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ): Promise<void> {
+    const MIN_PLAYERS = 2;
+    const botsToAdd = MIN_PLAYERS - table.getPlayerCount();
+    this.logger.log(
+      `[SoloMode] EXECUTING: botsToAdd=${botsToAdd}, playerCount=${table.getPlayerCount()}`,
+    );
+    if (botsToAdd <= 0) return;
+
+    for (let i = 0; i < botsToAdd; i++) {
+      const bot = this.botService.createBot();
+      table.addPlayer(
+        {
+          sub: bot.id,
+          nickname: bot.nickname,
+          avatar: bot.avatar,
+          ready: true,
+        },
+        bot.stack,
+      );
+    }
+
+    // After bots are added, check if we can start the hand
+    if (table.areAllSeatedPlayersReady()) {
+      this.logger.log(
+        `[SoloMode] All players ready after bot fill, starting hand for room ${roomId}`,
+      );
+      table.startHandIfReady();
+      await this.tableManager.persistTableBalances(roomId);
+      if (table.currentStage !== 'WAITING') {
+        await this.broadcastTableState(roomId, table);
+      }
+    }
+
     await this.tableManager.persistTableState(roomId);
     await this.broadcastTableState(roomId, table);
   }

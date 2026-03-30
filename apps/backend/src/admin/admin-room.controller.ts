@@ -1,10 +1,21 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Query, Body, UseGuards, Request,
-  ParseIntPipe, DefaultValuePipe,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
 
 @Controller('admin/rooms')
 @UseGuards(AdminGuard)
@@ -27,13 +38,33 @@ export class AdminRoomController {
   }
 
   @Post()
-  createRoom(@Body() body: any) {
-    return this.adminService.createRoom(body);
+  async createRoom(@Body() dto: CreateRoomDto, @Request() req: any) {
+    const room = await this.adminService.createRoom(dto);
+    await this.adminService.log({
+      adminId: req.admin.sub,
+      action: 'CREATE_ROOM',
+      targetType: 'ROOM',
+      targetId: room.id,
+      detail: dto,
+    });
+    return room;
   }
 
   @Patch(':id')
-  updateRoom(@Param('id') id: string, @Body() body: any) {
-    return this.adminService.updateRoom(id, body);
+  async updateRoom(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoomDto,
+    @Request() req: any,
+  ) {
+    const result = await this.adminService.updateRoom(id, dto);
+    await this.adminService.log({
+      adminId: req.admin.sub,
+      action: 'UPDATE_ROOM',
+      targetType: 'ROOM',
+      targetId: id,
+      detail: dto,
+    });
+    return result;
   }
 
   @Delete(':id')
@@ -45,7 +76,9 @@ export class AdminRoomController {
   async toggleMaintenance(@Param('id') id: string, @Request() req: any) {
     const room = await this.adminService.getRoomById(id);
     const newStatus = room.status === 'MAINTENANCE' ? 'ACTIVE' : 'MAINTENANCE';
-    const updated = await this.adminService.updateRoom(id, { status: newStatus });
+    const updated = await this.adminService.updateRoom(id, {
+      status: newStatus,
+    });
     await this.adminService.log({
       adminId: req.admin.sub,
       action: 'MAINTENANCE',

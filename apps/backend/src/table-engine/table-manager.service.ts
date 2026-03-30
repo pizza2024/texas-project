@@ -55,8 +55,23 @@ export class TableManagerService {
           const minBuyIn = room.minBuyIn > 0 ? room.minBuyIn : room.blindBig;
           const roomPassword = room.password ?? null;
           const table = snapshot
-            ? Table.fromSnapshot(snapshot, room.maxPlayers, room.blindSmall, room.blindBig, minBuyIn, roomPassword)
-            : new Table(room.id, room.id, room.maxPlayers, room.blindSmall, room.blindBig, minBuyIn, roomPassword);
+            ? Table.fromSnapshot(
+                snapshot,
+                room.maxPlayers,
+                room.blindSmall,
+                room.blindBig,
+                minBuyIn,
+                roomPassword,
+              )
+            : new Table(
+                room.id,
+                room.id,
+                room.maxPlayers,
+                room.blindSmall,
+                room.blindBig,
+                minBuyIn,
+                roomPassword,
+              );
           this.tables.set(roomId, table);
         }
         return this.tables.get(roomId);
@@ -66,7 +81,9 @@ export class TableManagerService {
     return this.pendingGetTable.get(roomId);
   }
 
-  private async loadSnapshotFromRedis(roomId: string): Promise<TableSnapshot | null> {
+  private async loadSnapshotFromRedis(
+    roomId: string,
+  ): Promise<TableSnapshot | null> {
     const raw = await this.redis.get(TABLE_KEY(roomId));
     return this.parseSnapshot(raw);
   }
@@ -83,7 +100,9 @@ export class TableManagerService {
     await this.walletService.freezeBalance(userId, amount);
   }
 
-  private parseSnapshot(snapshot: string | null | undefined): TableSnapshot | null {
+  private parseSnapshot(
+    snapshot: string | null | undefined,
+  ): TableSnapshot | null {
     if (!snapshot) {
       return null;
     }
@@ -136,10 +155,12 @@ export class TableManagerService {
         where: { id: roomId },
       });
     } catch {
-      await this.prisma.table.updateMany({
-        where: { id: roomId },
-        data: { stateSnapshot: null },
-      }).catch(() => {});
+      await this.prisma.table
+        .updateMany({
+          where: { id: roomId },
+          data: { stateSnapshot: null },
+        })
+        .catch(() => {});
     }
   }
 
@@ -166,7 +187,10 @@ export class TableManagerService {
     const handResult = table.lastHandResult;
 
     // Determine primary winner (largest win amount) for Hand.winnerId
-    const primaryWinner = handResult.reduce((a, b) => (b.winAmount > a.winAmount ? b : a), handResult[0]);
+    const primaryWinner = handResult.reduce(
+      (a, b) => (b.winAmount > a.winAmount ? b : a),
+      handResult[0],
+    );
     const totalPot = handResult.reduce((sum, r) => sum + r.winAmount, 0);
 
     try {
@@ -198,7 +222,9 @@ export class TableManagerService {
 
       await this.prisma.$transaction([
         this.prisma.settlement.createMany({ data: settlementData }),
-        ...transactionData.map((t) => this.prisma.transaction.create({ data: t })),
+        ...transactionData.map((t) =>
+          this.prisma.transaction.create({ data: t }),
+        ),
       ]);
     } catch (err) {
       // Non-fatal: log and continue — game integrity (balance updates) must not be blocked
@@ -214,7 +240,9 @@ export class TableManagerService {
     return (await this.getUserCurrentRoom(userId))?.roomId ?? null;
   }
 
-  async getUserCurrentRoom(userId: string): Promise<{ roomId: string; isMatchmaking: boolean } | null> {
+  async getUserCurrentRoom(
+    userId: string,
+  ): Promise<{ roomId: string; isMatchmaking: boolean } | null> {
     for (const [roomId, table] of this.tables.entries()) {
       if (table.hasPlayer(userId)) {
         const room = await this.roomService.findOne(roomId);
@@ -234,7 +262,10 @@ export class TableManagerService {
       const snapshot = this.parseSnapshot(persistedTable.stateSnapshot);
       if (snapshot?.players.some((player) => player?.id === userId)) {
         const room = await this.roomService.findOne(persistedTable.id);
-        return { roomId: persistedTable.id, isMatchmaking: room?.isMatchmaking ?? false };
+        return {
+          roomId: persistedTable.id,
+          isMatchmaking: room?.isMatchmaking ?? false,
+        };
       }
     }
 
@@ -261,7 +292,10 @@ export class TableManagerService {
 
     const removedPlayer = table.removePlayer(userId);
     if (removedPlayer) {
-      await this.walletService.setBalance(removedPlayer.id, removedPlayer.stack);
+      await this.walletService.setBalance(
+        removedPlayer.id,
+        removedPlayer.stack,
+      );
       await this.walletService.unfreezeBalance(removedPlayer.id);
     }
 

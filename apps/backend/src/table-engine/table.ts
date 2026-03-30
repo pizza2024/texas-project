@@ -12,6 +12,12 @@ export interface HandResultEntry {
   bestCards?: string[];
 }
 
+export interface StraddleInfo {
+  playerId: string;
+  amount: number;
+  position: number;
+}
+
 export interface Pot {
   amount: number;
   eligiblePlayerIds: string[];
@@ -35,6 +41,8 @@ export interface TableSnapshot {
   actionEndsAt: number | null;
   isFoldWin: boolean;
   foldWinnerRevealed: boolean;
+  straddle: StraddleInfo | null;
+  calledAllIn: number | null;
 }
 
 export enum GameStage {
@@ -72,8 +80,20 @@ export class Table {
   isFoldWin: boolean;
   /** True when the fold-win winner chose to reveal their cards. */
   foldWinnerRevealed: boolean;
+  /** UTG straddle: 2x BB, becomes the effective bet to act last preflop. */
+  straddle: StraddleInfo | null;
+  /** Tracks the all-in amount that has been called this street. Prevents re-opening action. */
+  calledAllIn: number | null;
 
-  constructor(id: string, roomId: string, maxPlayers: number, smallBlind: number, bigBlind: number, minBuyIn?: number, roomPassword?: string | null) {
+  constructor(
+    id: string,
+    roomId: string,
+    maxPlayers: number,
+    smallBlind: number,
+    bigBlind: number,
+    minBuyIn?: number,
+    roomPassword?: string | null,
+  ) {
     this.id = id;
     this.roomId = roomId;
     this.players = new Array(maxPlayers).fill(null);
@@ -95,6 +115,8 @@ export class Table {
     this.actionEndsAt = null;
     this.isFoldWin = false;
     this.foldWinnerRevealed = false;
+    this.straddle = null;
+    this.calledAllIn = null;
   }
 
   static fromSnapshot(
@@ -105,7 +127,15 @@ export class Table {
     minBuyIn?: number,
     roomPassword?: string | null,
   ): Table {
-    const table = new Table(snapshot.id, snapshot.roomId, maxPlayers, smallBlind, bigBlind, minBuyIn, roomPassword);
+    const table = new Table(
+      snapshot.id,
+      snapshot.roomId,
+      maxPlayers,
+      smallBlind,
+      bigBlind,
+      minBuyIn,
+      roomPassword,
+    );
     table.players = snapshot.players;
     table.deck = [...snapshot.deck];
     table.communityCards = [...snapshot.communityCards];
@@ -121,6 +151,8 @@ export class Table {
     table.actionEndsAt = snapshot.actionEndsAt ?? null;
     table.isFoldWin = snapshot.isFoldWin ?? false;
     table.foldWinnerRevealed = snapshot.foldWinnerRevealed ?? false;
+    table.straddle = snapshot.straddle ?? null;
+    table.calledAllIn = (snapshot as any).calledAllIn ?? null;
     return table;
   }
 
@@ -170,13 +202,15 @@ export class Table {
       actionEndsAt: this.actionEndsAt,
       isFoldWin: this.isFoldWin,
       foldWinnerRevealed: this.foldWinnerRevealed,
+      straddle: this.straddle,
+      calledAllIn: this.calledAllIn,
     };
   }
 
   addPlayer(player: any, initialStack = 1000): boolean {
     if (this.hasPlayer(player.sub)) {
       // Refresh display name and avatar from latest data on every connect/reconnect
-      const existing = this.players.find(p => p?.id === player.sub);
+      const existing = this.players.find((p) => p?.id === player.sub);
       if (existing) {
         existing.nickname = player.nickname ?? player.username;
         existing.avatar = player.avatar ?? existing.avatar ?? '';
@@ -184,9 +218,9 @@ export class Table {
       return true;
     }
 
-    const seatIndex = this.players.findIndex(p => p === null);
+    const seatIndex = this.players.findIndex((p) => p === null);
     if (seatIndex === -1) return false;
-    
+
     // transform user to player
     const newPlayer: Player = {
       id: player.sub,
@@ -202,15 +236,16 @@ export class Table {
       isSmallBlind: false,
       isBigBlind: false,
       hasActed: false,
-      ready: false,
+      // Preserve ready=true for bots (auto-ready), default to false for humans
+      ready: player.ready ?? false,
     };
-    
+
     this.players[seatIndex] = newPlayer;
     return true;
   }
 
   removePlayer(playerId: string): Player | null {
-    const index = this.players.findIndex(p => p && p.id === playerId);
+    const index = this.players.findIndex((p) => p && p.id === playerId);
     if (index !== -1) {
       const removedPlayer = this.players[index];
       this.players[index] = null;
@@ -231,20 +266,26 @@ export class Table {
   foldPlayerOnLeave(playerId: string): boolean {
     if (!this.isActionStage()) return false;
 
-    const playerIndex = this.players.findIndex(p => p && p.id === playerId);
+    const playerIndex = this.players.findIndex((p) => p && p.id === playerId);
     if (playerIndex === -1) return false;
 
     const player = this.players[playerIndex];
     if (!player) return false;
 
     // Already out of betting action — nothing to fold.
-    if (player.status === PlayerStatus.FOLD || player.status === PlayerStatus.ALLIN) return false;
+    if (
+      player.status === PlayerStatus.FOLD ||
+      player.status === PlayerStatus.ALLIN
+    )
+      return false;
 
     player.status = PlayerStatus.FOLD;
     this.actionEndsAt = null;
 
     // Check if only one non-folded player remains → fold-win.
-    const notFolded = this.players.filter(p => p && p.status !== PlayerStatus.FOLD) as Player[];
+    const notFolded = this.players.filter(
+      (p) => p && p.status !== PlayerStatus.FOLD,
+    ) as Player[];
     if (notFolded.length === 1) {
       const winner = notFolded[0];
       const RAKE_RATE = 0.03;
@@ -254,13 +295,13 @@ export class Table {
       winner.stack += winAmount;
       this.pot = 0;
       this.lastHandResult = this.players
-        .filter(p => p !== null)
-        .map(p => ({
-          playerId: p!.id,
-          nickname: p!.nickname,
-          handName: p!.id === winner.id ? '其他玩家弃牌' : '弃牌',
-          winAmount: p!.id === winner.id ? winAmount : 0,
-          totalBet: p!.totalBet,
+        .filter((p) => p !== null)
+        .map((p) => ({
+          playerId: p.id,
+          nickname: p.nickname,
+          handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+          winAmount: p.id === winner.id ? winAmount : 0,
+          totalBet: p.totalBet,
         }));
       this.isFoldWin = true;
       this.foldWinnerRevealed = false;
@@ -269,7 +310,10 @@ export class Table {
     }
 
     // Advance turn or street when appropriate.
-    if (this.activePlayerIndex === playerIndex || this.isBettingRoundComplete()) {
+    if (
+      this.activePlayerIndex === playerIndex ||
+      this.isBettingRoundComplete()
+    ) {
       if (this.isBettingRoundComplete()) {
         this.advanceStreet();
       } else {
@@ -317,7 +361,9 @@ export class Table {
       player.ready = true;
     });
     this.players
-      .filter((player): player is Player => player !== null && player.stack <= 0)
+      .filter(
+        (player): player is Player => player !== null && player.stack <= 0,
+      )
       .forEach((player) => {
         player.ready = false;
       });
@@ -343,13 +389,26 @@ export class Table {
     this.actionEndsAt = null;
   }
 
-  getTimeoutAction(): { action: 'check' | 'fold'; playerId: string } | null {
+  getTimeoutAction(): {
+    action: 'check' | 'fold' | 'sitout';
+    playerId: string;
+  } | null {
     if (!this.isActionStage()) {
       return null;
     }
 
     const activePlayer = this.players[this.activePlayerIndex];
-    if (!activePlayer || activePlayer.status !== PlayerStatus.ACTIVE) {
+    if (!activePlayer) {
+      return null;
+    }
+
+    // SITOUT players (e.g. zero-stack players who somehow reached their turn)
+    // are auto-folded — they never have a legal action.
+    if (activePlayer.status === PlayerStatus.SITOUT) {
+      return { playerId: activePlayer.id, action: 'sitout' };
+    }
+
+    if (activePlayer.status !== PlayerStatus.ACTIVE) {
       return null;
     }
 
@@ -357,6 +416,68 @@ export class Table {
       playerId: activePlayer.id,
       action: this.currentBet <= activePlayer.bet ? 'check' : 'fold',
     };
+  }
+
+  /**
+   * Auto-folds the current active player if they are sitting out.
+   * Returns true if the player was folded and action was advanced.
+   */
+  foldSitOutPlayer(): boolean {
+    if (!this.isActionStage()) {
+      return false;
+    }
+
+    const activePlayer = this.players[this.activePlayerIndex];
+    if (!activePlayer || activePlayer.status !== PlayerStatus.SITOUT) {
+      return false;
+    }
+
+    activePlayer.status = PlayerStatus.FOLD;
+    activePlayer.hasActed = true;
+    this.actionEndsAt = null;
+
+    const notFolded = this.players.filter(
+      (p) => p && p.status !== PlayerStatus.FOLD,
+    ) as Player[];
+    if (notFolded.length === 1) {
+      const winner = notFolded[0];
+      const RAKE_RATE = 0.03;
+      const RAKE_CAP = 30;
+      const rake = Math.min(Math.floor(this.pot * RAKE_RATE), RAKE_CAP);
+      const winAmount = this.pot - rake;
+      winner.stack += winAmount;
+      this.pot = 0;
+      this.lastHandResult = this.players
+        .filter((p) => p !== null)
+        .map((p) => ({
+          playerId: p.id,
+          nickname: p.nickname,
+          handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+          winAmount: p.id === winner.id ? winAmount : 0,
+          totalBet: p.totalBet,
+        }));
+      this.isFoldWin = true;
+      this.foldWinnerRevealed = false;
+      this.currentStage = GameStage.SETTLEMENT;
+      return true;
+    }
+
+    if (this.isBettingRoundComplete()) {
+      this.advanceStreet();
+    } else {
+      this.activePlayerIndex = this.nextActiveFrom(this.activePlayerIndex);
+    }
+
+    return true;
+  }
+
+  /** Returns true if the current active player is sitting out and needs auto-fold. */
+  isCurrentPlayerSitOut(): boolean {
+    if (!this.isActionStage()) {
+      return false;
+    }
+    const activePlayer = this.players[this.activePlayerIndex];
+    return !!activePlayer && activePlayer.status === PlayerStatus.SITOUT;
   }
 
   private isActionStage() {
@@ -379,7 +500,21 @@ export class Table {
   }
 
   private initDeck(): string[] {
-    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+    const ranks = [
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      'T',
+      'J',
+      'Q',
+      'K',
+      'A',
+    ];
     const suits = ['s', 'h', 'd', 'c'];
     const deck: string[] = [];
     for (const suit of suits) {
@@ -399,7 +534,8 @@ export class Table {
     return d;
   }
 
-  private startHand() {
+  /** Visible for integration tests (table-game-logic.spec.ts). */
+  startHand() {
     const seated = this.players.filter((p) => this.isPlayablePlayer(p));
 
     // Reset all player state for the new hand
@@ -425,6 +561,7 @@ export class Table {
     this.settlementEndsAt = null;
     this.readyCountdownEndsAt = null;
     this.actionEndsAt = null;
+    this.straddle = null;
 
     // Assign positions
     const dealerIdx = this.isPlayablePlayer(this.players[this.dealerIndex])
@@ -487,6 +624,49 @@ export class Table {
     this.currentStage = GameStage.PREFLOP;
   }
 
+  /**
+   * Attempt to post a straddle (2x BB) from UTG position.
+   * Only valid during preflop when the player is first to act.
+   * The straddle effectively makes them act last preflop.
+   */
+  attemptStraddle(playerId: string): boolean {
+    if (this.currentStage !== GameStage.PREFLOP) return false;
+    if (this.straddle !== null) return false;
+
+    const activePlayer = this.players[this.activePlayerIndex];
+    if (!activePlayer || activePlayer.id !== playerId) return false;
+
+    const straddleAmount = Math.min(this.bigBlind * 2, activePlayer.stack);
+    if (straddleAmount < this.bigBlind * 2) return false;
+
+    const extraAmount = straddleAmount - activePlayer.bet;
+    activePlayer.stack -= extraAmount;
+    activePlayer.bet = straddleAmount;
+    activePlayer.totalBet += extraAmount;
+    this.pot += extraAmount;
+    this.currentBet = straddleAmount;
+    this.minBet = this.bigBlind;
+
+    this.straddle = {
+      playerId: activePlayer.id,
+      amount: straddleAmount,
+      position: activePlayer.position,
+    };
+
+    this.activePlayerIndex = this.nextActiveFrom(this.activePlayerIndex);
+
+    this.players.forEach((p) => {
+      if (p && p.status === PlayerStatus.ACTIVE && p.id !== playerId) {
+        p.hasActed = false;
+      }
+    });
+
+    // Mark straddle player as having acted — they've put in 2x BB and will act last preflop.
+    activePlayer.hasActed = true;
+
+    return true;
+  }
+
   processAction(playerId: string, action: string, amount: number) {
     // Must be this player's turn
     const activePlayer = this.players[this.activePlayerIndex];
@@ -501,6 +681,21 @@ export class Table {
         handled = true;
         break;
 
+      case 'straddle':
+        if (this.attemptStraddle(playerId)) {
+          return true;
+        }
+        return false;
+
+      case 'sit-out':
+        // Voluntary sit-out: player chooses to sit out for the rest of the hand.
+        // Mark as SITOUT and immediately fold via foldSitOutPlayer, which also
+        // handles fold-win if this is the last active player.
+        if (!this.isActionStage()) return false;
+        activePlayer.status = PlayerStatus.SITOUT;
+        // foldSitOutPlayer will set hasActed, handle fold-win, and advance.
+        return this.foldSitOutPlayer();
+
       case 'check':
         // Only legal when no outstanding bet to call
         if (this.currentBet > activePlayer.bet) return false;
@@ -509,7 +704,10 @@ export class Table {
         break;
 
       case 'call': {
-        const callAmount = Math.min(this.currentBet - activePlayer.bet, activePlayer.stack);
+        const callAmount = Math.min(
+          this.currentBet - activePlayer.bet,
+          activePlayer.stack,
+        );
         if (callAmount <= 0) return false;
         activePlayer.stack -= callAmount;
         activePlayer.bet += callAmount;
@@ -517,17 +715,25 @@ export class Table {
         this.pot += callAmount;
         activePlayer.hasActed = true;
         if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
+        if (
+          this.calledAllIn === null &&
+          activePlayer.status === PlayerStatus.ALLIN
+        ) {
+          this.calledAllIn = activePlayer.bet;
+        }
         handled = true;
         break;
       }
 
       case 'raise': {
-        // `amount` is the total bet for this street (raise-to amount)
+        if (this.calledAllIn !== null && activePlayer.bet >= this.calledAllIn) {
+          return false;
+        }
         const minRaiseTo = this.currentBet + this.minBet;
         if (amount < minRaiseTo) return false;
         const toAdd = Math.min(amount - activePlayer.bet, activePlayer.stack);
         if (toAdd <= 0) return false;
-        this.minBet = amount - this.currentBet; // raise increment becomes new min-raise
+        this.minBet = amount - this.currentBet;
         activePlayer.stack -= toAdd;
         activePlayer.bet += toAdd;
         activePlayer.totalBet += toAdd;
@@ -535,7 +741,7 @@ export class Table {
         this.currentBet = activePlayer.bet;
         activePlayer.hasActed = true;
         if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
-        // Re-open action for everyone else still active
+        this.calledAllIn = null;
         this.players.forEach((p) => {
           if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
             p.hasActed = false;
@@ -557,11 +763,14 @@ export class Table {
         if (activePlayer.bet > this.currentBet) {
           this.minBet = activePlayer.bet - this.currentBet;
           this.currentBet = activePlayer.bet;
+          this.calledAllIn = null;
           this.players.forEach((p) => {
             if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
               p.hasActed = false;
             }
           });
+        } else if (this.calledAllIn === null) {
+          this.calledAllIn = activePlayer.bet;
         }
         handled = true;
         break;
@@ -578,7 +787,9 @@ export class Table {
     this.actionEndsAt = null;
 
     // Check if only one non-folded player remains → that player wins
-    const notFolded = this.players.filter((p) => p && p.status !== PlayerStatus.FOLD) as Player[];
+    const notFolded = this.players.filter(
+      (p) => p && p.status !== PlayerStatus.FOLD,
+    ) as Player[];
     if (notFolded.length === 1) {
       const winner = notFolded[0];
 
@@ -593,11 +804,11 @@ export class Table {
       this.lastHandResult = this.players
         .filter((p) => p !== null)
         .map((p) => ({
-          playerId: p!.id,
-          nickname: p!.nickname,
-          handName: p!.id === winner.id ? '其他玩家弃牌' : '弃牌',
-          winAmount: p!.id === winner.id ? winAmount : 0,
-          totalBet: p!.totalBet,
+          playerId: p.id,
+          nickname: p.nickname,
+          handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+          winAmount: p.id === winner.id ? winAmount : 0,
+          totalBet: p.totalBet,
         }));
       this.isFoldWin = true;
       this.foldWinnerRevealed = false;
@@ -616,8 +827,13 @@ export class Table {
   }
 
   private isBettingRoundComplete(): boolean {
-    const active = this.players.filter((p) => p && p.status === PlayerStatus.ACTIVE) as Player[];
-    return active.length === 0 || active.every((p) => p.hasActed && p.bet === this.currentBet);
+    const active = this.players.filter(
+      (p) => p && p.status === PlayerStatus.ACTIVE,
+    ) as Player[];
+    return (
+      active.length === 0 ||
+      active.every((p) => p.hasActed && p.bet === this.currentBet)
+    );
   }
 
   /** Next seat with ACTIVE status, wrapping around. */
@@ -646,7 +862,11 @@ export class Table {
       case GameStage.PREFLOP:
         this.currentStage = GameStage.FLOP;
         this.deck.pop(); // burn
-        this.communityCards.push(this.deck.pop()!, this.deck.pop()!, this.deck.pop()!);
+        this.communityCards.push(
+          this.deck.pop()!,
+          this.deck.pop()!,
+          this.deck.pop()!,
+        );
         break;
       case GameStage.FLOP:
         this.currentStage = GameStage.TURN;
@@ -696,11 +916,17 @@ export class Table {
     const winAmounts = new Map<string, number>();
 
     for (const pot of pots) {
-      const potEligible = eligible.filter((p) => pot.eligiblePlayerIds.includes(p.id));
+      const potEligible = eligible.filter((p) =>
+        pot.eligiblePlayerIds.includes(p.id),
+      );
       if (potEligible.length === 0) continue;
 
       const { winners: potWinners } = determineWinners(
-        potEligible.map((p) => ({ id: p.id, nickname: p.nickname, cards: p.cards })),
+        potEligible.map((p) => ({
+          id: p.id,
+          nickname: p.nickname,
+          cards: p.cards,
+        })),
         this.communityCards,
       );
 
@@ -708,7 +934,10 @@ export class Table {
       const remainder = pot.amount - share * potWinners.length;
       potWinners.forEach((w, idx) => {
         const current = winAmounts.get(w.playerId) ?? 0;
-        winAmounts.set(w.playerId, current + share + (idx === 0 ? remainder : 0));
+        winAmounts.set(
+          w.playerId,
+          current + share + (idx === 0 ? remainder : 0),
+        );
       });
     }
 
@@ -746,7 +975,9 @@ export class Table {
    */
   private buildPots(allPlayers: Player[]): Pot[] {
     const contributors = allPlayers.filter((p) => p.totalBet > 0);
-    const levels = [...new Set(contributors.map((p) => p.totalBet))].sort((a, b) => a - b);
+    const levels = [...new Set(contributors.map((p) => p.totalBet))].sort(
+      (a, b) => a - b,
+    );
 
     const pots: Pot[] = [];
     let prevLevel = 0;
@@ -780,7 +1011,7 @@ export class Table {
     // Advance dealer button clockwise for next hand
     this.dealerIndex = this.nextSeatedFrom(this.dealerIndex);
 
-    const seated = this.players.filter((p) => p !== null) as Player[];
+    const seated = this.players.filter((p) => p !== null);
     seated.forEach((p) => {
       p.cards = [];
       p.bet = 0;
@@ -805,6 +1036,8 @@ export class Table {
     this.actionEndsAt = null;
     this.isFoldWin = false;
     this.foldWinnerRevealed = false;
+    this.straddle = null;
+    this.calledAllIn = null;
     this.currentStage = GameStage.WAITING;
   }
 
@@ -836,9 +1069,10 @@ export class Table {
         showCards = true;
       } else if (this.currentStage === GameStage.SETTLEMENT && this.isFoldWin) {
         // Show fold-win winner's cards only if they chose to reveal
-        const isWinner = this.lastHandResult?.some(
-          (e) => e.playerId === p.id && e.winAmount > 0,
-        ) ?? false;
+        const isWinner =
+          this.lastHandResult?.some(
+            (e) => e.playerId === p.id && e.winAmount > 0,
+          ) ?? false;
         showCards = isWinner && this.foldWinnerRevealed;
       } else {
         showCards = false;
@@ -867,6 +1101,8 @@ export class Table {
       actionEndsAt: this.actionEndsAt,
       isFoldWin: this.isFoldWin,
       foldWinnerRevealed: this.foldWinnerRevealed,
+      straddle: this.straddle,
+      calledAllIn: this.calledAllIn,
     };
   }
 }

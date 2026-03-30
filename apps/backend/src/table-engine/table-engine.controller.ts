@@ -1,4 +1,12 @@
-import { Controller, Get, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { TableManagerService } from './table-manager.service';
@@ -16,14 +24,21 @@ export class TableEngineController {
   @UseGuards(AuthGuard('jwt'))
   @Get('me/current-room')
   async getCurrentRoom(@Req() req: AuthenticatedRequest) {
-    const room = await this.tableManagerService.getUserCurrentRoom(req.user.userId);
-    return { roomId: room?.roomId ?? null, isMatchmaking: room?.isMatchmaking ?? false };
+    const room = await this.tableManagerService.getUserCurrentRoom(
+      req.user.userId,
+    );
+    return {
+      roomId: room?.roomId ?? null,
+      isMatchmaking: room?.isMatchmaking ?? false,
+    };
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('me/leave-room')
   async leaveCurrentRoom(@Req() req: AuthenticatedRequest) {
-    const result = await this.tableManagerService.leaveCurrentRoom(req.user.userId);
+    const result = await this.tableManagerService.leaveCurrentRoom(
+      req.user.userId,
+    );
     return {
       roomId: result?.roomId ?? null,
       left: !!result,

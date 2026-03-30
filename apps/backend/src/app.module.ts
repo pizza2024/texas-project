@@ -13,6 +13,7 @@ import { AdminModule } from './admin/admin.module';
 import { RedisModule } from './redis/redis.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { DepositModule } from './deposit/deposit.module';
+import { WithdrawModule } from './withdraw/withdraw.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -29,6 +30,7 @@ import { HealthController } from './health/health.controller';
     AdminModule,
     MatchmakingModule,
     DepositModule,
+    WithdrawModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

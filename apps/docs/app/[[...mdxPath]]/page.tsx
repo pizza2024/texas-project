@@ -1,26 +1,42 @@
-import { generateStaticParamsFor, importPage } from 'nextra/pages'
-import { useMDXComponents } from '../../mdx-components'
+import { generateStaticParamsFor, importPage } from "nextra/pages";
+import { useMDXComponents } from "../../mdx-components";
+import { use } from "react";
 
-export const generateStaticParams = generateStaticParamsFor('mdxPath')
+export const generateStaticParams = generateStaticParamsFor("mdxPath");
 
 type Props = {
-  params: Promise<{ mdxPath: string[] }>
-}
+  params: Promise<{ mdxPath: string[] }>;
+};
 
 export async function generateMetadata(props: Props) {
-  const params = await props.params
-  const { metadata } = await importPage(params.mdxPath)
-  return metadata
+  const params = await props.params;
+  const { metadata } = await importPage(params.mdxPath);
+  return metadata;
 }
 
-export default async function Page(props: Props) {
-  const params = await props.params
-  const result = await importPage(params.mdxPath)
-  const { default: MDXContent, toc, metadata, sourceCode } = result
-  const Wrapper = useMDXComponents().wrapper
+function MDXWrapper({ toc, metadata, sourceCode, children, params }: any) {
+  const { wrapper } = useMDXComponents();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const Content = wrapper;
   return (
-    <Wrapper toc={toc} metadata={metadata} sourceCode={sourceCode}>
+    <Content toc={toc} metadata={metadata} sourceCode={sourceCode}>
+      {children}
+    </Content>
+  );
+}
+
+export default function Page(props: Props) {
+  const params = use(props.params);
+  const result = use(importPage(params.mdxPath));
+  const { default: MDXContent, toc, metadata, sourceCode } = result;
+  return (
+    <MDXWrapper
+      toc={toc}
+      metadata={metadata}
+      sourceCode={sourceCode}
+      params={params}
+    >
       <MDXContent {...props} params={params} />
-    </Wrapper>
-  )
+    </MDXWrapper>
+  );
 }

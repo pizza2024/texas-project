@@ -23,9 +23,11 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get()
-  async getWallet(@Request() req: { user: { sub: string } }) {
-    const chips = await this.walletService.getBalance(req.user.sub);
-    const available = await this.walletService.getAvailableBalance(req.user.sub);
+  async getWallet(@Request() req: { user: { userId: string } }) {
+    const chips = await this.walletService.getBalance(req.user.userId);
+    const available = await this.walletService.getAvailableBalance(
+      req.user.userId,
+    );
     return { chips, availableChips: available };
   }
 

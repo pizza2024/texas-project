@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class WalletService {
   private static readonly STARTING_CHIPS = 10000;
+  private readonly logger = new Logger(WalletService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -54,29 +56,56 @@ export class WalletService {
   ): Promise<void> {
     if (entries.length === 0) return;
 
-    await this.prisma.$transaction(
-      entries.flatMap(({ userId, balance }) => {
+    // Phase 1: upsert wallets only — skip bots (no wallet record needed for bots)
+    const walletOps = entries.map(async ({ userId, balance }) => {
+      try {
         const normalized = Math.max(0, balance);
-        return [
-          this.prisma.wallet.upsert({
-            where: { userId },
-            update: {
-              chips: normalized,
-              frozenChips: frozen ? normalized : 0,
-            },
-            create: {
-              userId,
-              chips: normalized,
-              frozenChips: frozen ? normalized : 0,
-            },
-          }),
-          this.prisma.user.update({
+        await this.prisma.wallet.upsert({
+          where: { userId },
+          update: { chips: normalized, frozenChips: frozen ? normalized : 0 },
+          create: {
+            userId,
+            chips: normalized,
+            frozenChips: frozen ? normalized : 0,
+          },
+        });
+      } catch (err) {
+        this.logger.error(
+          `[Wallet] setBalances wallet.upsert failed for ${userId}: ${err.message}`,
+        );
+      }
+    });
+
+    await Promise.all(walletOps);
+
+    // Phase 2: update User.coinBalance — skip bots and users without a User record
+    const userOps = entries
+      .filter(({ userId }) => !userId.startsWith('bot_'))
+      .map(async ({ userId, balance }) => {
+        try {
+          const normalized = Math.max(0, balance);
+          await this.prisma.user.update({
             where: { id: userId },
             data: { coinBalance: normalized },
-          }),
-        ];
-      }),
-    );
+          });
+        } catch (err) {
+          if (
+            err instanceof PrismaClientKnownRequestError &&
+            err.code === 'P2025'
+          ) {
+            // User record not found — ignore (e.g. bot users)
+            this.logger.warn(
+              `[Wallet] No User record for ${userId}, skipping coinBalance sync`,
+            );
+          } else {
+            this.logger.error(
+              `[Wallet] setBalances user.update failed for ${userId}: ${err.message}`,
+            );
+          }
+        }
+      });
+
+    await Promise.all(userOps);
   }
 
   /**
@@ -121,4 +150,3 @@ export class WalletService {
     return Math.max(0, wallet.chips - wallet.frozenChips);
   }
 }
-

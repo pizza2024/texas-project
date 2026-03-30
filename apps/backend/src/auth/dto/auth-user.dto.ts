@@ -7,7 +7,11 @@ export class AuthUserDto {
   @ApiProperty({ example: 'poker_ace' })
   nickname: string;
 
-  @ApiProperty({ example: 'https://cdn.example.com/avatar.png', nullable: true, required: false })
+  @ApiProperty({
+    example: 'https://cdn.example.com/avatar.png',
+    nullable: true,
+    required: false,
+  })
   avatar: string | null;
 
   @ApiProperty({ example: 10000 })

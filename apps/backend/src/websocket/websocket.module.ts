@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AppGateway } from './app.gateway';
+import { WebSocketManager } from './websocket-manager';
 import { TableEngineModule } from '../table-engine/table-engine.module';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from '../user/user.module';
 import { MatchmakingModule } from '../matchmaking/matchmaking.module';
+import { BotModule } from '../bot/bot.module';
 
 @Module({
   imports: [
@@ -12,11 +14,12 @@ import { MatchmakingModule } from '../matchmaking/matchmaking.module';
     AuthModule,
     UserModule,
     MatchmakingModule,
+    BotModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret',
     }),
   ],
-  providers: [AppGateway],
-  exports: [AppGateway],
+  providers: [AppGateway, WebSocketManager],
+  exports: [AppGateway, WebSocketManager],
 })
 export class WebsocketModule {}

@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -23,7 +28,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     this.client.on('error', (err: Error) => {
       if (this.available) {
-        this.logger.warn(`Redis error: ${err.message} — falling back to SQLite only`);
+        this.logger.warn(
+          `Redis error: ${err.message} — falling back to SQLite only`,
+        );
       }
       this.available = false;
     });
@@ -72,6 +79,30 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.del(key);
     } catch {
       // non-fatal
+    }
+  }
+
+  /** Atomically increment a key and return its new value. Sets TTL on first set. Returns null if Redis unavailable. */
+  async incr(key: string, ttlSeconds?: number): Promise<number | null> {
+    if (!this.available || !this.client) return null;
+    try {
+      const newVal = await this.client.incr(key);
+      if (ttlSeconds && newVal === 1) {
+        await this.client.expire(key, ttlSeconds);
+      }
+      return newVal;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Get remaining TTL of a key in seconds. Returns -2 if key doesn't exist, -1 if no TTL set. */
+  async ttl(key: string): Promise<number> {
+    if (!this.available || !this.client) return -2;
+    try {
+      return await this.client.ttl(key);
+    } catch {
+      return -2;
     }
   }
 

@@ -76,9 +76,7 @@ export class UserController {
   @Get('hands/:handId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get detail of a specific hand' })
-  async getHandDetail(
-    @Req() req: AuthenticatedRequest,
-  ) {
+  async getHandDetail(@Req() req: AuthenticatedRequest) {
     // Hand ID is passed as a query param when navigating from history list
     // The actual endpoint uses /user/hands/export or the detail view
     return { message: 'Use /user/hands endpoint to browse history' };

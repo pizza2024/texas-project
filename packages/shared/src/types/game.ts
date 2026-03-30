@@ -69,6 +69,12 @@ export interface HandResultEntry {
   bestCards?: string[];
 }
 
+export interface StraddleInfo {
+  playerId: string;
+  amount: number;
+  position: number;
+}
+
 export interface TableState {
   id: string;
   pot: number;
@@ -84,6 +90,7 @@ export interface TableState {
   actionEndsAt?: number | null;
   isFoldWin?: boolean;
   foldWinnerRevealed?: boolean;
+  straddle?: StraddleInfo | null;
 }
 
 // ── 充值 ────────────────────────────────────────────────────────────────────

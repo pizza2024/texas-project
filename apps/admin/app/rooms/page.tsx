@@ -15,13 +15,17 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
     blindBig: room?.blindBig ?? 10,
     maxPlayers: room?.maxPlayers ?? 9,
     minBuyIn: room?.minBuyIn ?? 100,
+    password: '',
   });
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await onSave(form);
+    // Only send password if it's non-empty (otherwise leave unchanged for edit)
+    const payload = { ...form };
+    if (!payload.password) delete payload.password;
+    await onSave(payload);
     setSaving(false);
     onClose();
   }
@@ -52,6 +56,19 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
               />
             </div>
           ))}
+          {/* Password field: optional for new rooms, clear label */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">
+              房间密码 {room ? '(留空则保持不变)' : '(留空为公开房间)'}
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
+              className="w-full bg-[#0f1117] border border-[#1e2535] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+              autoComplete="new-password"
+            />
+          </div>
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:bg-white/5 rounded-lg">取消</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg">
