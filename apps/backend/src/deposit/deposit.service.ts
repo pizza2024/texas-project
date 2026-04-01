@@ -142,22 +142,6 @@ export class DepositService {
 
   @Cron(CronExpression.EVERY_30_SECONDS)
   async pollDeposits(): Promise<void> {
-    const addresses = await this.prisma.depositAddress.findMany();
-    await Promise.all(
-      addresses.map(({ address, userId }) =>
-        this.checkAddressDeposits(address, userId).catch((err: Error) =>
-          this.logger.error(
-            `Failed to check deposits for ${address}: ${err.message}`,
-          ),
-        ),
-      ),
-    );
-  }
-
-  private async checkAddressDeposits(
-    address: string,
-    userId: string,
-  ): Promise<void> {
     const rpcUrl = process.env.ETH_RPC_URL;
     if (!rpcUrl) {
       this.logger.warn('ETH_RPC_URL is not set, skipping deposit poll');
@@ -165,26 +149,107 @@ export class DepositService {
     }
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+    // Get the latest block and determine the scan range using persisted cursor.
+    // This prevents missing events when the sliding window (latestBlock-1000)
+    // doesn't cover the block where a faucet tx was confirmed.
+    const [cursor, latestBlock] = await Promise.all([
+      this.prisma.scanCursor.findUnique({ where: { id: 'singleton' } }),
+      provider.getBlockNumber(),
+    ]);
+
+    // Fallback: use last 1000 blocks if no cursor exists yet
+    let fromBlock = cursor
+      ? Math.max(0, Number(cursor.lastBlock) + 1)
+      : Math.max(0, latestBlock - 1000);
+
+    // Guard: if the node was restarted (e.g. Hardhat reset) and latestBlock
+    // is now much lower than the cursor, reset the scan window and the cursor.
+    if (fromBlock > latestBlock) {
+      this.logger.warn(
+        `[pollDeposits] cursor (${fromBlock}) exceeds latestBlock (${latestBlock}) — likely a node restart. Resetting scan window.`,
+      );
+      fromBlock = Math.max(0, latestBlock - 100);
+      // Immediately persist the reset cursor so we don't keep hitting this case.
+      await this.prisma.scanCursor.upsert({
+        where: { id: 'singleton' },
+        update: { lastBlock: BigInt(latestBlock), updatedAt: new Date() },
+        create: { id: 'singleton', lastBlock: BigInt(latestBlock) },
+      });
+    }
+
+    this.logger.debug(
+      `[pollDeposits] scanning fromBlock=${fromBlock} latestBlock=${latestBlock} cursor.lastBlock=${cursor?.lastBlock ?? 'null'}`,
+    );
+
+    const addresses = await this.prisma.depositAddress.findMany();
+
+    // Use Promise.allSettled so one failure doesn't cancel others, and so we
+    // can track whether at least one query succeeded before advancing the cursor.
+    const results = await Promise.allSettled(
+      addresses.map(({ address, userId }) =>
+        this.checkAddressDeposits(address, userId, fromBlock, latestBlock),
+      ),
+    );
+
+    const anySucceeded = results.some(
+      (r) => r.status === 'fulfilled',
+    );
+
+    // Only advance the cursor if at least one query succeeded.
+    // (If all failed — e.g. the node is still syncing — the next run will
+    // retry from the same position.)
+    if (anySucceeded) {
+      await this.prisma.scanCursor.upsert({
+        where: { id: 'singleton' },
+        update: { lastBlock: BigInt(latestBlock), updatedAt: new Date() },
+        create: { id: 'singleton', lastBlock: BigInt(latestBlock) },
+      });
+    } else {
+      this.logger.debug(
+        `[pollDeposits] all queries failed — cursor not advanced (latestBlock=${latestBlock})`,
+      );
+    }
+  }
+
+  private async checkAddressDeposits(
+    address: string,
+    userId: string,
+    fromBlock: number,
+    toBlock: number,
+  ): Promise<void> {
+    const rpcUrl = process.env.ETH_RPC_URL!;
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
     const contract = new ethers.Contract(
       this.usdtContractAddress,
       TRANSFER_ABI,
       provider,
     );
 
-    const latestBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, latestBlock - 1000);
     const filter = contract.filters.Transfer(null, address);
-    const events = await contract.queryFilter(filter, fromBlock, latestBlock);
+    const events = await contract.queryFilter(filter, fromBlock, toBlock);
+
+    this.logger.debug(
+      `[checkAddressDeposits] address=${address} userId=${userId} fromBlock=${fromBlock} toBlock=${toBlock} eventsFound=${events.length}`,
+    );
 
     for (const event of events) {
       const log = event as ethers.EventLog;
       const txHash = log.transactionHash;
+      const blockNumber = log.blockNumber;
       const value = log.args[2] as bigint;
+
+      this.logger.debug(
+        `[checkAddressDeposits] event: txHash=${txHash} block=${blockNumber} value=${value}`,
+      );
 
       const alreadyProcessed = await this.prisma.depositRecord.findUnique({
         where: { txHash },
       });
-      if (alreadyProcessed) continue;
+      if (alreadyProcessed) {
+        this.logger.debug(`[checkAddressDeposits] already processed: ${txHash}`);
+        continue;
+      }
 
       // 全程 BigNumber 精确计算，避免 Number 对大额转账的精度损失
       const valueBN = new BigNumber(value.toString());
@@ -193,6 +258,11 @@ export class DepositService {
 
       const currentBalance = await this.walletService.getBalance(userId);
       const newBalance = new BigNumber(currentBalance).plus(chips);
+
+      this.logger.debug(
+        `[checkAddressDeposits] crediting: userId=${userId} currentBalance=${currentBalance} chips=${chips.toNumber()} newBalance=${newBalance.toNumber()}`,
+      );
+
       await this.walletService.setBalance(userId, newBalance.toNumber());
 
       await this.prisma.depositRecord.create({

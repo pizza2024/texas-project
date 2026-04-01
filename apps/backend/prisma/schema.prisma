@@ -176,6 +176,16 @@ model DepositRecord {
   @@map("deposit_records")
 }
 
+// Tracks the last block number scanned by pollDeposits to avoid missing events
+// due to sliding-window gaps or RPC indexing lag
+model ScanCursor {
+  id            String   @id @default("singleton")
+  lastBlock     BigInt   @default(0)
+  updatedAt     DateTime @default(now())
+
+  @@map("scan_cursors")
+}
+
 model WithdrawRequest {
   id            String    @id @default(uuid())
   userId        String

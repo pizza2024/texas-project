@@ -84,11 +84,11 @@ export default function RegisterPage() {
     try {
       await api.post("/auth/request-email-code", { email });
       await showSystemMessage({
-        title: t("auth.codeSent") || "Code Sent",
+        title: t("auth.codeSent") || "验证码已发送",
         message:
           t("auth.codeSentMsg") ||
-          `Verification code sent to ${email}. Check your inbox or spam folder.`,
-        confirmText: t("common.iGotIt") || "OK",
+          `验证码已发送至 ${email}，请查收（若无收件，请检查垃圾箱）`,
+        confirmText: t("common.iGotIt") || "我知道了",
       });
       setStep("otp");
       startCountdown(60);
