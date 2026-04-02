@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Resend } from 'resend';
 
 export interface SendEmailOptions {
   to: string;
@@ -10,41 +11,23 @@ export interface SendEmailOptions {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: any = null;
+  private resend: Resend | null = null;
+  private fromEmail: string;
 
   constructor() {
-    this.initTransporter();
+    this.fromEmail = process.env.SMTP_FROM || 'noreply@chips-poker.com';
+    this.initResend();
   }
 
-  private initTransporter() {
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-
-    if (smtpHost && smtpUser && smtpPass) {
-      try {
-        const nodemailer = require('nodemailer');
-        this.transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
-        this.logger.log('Email transporter initialized with SMTP');
-      } catch (e) {
-        this.logger.warn(
-          'Failed to initialize nodemailer, using console logging',
-          e,
-        );
-      }
+  private initResend() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      this.logger.log('Resend email client initialized');
     } else {
       this.logger.log(
-        'SMTP not configured — emails will be logged to console. ' +
-          'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS to enable real email delivery.',
+        'RESEND_API_KEY not configured — emails will be logged to console. ' +
+          'Set RESEND_API_KEY to enable real email delivery.',
       );
     }
   }
@@ -52,42 +35,43 @@ export class EmailService {
   async sendEmail(
     options: SendEmailOptions,
   ): Promise<{ success: boolean; previewUrl?: string }> {
-    const from = process.env.SMTP_FROM || 'noreply@chips-poker.com';
-
-    // Console logging for non-production or no SMTP configured
-    if (!this.transporter) {
-      this.logToConsole(options, from);
+    // Console logging for non-production or no Resend configured
+    if (!this.resend) {
+      this.logToConsole(options);
       return { success: true };
     }
 
     try {
-      const nodemailer = require('nodemailer');
-      const info = await this.transporter.sendMail({
-        from,
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || options.html.replace(/<[^>]+>/g, ''),
       });
 
-      const previewUrl = nodemailer.getTestMessageUrl
-        ? nodemailer.getTestMessageUrl(info)
-        : null;
+      if (error) {
+        this.logger.error(
+          `Failed to send email to ${options.to}: ${error.message}`,
+          error,
+        );
+        return { success: false };
+      }
 
-      this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
-      return { success: true, previewUrl: previewUrl || undefined };
-    } catch (error) {
+      this.logger.log(`Email sent to ${options.to}: ${options.subject}, ID: ${data?.id}`);
+      return { success: true, previewUrl: undefined };
+    } catch (error: any) {
       this.logger.error(`Failed to send email to ${options.to}`, error);
       return { success: false };
     }
   }
 
-  private logToConsole(options: SendEmailOptions, from: string) {
+  private logToConsole(options: SendEmailOptions) {
     const divider = '═'.repeat(60);
     const timestamp = new Date().toISOString();
     console.log(`\n${divider}`);
     console.log(`📧 EMAIL [${timestamp}]`);
-    console.log(`From: ${from}`);
+    console.log(`From: ${this.fromEmail}`);
     console.log(`To: ${options.to}`);
     console.log(`Subject: ${options.subject}`);
     console.log(divider);
