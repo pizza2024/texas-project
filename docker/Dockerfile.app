@@ -31,7 +31,7 @@ COPY . .
 RUN sed -i '/"packageManager"/d' package.json
 
 # Backend needs generated Prisma client types before TypeScript compilation.
-RUN if [ "$APP_NAME" = "backend" ]; then npx prisma generate --schema=apps/backend/prisma/schema.prisma; fi
+RUN if [ "$APP_NAME" = "backend" ]; then npm run db:generate --workspace="$APP_NAME"; fi
 RUN npm run build --workspace="$APP_NAME"
 
 EXPOSE 3000 3001 4000

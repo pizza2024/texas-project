@@ -96,7 +96,7 @@ nslookup api.not-replaced-yet.com
 cd /home/ubuntu/texas-project
 
 # 运行证书生成脚本
-bash docker/nginx/generate-cert.sh
+bash docker/nginx/generate-cert.sh not-replaced-yet.com
 
 # 验证证书生成
 ls -la docker/nginx/certs/
@@ -111,28 +111,30 @@ ls -la docker/nginx/certs/
 ```bash
 cd /home/ubuntu/texas-project
 
-# 复制环境变量模板
-cp docker/.env.staging.example docker/.env.staging
+# 按 DOMAIN 一键生成环境变量文件
+bash docker/generate-staging-env.sh not-replaced-yet.com
 
-# 编辑环境变量（使用 nano 或 vi）
-nano docker/.env.staging
+# 如需覆盖已存在文件
+# FORCE=1 bash docker/generate-staging-env.sh not-replaced-yet.com
+
+# 二次检查关键项
+grep -E '^(DOMAIN|CORS_ORIGIN|SOCKET_CORS_ORIGIN|NEXT_PUBLIC_API_URL|EXPO_PUBLIC_API_URL|JWT_SECRET)=' docker/.env.staging
 ```
 
-关键项修改：
+如果需要手工微调，可继续编辑：
 
 ```bash
-# 1. JWT_SECRET：改为强随机值
-JWT_SECRET=<执行: openssl rand -base64 32>
+# 1. DOMAIN
+DOMAIN=not-replaced-yet.com
 
-# 2. 数据库和 Redis：保持默认（内网）
-DATABASE_URL=postgresql://texas:texas_password@postgres:5432/texas_staging?schema=public
-REDIS_URL=redis://redis:6379
-
-# 3. CORS 和 API 域名（已在 .example 里改好了）
+# 2. CORS 和 API 域名
 CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
 SOCKET_CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
 NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
 EXPO_PUBLIC_API_URL=https://api.not-replaced-yet.com
+
+# 3. JWT_SECRET：改为强随机值（脚本会自动填充一次）
+JWT_SECRET=<执行: openssl rand -base64 32>
 ```
 
 - [ ] `docker/.env.staging` 已创建并正确配置
@@ -306,7 +308,7 @@ docker compose logs backend
 openssl x509 -in docker/nginx/certs/not-replaced-yet.com.crt -text -noout | grep -A 2 "Validity"
 
 # 如果证书过期，重新生成
-bash docker/nginx/generate-cert.sh
+bash docker/nginx/generate-cert.sh not-replaced-yet.com
 docker compose restart nginx
 ```
 

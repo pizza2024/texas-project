@@ -73,6 +73,7 @@ npm run docker:local:down
 ## 5. 环境变量规范
 
 backend:
+- DOMAIN=not-replaced-yet.com
 - NODE_ENV=production
 - PORT=4000
 - DATABASE_URL=postgresql://texas:***@postgres:5432/texas_staging?schema=public
@@ -87,6 +88,10 @@ web/admin:
 
 mobile:
 - EXPO_PUBLIC_API_URL=https://api.not-replaced-yet.com
+
+辅助脚本:
+- bash docker/generate-staging-env.sh <your-domain>
+- FORCE=1 bash docker/generate-staging-env.sh <your-domain> # 覆盖已有 docker/.env.staging
 
 ---
 
