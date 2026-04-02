@@ -137,9 +137,31 @@ jobs:
             export IMAGE_NAMESPACE="$IMAGE_NAMESPACE"
             export IMAGE_TAG="$IMAGE_TAG"
 
-            $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull
+            echo "Disk usage before cleanup:"
+            df -h /
+            docker system df || true
+
+            # Safe cleanup: remove unused caches/images/containers, keep volumes intact.
+            docker container prune -f || true
+            docker image prune -af --filter "until=168h" || true
+            docker builder prune -af --filter "until=24h" || true
+
+            echo "Disk usage after cleanup:"
+            df -h /
+            docker system df || true
+
+            if ! $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull; then
+              echo "Initial pull failed, running extra cleanup and retrying once..."
+              docker image prune -af || true
+              docker builder prune -af || true
+              df -h /
+              docker system df || true
+              $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull
+            fi
             $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging up -d || {
               echo "Deploy failed, printing recent logs for diagnosis..."
+              df -h /
+              docker system df || true
               $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging ps
               $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging logs --tail=200 backend web admin nginx || true
               exit 1
