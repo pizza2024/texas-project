@@ -131,12 +131,17 @@ jobs:
             echo "Using compose command: $COMPOSE"
             echo "Deploy image tag: $IMAGE_TAG"
 
-            docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" -p "${{ secrets.GHCR_TOKEN }}"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
             export IMAGE_REGISTRY=ghcr.io
             export IMAGE_NAMESPACE="$IMAGE_NAMESPACE"
             export IMAGE_TAG="$IMAGE_TAG"
 
             $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull
-            $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging up -d
+            $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging up -d || {
+              echo "Deploy failed, printing recent logs for diagnosis..."
+              $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging ps
+              $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging logs --tail=200 backend web admin nginx || true
+              exit 1
+            }
             $COMPOSE -f docker-compose.remote.yml ps
