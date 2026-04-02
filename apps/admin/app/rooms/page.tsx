@@ -22,9 +22,11 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    // Only send password if it's non-empty (otherwise leave unchanged for edit)
-    const payload = { ...form };
-    if (!payload.password) delete payload.password;
+    // Keep password optional in payload so edit can preserve existing value.
+    const payload = {
+      ...form,
+      ...(form.password ? { password: form.password } : {}),
+    };
     await onSave(payload);
     setSaving(false);
     onClose();
