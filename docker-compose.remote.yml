@@ -10,8 +10,8 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://web.zo-op.com,https://admin.zo-op.com}
-      SOCKET_CORS_ORIGIN: ${SOCKET_CORS_ORIGIN:-https://web.zo-op.com,https://admin.zo-op.com}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com}
+      SOCKET_CORS_ORIGIN: ${SOCKET_CORS_ORIGIN:-https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com}
     command: >
       sh -c "npm run db:migrate:prod --workspace=backend && npm run start:prod --workspace=backend"
     expose:
@@ -38,7 +38,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.zo-op.com}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.not-replaced-yet.com}
     command: npm run start --workspace=web
     expose:
       - '3000'
@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.zo-op.com}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.not-replaced-yet.com}
     command: npm run start --workspace=admin
     expose:
       - '3001'

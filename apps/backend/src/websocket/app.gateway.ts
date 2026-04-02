@@ -761,7 +761,7 @@ export class AppGateway
         this.logger.log(
           `[SoloMode] TRIGGER CHECK: allReady=${allReady}, countdown=${table.readyCountdownEndsAt}, playerCount=${table.getPlayerCount()}`,
         );
-        await this.scheduleSoloModeBotFill(roomId, table);
+        await this.executeSoloModeBotFill(roomId, table);
       }
 
       if (table.readyCountdownEndsAt) {
@@ -978,7 +978,11 @@ export class AppGateway
    * Solo mode bot fill: add bots to reach at least 2 playable players.
    * Bots are added with ready=true so the table can start the hand.
    */
-  private async scheduleSoloModeBotFill(
+  /**
+   * Solo mode bot fill (immediate execution): add bots to reach at least 2 playable players.
+   * Bots are added with ready=true so the table can start the hand.
+   */
+  private async executeSoloModeBotFill(
     roomId: string,
     table: import('../table-engine/table').Table,
   ): Promise<void> {

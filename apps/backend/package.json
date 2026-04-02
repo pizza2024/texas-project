@@ -20,6 +20,7 @@
     "test:cov": "NODE_ENV=test jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json",
+    "test:playwright": "npx playwright test",
     "db:migrate:dev": "dotenv -e .env.development -- npx prisma migrate dev",
     "db:migrate:test": "dotenv -e .env.test -- npx prisma migrate deploy",
     "db:migrate:prod": "npx prisma migrate deploy",
@@ -72,6 +73,7 @@
     "@nestjs/testing": "^11.0.1",
     "@nomicfoundation/hardhat-ethers": "^4.0.6",
     "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@playwright/test": "^1.58.2",
     "@prisma/client": "^5.10.2",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
@@ -80,6 +82,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "axios": "^1.14.0",
     "dotenv-cli": "11.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -107,7 +110,12 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "tsconfig.test.json" }]
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.test.json"
+        }
+      ]
     },
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
