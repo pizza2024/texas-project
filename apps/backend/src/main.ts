@@ -17,8 +17,16 @@ async function bootstrap() {
 
   // CORS 配置 - 生产环境建议限制 origin
   const corsOrigin = process.env.CORS_ORIGIN || '*';
+  const parsedCorsOrigin =
+    corsOrigin === '*'
+      ? '*'
+      : corsOrigin
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter((origin) => origin.length > 0);
+
   app.enableCors({
-    origin: corsOrigin,
+    origin: parsedCorsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

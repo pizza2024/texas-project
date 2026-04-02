@@ -14,6 +14,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  STAGING_NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
 
 jobs:
   build-and-push:
@@ -52,6 +53,23 @@ jobs:
           echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Using image tag: $TAG"
 
+      - name: Validate staging frontend API URL
+        run: |
+          if [ -z "${STAGING_NEXT_PUBLIC_API_URL}" ]; then
+            echo "::error::Missing required secret STAGING_NEXT_PUBLIC_API_URL"
+            exit 1
+          fi
+
+          case "$STAGING_NEXT_PUBLIC_API_URL" in
+            https://*)
+              echo "Using STAGING_NEXT_PUBLIC_API_URL=$STAGING_NEXT_PUBLIC_API_URL"
+              ;;
+            *)
+              echo "::error::STAGING_NEXT_PUBLIC_API_URL must start with https://"
+              exit 1
+              ;;
+          esac
+
       - name: Build and push backend
         uses: docker/build-push-action@v6
         with:
@@ -74,7 +92,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=web
-            NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
+            NEXT_PUBLIC_API_URL=${{ env.STAGING_NEXT_PUBLIC_API_URL }}
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:staging-latest
@@ -89,7 +107,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=admin
-            NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
+            NEXT_PUBLIC_API_URL=${{ env.STAGING_NEXT_PUBLIC_API_URL }}
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:staging-latest
