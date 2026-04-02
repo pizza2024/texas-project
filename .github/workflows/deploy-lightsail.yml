@@ -74,7 +74,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=web
-            NEXT_PUBLIC_API_URL=https://api.zo-op.com
+            NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-web:staging-latest
@@ -89,7 +89,7 @@ jobs:
           push: true
           build-args: |
             APP_NAME=admin
-            NEXT_PUBLIC_API_URL=https://api.zo-op.com
+            NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
           tags: |
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:${{ steps.meta.outputs.image_tag }}
             ghcr.io/${{ env.IMAGE_NAMESPACE }}/texas-admin:staging-latest
