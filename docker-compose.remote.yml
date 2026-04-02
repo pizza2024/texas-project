@@ -12,6 +12,9 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com}
       SOCKET_CORS_ORIGIN: ${SOCKET_CORS_ORIGIN:-https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com}
+      ETH_RPC_URL: ${ETH_RPC_URL:-}
+      HD_WALLET_MNEMONIC: ${HD_WALLET_MNEMONIC:-}
+      USDT_CONTRACT_ADDRESS: ${USDT_CONTRACT_ADDRESS:-}
     command: >
       sh -c "npm run db:migrate:prod --workspace=backend && npm run start:prod --workspace=backend"
     expose:
