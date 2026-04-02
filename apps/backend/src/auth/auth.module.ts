@@ -6,18 +6,21 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { WalletModule } from '../wallet/wallet.module';
+import { EmailModule } from '../email/email.module';
+import { RateLimitGuard } from './rate-limit.guard';
 
 @Module({
   imports: [
     UserModule,
     WalletModule,
     PassportModule,
+    EmailModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret',
       signOptions: { expiresIn: '60m' },
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RateLimitGuard],
   controllers: [AuthController],
   exports: [AuthService],
 })

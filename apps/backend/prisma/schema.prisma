@@ -22,6 +22,12 @@ model User {
   elo           Int       @default(1000) // Matchmaking ELO rating
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
+
+  // Email verification
+  email                     String?    @unique
+  emailVerified             Boolean    @default(false)
+  emailVerificationCode     String?
+  emailVerificationExpiry  DateTime?
   
   wallet         Wallet?
   handsWon       Hand[]
@@ -30,6 +36,7 @@ model User {
   adminLogs      AdminLog[]
   depositAddress DepositAddress?
   depositRecords DepositRecord[]
+  withdrawRequests WithdrawRequest[]
 
   @@map("users")
 }
@@ -167,4 +174,34 @@ model DepositRecord {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("deposit_records")
+}
+
+// Tracks the last block number scanned by pollDeposits to avoid missing events
+// due to sliding-window gaps or RPC indexing lag
+model ScanCursor {
+  id            String   @id @default("singleton")
+  lastBlock     BigInt   @default(0)
+  updatedAt     DateTime @default(now())
+
+  @@map("scan_cursors")
+}
+
+model WithdrawRequest {
+  id            String    @id @default(uuid())
+  userId        String
+  amountChips   Float
+  amountUsdt    Float
+  toAddress     String    // ETH address to receive USDT
+  fromAddress   String?   // System owner wallet used for transfer
+  status        String    @default("PENDING") // PENDING | PROCESSING | CONFIRMED | FAILED
+  txHash        String?
+  failureReason String?
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("withdraw_requests")
+  @@index([userId, status])
+  @@index([status, createdAt])
 }

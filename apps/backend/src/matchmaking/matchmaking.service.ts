@@ -6,13 +6,49 @@ export type BlindTier = 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
 
 export const BLIND_TIERS: Record<
   BlindTier,
-  { blindSmall: number; blindBig: number; minBuyIn: number; maxPlayers: number; label: string }
+  {
+    blindSmall: number;
+    blindBig: number;
+    minBuyIn: number;
+    maxPlayers: number;
+    label: string;
+  }
 > = {
-  MICRO:   { blindSmall: 5,   blindBig: 10,  minBuyIn: 100,  maxPlayers: 6, label: '5/10'    },
-  LOW:     { blindSmall: 10,  blindBig: 20,  minBuyIn: 200,  maxPlayers: 6, label: '10/20'   },
-  MEDIUM:  { blindSmall: 25,  blindBig: 50,  minBuyIn: 500,  maxPlayers: 9, label: '25/50'   },
-  HIGH:    { blindSmall: 50,  blindBig: 100, minBuyIn: 1000, maxPlayers: 9, label: '50/100'  },
-  PREMIUM: { blindSmall: 100, blindBig: 200, minBuyIn: 2000, maxPlayers: 6, label: '100/200' },
+  MICRO: {
+    blindSmall: 5,
+    blindBig: 10,
+    minBuyIn: 100,
+    maxPlayers: 6,
+    label: '5/10',
+  },
+  LOW: {
+    blindSmall: 10,
+    blindBig: 20,
+    minBuyIn: 200,
+    maxPlayers: 6,
+    label: '10/20',
+  },
+  MEDIUM: {
+    blindSmall: 25,
+    blindBig: 50,
+    minBuyIn: 500,
+    maxPlayers: 9,
+    label: '25/50',
+  },
+  HIGH: {
+    blindSmall: 50,
+    blindBig: 100,
+    minBuyIn: 1000,
+    maxPlayers: 9,
+    label: '50/100',
+  },
+  PREMIUM: {
+    blindSmall: 100,
+    blindBig: 200,
+    minBuyIn: 2000,
+    maxPlayers: 6,
+    label: '100/200',
+  },
 };
 
 export interface HandResultEntry {
@@ -74,7 +110,12 @@ export class MatchmakingService implements OnModuleInit {
 
   // ─── Room tracking ───────────────────────────────────────────────────────────
 
-  recordPlayerJoined(roomId: string, userId: string, elo: number, ipHash: string): void {
+  recordPlayerJoined(
+    roomId: string,
+    userId: string,
+    elo: number,
+    ipHash: string,
+  ): void {
     if (!this.roomElos.has(roomId)) this.roomElos.set(roomId, new Map());
     if (!this.roomIps.has(roomId)) this.roomIps.set(roomId, new Set());
     this.roomElos.get(roomId)!.set(userId, elo);
@@ -111,10 +152,20 @@ export class MatchmakingService implements OnModuleInit {
     });
 
     for (const room of candidateRooms) {
-      if (!(await this.isRoomSuitable(room.id, userId, playerElo, ipHash, config.maxPlayers))) {
+      if (
+        !(await this.isRoomSuitable(
+          room.id,
+          userId,
+          playerElo,
+          ipHash,
+          config.maxPlayers,
+        ))
+      ) {
         continue;
       }
-      this.logger.log(`Quick-match: player ${userId} → existing room ${room.id} (tier=${tier})`);
+      this.logger.log(
+        `Quick-match: player ${userId} → existing room ${room.id} (tier=${tier})`,
+      );
       return room.id;
     }
 
@@ -130,7 +181,9 @@ export class MatchmakingService implements OnModuleInit {
         tier,
       },
     });
-    this.logger.log(`Quick-match: player ${userId} → new room ${newRoom.id} (tier=${tier})`);
+    this.logger.log(
+      `Quick-match: player ${userId} → new room ${newRoom.id} (tier=${tier})`,
+    );
     return newRoom.id;
   }
 
@@ -143,7 +196,9 @@ export class MatchmakingService implements OnModuleInit {
   async updateElo(handResult: HandResultEntry[]): Promise<void> {
     if (!handResult || handResult.length < 2) return;
 
-    const participants = handResult.filter((r) => r.totalBet > 0 || r.winAmount > 0);
+    const participants = handResult.filter(
+      (r) => r.totalBet > 0 || r.winAmount > 0,
+    );
     if (participants.length < 2) return;
 
     const n = participants.length;
@@ -151,12 +206,14 @@ export class MatchmakingService implements OnModuleInit {
 
     // Determine actual score: winner(s) share 1.0, losers get 0.0
     // If split pot, each winner gets share proportional to their win vs total pot
-    const updates: { userId: string; delta: number }[] = participants.map((r) => {
-      const actualScore = totalPot > 0 ? r.winAmount / totalPot : 1 / n;
-      const expectedScore = 1 / n;
-      const delta = Math.round(ELO_K * (actualScore - expectedScore));
-      return { userId: r.playerId, delta };
-    });
+    const updates: { userId: string; delta: number }[] = participants.map(
+      (r) => {
+        const actualScore = totalPot > 0 ? r.winAmount / totalPot : 1 / n;
+        const expectedScore = 1 / n;
+        const delta = Math.round(ELO_K * (actualScore - expectedScore));
+        return { userId: r.playerId, delta };
+      },
+    );
 
     try {
       await this.prisma.$transaction(
@@ -219,7 +276,10 @@ export class MatchmakingService implements OnModuleInit {
    * Returns true if userId has shared more than COLLUSION_HAND_THRESHOLD hands
    * with any of the otherUserIds in the last 24 hours.
    */
-  async checkCollusion(userId: string, otherUserIds: string[]): Promise<boolean> {
+  async checkCollusion(
+    userId: string,
+    otherUserIds: string[],
+  ): Promise<boolean> {
     if (otherUserIds.length === 0) return false;
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 

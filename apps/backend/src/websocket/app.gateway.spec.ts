@@ -20,6 +20,7 @@ describe('AppGateway', () => {
   let userService: {
     getUserAvatar: jest.Mock;
   };
+
   let gateway: AppGateway;
 
   beforeEach(() => {
@@ -45,7 +46,22 @@ describe('AppGateway', () => {
       getUserAvatar: jest.fn().mockResolvedValue(null),
     };
 
-    gateway = new AppGateway(tableManager as any, jwtService as any, userService as any, { getPlayerElo: jest.fn().mockResolvedValue(1000), hashIp: jest.fn().mockReturnValue('hash'), findOrCreateMatchmakingRoom: jest.fn(), recordPlayerJoined: jest.fn(), recordPlayerLeft: jest.fn(), updateElo: jest.fn() } as any, { isAvailable: false, get: jest.fn().mockResolvedValue(null) } as any);
+    gateway = new AppGateway(
+      tableManager as any,
+      jwtService as any,
+      userService as any,
+      {
+        getPlayerElo: jest.fn().mockResolvedValue(1000),
+        hashIp: jest.fn().mockReturnValue('hash'),
+        findOrCreateMatchmakingRoom: jest.fn(),
+        recordPlayerJoined: jest.fn(),
+        recordPlayerLeft: jest.fn(),
+        updateElo: jest.fn(),
+      } as any,
+      { isAvailable: false, get: jest.fn().mockResolvedValue(null) } as any,
+      { createBot: jest.fn().mockReturnValue({ id: 'bot-1', nickname: '[Bot]TestBot', stack: 1000 }), fillTableWithBots: jest.fn(), removeBot: jest.fn() } as any,
+      { setServer: jest.fn() } as any,
+    );
     gateway.server = {
       in: jest.fn(),
       emit: jest.fn(),
@@ -262,7 +278,9 @@ describe('AppGateway', () => {
     tableManager.getUserAvailableBalance.mockResolvedValue(0);
     tableManager.getTable.mockResolvedValue(table);
 
-    const result = await gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
+    const result = await gateway.handleJoinRoom(client as any, {
+      roomId: 'room-1',
+    });
 
     expect(client.emit).toHaveBeenCalledWith('insufficient_balance', {
       roomId: 'room-1',
@@ -285,7 +303,7 @@ describe('AppGateway', () => {
     };
     const table = {
       currentStage: GameStage.SETTLEMENT,
-      settlementEndsAt: Date.now() + 2000 as number | null,
+      settlementEndsAt: (Date.now() + 2000) as number | null,
       readyCountdownEndsAt: null as number | null,
       smallBlind: 10,
       bigBlind: 20,
@@ -333,6 +351,8 @@ describe('AppGateway', () => {
         table.actionEndsAt = Date.now() + durationMs;
       }),
       clearActionCountdown: jest.fn(),
+      isCurrentPlayerSitOut: jest.fn().mockReturnValue(false),
+      foldSitOutPlayer: jest.fn().mockReturnValue(false),
       getTimeoutAction: jest.fn().mockReturnValue({
         playerId: 'user-1',
         action: 'check',
@@ -372,6 +392,8 @@ describe('AppGateway', () => {
         table.actionEndsAt = Date.now() + durationMs;
       }),
       clearActionCountdown: jest.fn(),
+      isCurrentPlayerSitOut: jest.fn().mockReturnValue(false),
+      foldSitOutPlayer: jest.fn().mockReturnValue(false),
       getTimeoutAction: jest
         .fn()
         .mockReturnValueOnce({

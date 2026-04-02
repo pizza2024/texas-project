@@ -1,10 +1,10 @@
 #!/bin/bash
-# Generate self-signed certificate for zo-op.com domain
+# Generate self-signed certificate for not-replaced-yet.com domain
 
 set -e
 
 CERT_DIR="docker/nginx/certs"
-DOMAIN="zo-op.com"
+DOMAIN="not-replaced-yet.com"
 DAYS=365
 
 # Create cert directory if it doesn't exist
@@ -46,13 +46,13 @@ echo "   - Use Let's Encrypt for production"
 echo ""
 echo "🚀 Next steps:"
 echo "   1. Update your /etc/hosts or DNS to point:"
-echo "      - web.zo-op.com -> Lightsail IP"
-echo "      - admin.zo-op.com -> Lightsail IP"
-echo "      - api.zo-op.com -> Lightsail IP"
+echo "      - web.not-replaced-yet.com -> Lightsail IP"
+echo "      - admin.not-replaced-yet.com -> Lightsail IP"
+echo "      - api.not-replaced-yet.com -> Lightsail IP"
 echo ""
 echo "   2. Start containers:"
 echo "      docker compose --env-file docker/.env.staging up -d --build"
 echo ""
 echo "   3. Test HTTPS:"
-echo "      curl -k https://api.zo-op.com/health"
+echo "      curl -k https://api.not-replaced-yet.com/health"
 echo ""

@@ -59,6 +59,7 @@ interface TableState {
   actionEndsAt?: number | null;
   isFoldWin?: boolean;
   foldWinnerRevealed?: boolean;
+  straddle?: { playerId: string; amount: number; position: number } | null;
 }
 
 const SUIT_SYMBOL: Record<string, string> = { s: '♠', h: '♥', d: '♦', c: '♣' };
@@ -955,7 +956,7 @@ export default function RoomPage() {
           style={{ background: 'transparent', border: '1px solid rgba(234,179,8,0.25)', color: 'rgba(245,158,11,0.7)' }}
           onClick={handleBackToLobby}
         >
-          ← Lobby
+          ← Rooms
         </Button>
 
         <div className="text-center">
@@ -1456,6 +1457,22 @@ export default function RoomPage() {
             </div>
 
             <div className="flex justify-center gap-3 items-center flex-wrap">
+              {/* Straddle — only on UTG preflop, before any straddle */}
+              {isMyTurn && table.currentStage === 'PREFLOP' && !table.straddle && (
+                <Button
+                  onClick={() => handleAction('straddle')}
+                  className="h-11 px-5 font-black tracking-wider text-xs uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-30"
+                  style={{
+                    background: 'linear-gradient(135deg, #854d0e 0%, #a16207 30%, #ca8a04 65%, #facc15 100%)',
+                    color: '#000',
+                    border: 'none',
+                    boxShadow: '0 0 20px rgba(250,204,21,0.3)',
+                  }}
+                >
+                  {t('room.straddle')}
+                </Button>
+              )}
+
               <Button
                 onClick={() => handleAction('fold')}
                 disabled={!isMyTurn}
@@ -1540,6 +1557,21 @@ export default function RoomPage() {
                   {t('room.raise')}
                 </Button>
               </div>
+
+              {/* Sit-Out — available whenever it's your turn */}
+              {isMyTurn && (
+                <Button
+                  onClick={() => handleAction('sit-out')}
+                  className="h-11 px-4 font-black tracking-wider text-xs uppercase rounded-lg transition-opacity disabled:opacity-30"
+                  style={{
+                    background: 'rgba(75,75,75,0.6)',
+                    border: '1px solid rgba(156,163,175,0.25)',
+                    color: 'rgba(156,163,175,0.9)',
+                  }}
+                >
+                  {t('room.sitOut')}
+                </Button>
+              )}
             </div>
           </div>
         )}

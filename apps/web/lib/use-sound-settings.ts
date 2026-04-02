@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   DEFAULT_SOUND_SETTINGS,
   SOUND_SETTINGS_KEY,
@@ -9,15 +9,20 @@ import {
   normalizeSoundVolume,
   parseSoundSettings,
   saveSoundSettings,
-} from '@/lib/sound-settings';
+} from "@/lib/sound-settings";
 
 export function useSoundSettings() {
-  const [soundSettings, setSoundSettings] = useState<SoundSettings>(DEFAULT_SOUND_SETTINGS);
+  const [soundSettings, setSoundSettings] = useState<SoundSettings>(
+    DEFAULT_SOUND_SETTINGS,
+  );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setSoundSettings(loadSoundSettings());
-    setLoaded(true);
+    const init = () => {
+      setSoundSettings(loadSoundSettings());
+      setLoaded(true);
+    };
+    void init();
   }, []);
 
   useEffect(() => {
@@ -37,13 +42,13 @@ export function useSoundSettings() {
       setSoundSettings(parseSoundSettings(event.newValue));
     };
 
-    window.addEventListener('storage', handleStorage);
+    window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
-  const toggleSoundSetting = (key: keyof Omit<SoundSettings, 'volume'>) => {
+  const toggleSoundSetting = (key: keyof Omit<SoundSettings, "volume">) => {
     setSoundSettings((prev) => ({
       ...prev,
       [key]: !prev[key],

@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
+import { EmailService } from '../email/email.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -22,6 +24,21 @@ describe('AuthService', () => {
         {
           provide: WalletService,
           useValue: {},
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            set: jest.fn(),
+            get: jest.fn(),
+            del: jest.fn(),
+          },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            generateOtp: jest.fn().mockReturnValue('123456'),
+            sendEmail: jest.fn(),
+          },
         },
       ],
     }).compile();

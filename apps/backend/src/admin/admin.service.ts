@@ -25,7 +25,12 @@ export class AdminService {
 
   // ── Users ────────────────────────────────────────────────
 
-  async getUsers(query: { page: number; limit: number; search?: string; status?: string }) {
+  async getUsers(query: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+  }) {
     const { page, limit, search, status } = query;
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -81,7 +86,10 @@ export class AdminService {
     return user;
   }
 
-  async updateUser(id: string, data: { nickname?: string; status?: string; role?: string }) {
+  async updateUser(
+    id: string,
+    data: { nickname?: string; status?: string; role?: string },
+  ) {
     return this.prisma.user.update({ where: { id }, data });
   }
 
@@ -114,7 +122,12 @@ export class AdminService {
     return { total, page, limit, data };
   }
 
-  async adjustBalance(userId: string, amount: number, reason: string, adminId: string) {
+  async adjustBalance(
+    userId: string,
+    amount: number,
+    reason: string,
+    adminId: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -152,7 +165,12 @@ export class AdminService {
 
   // ── Rooms ────────────────────────────────────────────────
 
-  async getRooms(query: { page: number; limit: number; search?: string; status?: string }) {
+  async getRooms(query: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+  }) {
     const { page, limit, search, status } = query;
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -187,7 +205,12 @@ export class AdminService {
   }
 
   async deleteRoom(id: string, adminId: string) {
-    await this.log({ adminId, action: 'DELETE_ROOM', targetType: 'ROOM', targetId: id });
+    await this.log({
+      adminId,
+      action: 'DELETE_ROOM',
+      targetType: 'ROOM',
+      targetId: id,
+    });
     return this.prisma.room.delete({ where: { id } });
   }
 
@@ -197,7 +220,12 @@ export class AdminService {
 
   // ── Finance ──────────────────────────────────────────────
 
-  async getTransactions(query: { page: number; limit: number; type?: string; userId?: string }) {
+  async getTransactions(query: {
+    page: number;
+    limit: number;
+    type?: string;
+    userId?: string;
+  }) {
     const { page, limit, type, userId } = query;
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -211,7 +239,9 @@ export class AdminService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, nickname: true, username: true } } },
+        include: {
+          user: { select: { id: true, nickname: true, username: true } },
+        },
       }),
     ]);
 
@@ -220,17 +250,34 @@ export class AdminService {
 
   async getFinanceSummary() {
     const now = new Date();
-    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
-    const weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);
-    const monthStart = new Date(now); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - 7);
+    const monthStart = new Date(now);
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
 
-    const [totalUsers, totalDeposit, dayFlow, weekFlow, monthFlow] = await Promise.all([
-      this.prisma.user.aggregate({ _sum: { coinBalance: true } }),
-      this.prisma.transaction.aggregate({ where: { type: 'DEPOSIT' }, _sum: { amount: true } }),
-      this.prisma.transaction.aggregate({ where: { createdAt: { gte: dayStart } }, _sum: { amount: true } }),
-      this.prisma.transaction.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { amount: true } }),
-      this.prisma.transaction.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { amount: true } }),
-    ]);
+    const [totalUsers, totalDeposit, dayFlow, weekFlow, monthFlow] =
+      await Promise.all([
+        this.prisma.user.aggregate({ _sum: { coinBalance: true } }),
+        this.prisma.transaction.aggregate({
+          where: { type: 'DEPOSIT' },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: { createdAt: { gte: dayStart } },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: { createdAt: { gte: weekStart } },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: { createdAt: { gte: monthStart } },
+          _sum: { amount: true },
+        }),
+      ]);
 
     return {
       totalAssets: totalUsers._sum.coinBalance ?? 0,
@@ -244,16 +291,17 @@ export class AdminService {
   // ── Analytics ────────────────────────────────────────────
 
   async getOverview() {
-    const [totalUsers, activeRooms, totalHands, recentTransactions] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.room.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.hand.count(),
-      this.prisma.transaction.aggregate({
-        where: { createdAt: { gte: new Date(Date.now() - 86400000) } },
-        _sum: { amount: true },
-        _count: true,
-      }),
-    ]);
+    const [totalUsers, activeRooms, totalHands, recentTransactions] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.room.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.hand.count(),
+        this.prisma.transaction.aggregate({
+          where: { createdAt: { gte: new Date(Date.now() - 86400000) } },
+          _sum: { amount: true },
+          _count: true,
+        }),
+      ]);
 
     return {
       totalUsers,
@@ -265,19 +313,79 @@ export class AdminService {
   }
 
   async getUserGrowth(days = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const users = await this.prisma.$queryRaw<
+      { date: string; count: bigint }[]
+    >`
+      SELECT DATE("createdAt")::text AS date, COUNT(*)::bigint AS count
+      FROM users
+      WHERE "createdAt" >= ${startDate}
+      GROUP BY DATE("createdAt")
+      ORDER BY date ASC
+    `;
+
+    // Build a map for quick lookup
+    const countMap = new Map<string, number>();
+    for (const row of users) {
+      countMap.set(String(row.date), Number(row.count));
+    }
+
+    // Fill in all days (including zeros)
     const results: { date: string; count: number }[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      d.setHours(0, 0, 0, 0);
-      const next = new Date(d); next.setDate(d.getDate() + 1);
-      const count = await this.prisma.user.count({ where: { createdAt: { gte: d, lt: next } } });
-      results.push({ date: d.toISOString().split('T')[0], count });
+      const dateStr = d.toISOString().split('T')[0];
+      results.push({ date: dateStr, count: countMap.get(dateStr) ?? 0 });
     }
     return results;
   }
 
   async getRevenueByPeriod(period: 'day' | 'week' | 'month' = 'day', n = 30) {
+    // Compute start/end of the range
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date();
+    if (period === 'day') startDate.setDate(startDate.getDate() - (n - 1));
+    else if (period === 'week')
+      startDate.setDate(startDate.getDate() - (n - 1) * 7);
+    else startDate.setMonth(startDate.getMonth() - (n - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    // Determine the GROUP BY expression and date format based on period
+    let groupByExpr: string;
+    let dateFormat: string;
+    if (period === 'day') {
+      groupByExpr = 'DATE("createdAt")';
+      dateFormat = 'YYYY-MM-DD';
+    } else if (period === 'week') {
+      groupByExpr = 'DATE(DATE_TRUNC(\'week\', "createdAt"))';
+      dateFormat = 'YYYY-MM-DD';
+    } else {
+      groupByExpr = 'TO_CHAR("createdAt", \'YYYY-MM\')';
+      dateFormat = 'YYYY-MM';
+    }
+
+    const rows = await this.prisma.$queryRaw<
+      { date: string; amount: number }[]
+    >`
+      SELECT ${groupByExpr}::text AS date,
+             COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS amount
+      FROM transactions
+      WHERE "createdAt" >= ${startDate}
+        AND "createdAt" <= ${endDate}
+      GROUP BY ${groupByExpr}
+      ORDER BY date ASC
+    `;
+
+    const amountMap = new Map<string, number>();
+    for (const row of rows) {
+      amountMap.set(String(row.date), Number(row.amount));
+    }
+
     const results: { date: string; amount: number }[] = [];
     for (let i = n - 1; i >= 0; i--) {
       const d = new Date();
@@ -285,48 +393,54 @@ export class AdminService {
       else if (period === 'week') d.setDate(d.getDate() - i * 7);
       else d.setMonth(d.getMonth() - i);
       d.setHours(0, 0, 0, 0);
-      const next = new Date(d);
-      if (period === 'day') next.setDate(d.getDate() + 1);
-      else if (period === 'week') next.setDate(d.getDate() + 7);
-      else next.setMonth(d.getMonth() + 1);
-
-      const agg = await this.prisma.transaction.aggregate({
-        where: { createdAt: { gte: d, lt: next }, amount: { gt: 0 } },
-        _sum: { amount: true },
-      });
-      results.push({ date: d.toISOString().split('T')[0], amount: agg._sum.amount ?? 0 });
+      let dateStr: string;
+      if (period === 'month') {
+        dateStr = d.toISOString().slice(0, 7);
+      } else {
+        dateStr = d.toISOString().split('T')[0];
+      }
+      results.push({ date: dateStr, amount: amountMap.get(dateStr) ?? 0 });
     }
     return results;
   }
 
   async getRoomHotList() {
-    const rooms = await this.prisma.room.findMany({
-      include: {
-        tables: {
-          include: {
-            hands: { select: { id: true } },
-          },
-        },
-      },
-    });
-
-    return rooms
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        status: r.status,
-        handCount: r.tables.reduce((sum, t) => sum + t.hands.length, 0),
-      }))
-      .sort((a, b) => b.handCount - a.handCount)
-      .slice(0, 10);
+    // Use a single aggregation query instead of fetching all rooms + tables + hands
+    const hotRooms = await this.prisma.$queryRaw<
+      { id: string; name: string; status: string; handCount: number }[]
+    >`
+      SELECT r.id, r.name, r.status,
+             COALESCE(hc.hand_count, 0)::int AS "handCount"
+      FROM rooms r
+      LEFT JOIN (
+        SELECT "tableId", COUNT(*)::int AS hand_count
+        FROM hands
+        GROUP BY "tableId"
+      ) hc ON hc."tableId" = r.id
+      ORDER BY "handCount" DESC
+      LIMIT 10
+    `;
+    return hotRooms.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status,
+      handCount: Number(r.handCount),
+    }));
   }
 
   async getHandsStats() {
     const [total, avgPot] = await Promise.all([
       this.prisma.hand.count(),
-      this.prisma.hand.aggregate({ _avg: { potSize: true }, _sum: { potSize: true } }),
+      this.prisma.hand.aggregate({
+        _avg: { potSize: true },
+        _sum: { potSize: true },
+      }),
     ]);
-    return { total, avgPot: avgPot._avg.potSize ?? 0, totalPot: avgPot._sum.potSize ?? 0 };
+    return {
+      total,
+      avgPot: avgPot._avg.potSize ?? 0,
+      totalPot: avgPot._sum.potSize ?? 0,
+    };
   }
 
   // ── System ───────────────────────────────────────────────
@@ -339,7 +453,9 @@ export class AdminService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { admin: { select: { id: true, nickname: true, username: true } } },
+        include: {
+          admin: { select: { id: true, nickname: true, username: true } },
+        },
       }),
     ]);
     return { total, page, limit, data };

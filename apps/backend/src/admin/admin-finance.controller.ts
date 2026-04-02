@@ -1,10 +1,17 @@
 import {
-  Controller, Get, Post, Query, Body, UseGuards, Request,
-  ParseIntPipe, DefaultValuePipe,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
-import { AdjustBalanceDto } from './dto/adjust-balance.dto';
+import { DepositDto, WithdrawDto } from './dto/adjust-balance.dto';
 
 @Controller('admin/finance')
 @UseGuards(AdminGuard)
@@ -27,12 +34,22 @@ export class AdminFinanceController {
   }
 
   @Post('deposit')
-  deposit(@Body() dto: { userId: string; amount: number; reason?: string }, @Request() req: any) {
-    return this.adminService.adjustBalance(dto.userId, Math.abs(dto.amount), dto.reason ?? 'Admin deposit', req.admin.sub);
+  deposit(@Body() dto: DepositDto, @Request() req: any) {
+    return this.adminService.adjustBalance(
+      dto.userId,
+      Math.abs(dto.amount),
+      dto.reason ?? 'Admin deposit',
+      req.admin.sub,
+    );
   }
 
   @Post('withdraw')
-  withdraw(@Body() dto: { userId: string; amount: number; reason?: string }, @Request() req: any) {
-    return this.adminService.adjustBalance(dto.userId, -Math.abs(dto.amount), dto.reason ?? 'Admin withdraw', req.admin.sub);
+  withdraw(@Body() dto: WithdrawDto, @Request() req: any) {
+    return this.adminService.adjustBalance(
+      dto.userId,
+      -Math.abs(dto.amount),
+      dto.reason ?? 'Admin withdraw',
+      req.admin.sub,
+    );
   }
 }

@@ -1,7 +1,10 @@
 import * as dotenv from 'dotenv';
 // 先加载基础配置，再用 .local 覆盖（.local 不提交 Git，存放敏感值）
 dotenv.config({ path: `.env.${process.env.NODE_ENV ?? 'development'}` });
-dotenv.config({ path: `.env.${process.env.NODE_ENV ?? 'development'}.local`, override: true });
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV ?? 'development'}.local`,
+  override: true,
+});
 
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -11,7 +14,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // CORS 配置 - 生产环境建议限制 origin
   const corsOrigin = process.env.CORS_ORIGIN || '*';
   app.enableCors({

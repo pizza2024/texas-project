@@ -7,6 +7,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { AuthUserDto } from './dto/auth-user.dto';
 import { JwtUser } from './interfaces/jwt-user.interface';
+import { RequestEmailCodeDto } from './dto/request-email-code.dto';
+import { VerifyEmailCodeDto } from './dto/verify-email-code.dto';
+import { RegisterWithEmailDto } from './dto/register-with-email.dto';
+import { RateLimitGuard, ApplyRateLimit } from './rate-limit.guard';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -25,6 +29,8 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @ApplyRateLimit({ limit: 5, windowSeconds: 900, keyPrefix: 'rl:login' })
   @ApiOperation({ summary: 'User login' })
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
@@ -33,10 +39,48 @@ export class AuthController {
   }
 
   @Post('register')
-  @ApiOperation({ summary: 'User registration' })
+  @UseGuards(RateLimitGuard)
+  @ApplyRateLimit({ limit: 10, windowSeconds: 3600, keyPrefix: 'rl:register' })
+  @ApiOperation({ summary: 'User registration (username + password)' })
   @ApiOkResponse({ type: AuthUserDto })
   async register(@Body() registerDto: RegisterDto): Promise<AuthUserDto> {
     return this.authService.register(registerDto);
+  }
+
+  @Post('request-email-code')
+  @UseGuards(RateLimitGuard)
+  @ApplyRateLimit({ limit: 3, windowSeconds: 3600, keyPrefix: 'rl:email-code' })
+  @ApiOperation({
+    summary: 'Request email verification code (Step 1 of email registration)',
+  })
+  @ApiOkResponse({ description: 'Verification code sent to email' })
+  async requestEmailCode(
+    @Body() dto: RequestEmailCodeDto,
+  ): Promise<{ message: string }> {
+    return this.authService.requestEmailCode(dto.email);
+  }
+
+  @Post('verify-email-code')
+  @ApiOperation({
+    summary: 'Verify email code and get temporary registration token (Step 2)',
+  })
+  @ApiOkResponse({ description: 'Returns emailVerifyToken for registration' })
+  async verifyEmailCode(
+    @Body() dto: VerifyEmailCodeDto,
+  ): Promise<{ emailVerifyToken: string }> {
+    return this.authService.verifyEmailCode(dto.email, dto.code);
+  }
+
+  @Post('register-with-email')
+  @ApiOperation({
+    summary:
+      'Register with email + verified token (Step 3 — after email verification)',
+  })
+  @ApiOkResponse({ type: AuthUserDto })
+  async registerWithEmail(
+    @Body() dto: RegisterWithEmailDto,
+  ): Promise<AuthUserDto> {
+    return this.authService.registerWithEmail(dto);
   }
 
   @UseGuards(AuthGuard('jwt'))

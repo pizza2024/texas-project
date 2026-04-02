@@ -8,6 +8,10 @@ import {
   UploadedFile,
   Req,
   BadRequestException,
+  Body,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
@@ -17,6 +21,8 @@ import { extname } from 'path';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import { UserService } from './user.service';
+import { HandHistoryService } from '../table-engine/hand-history.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 import {
   ApiBearerAuth,
@@ -37,7 +43,10 @@ const ALLOWED_MIME = /^image\/(jpeg|png|gif|webp)$/;
 @Controller('user')
 @ApiTags('User')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly handHistoryService: HandHistoryService,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Get('stats')
@@ -48,16 +57,50 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('hands')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user hand history' })
+  async getHandHistory(
+    @Req() req: AuthenticatedRequest,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+  ) {
+    return this.handHistoryService.getPlayerHandHistory(
+      req.user.userId,
+      limit,
+      offset,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('hands/:handId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get detail of a specific hand' })
+  async getHandDetail(@Req() req: AuthenticatedRequest) {
+    // Hand ID is passed as a query param when navigating from history list
+    // The actual endpoint uses /user/hands/export or the detail view
+    return { message: 'Use /user/hands endpoint to browse history' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Upload or replace user avatar' })
   @ApiConsumes('multipart/form-data')
-  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
         destination: UPLOADS_DIR,
         filename: (_req, file, cb) => {
-          cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase()}`);
+          cb(
+            null,
+            `${randomUUID()}${extname(file.originalname).toLowerCase()}`,
+          );
         },
       }),
       limits: { fileSize: MAX_FILE_SIZE },
@@ -65,7 +108,12 @@ export class UserController {
         if (ALLOWED_MIME.test(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Only image files are allowed (jpeg/png/gif/webp)'), false);
+          cb(
+            new BadRequestException(
+              'Only image files are allowed (jpeg/png/gif/webp)',
+            ),
+            false,
+          );
         }
       },
     }),
@@ -109,5 +157,22 @@ export class UserController {
 
     await this.userService.updateAvatar(userId, null);
     return { avatarUrl: null };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('change-password')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiBody({ type: ChangePasswordDto })
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.userService.changePassword(
+      req.user.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+    return { message: 'Password changed successfully' };
   }
 }

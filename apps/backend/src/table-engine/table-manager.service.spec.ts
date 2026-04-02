@@ -1,5 +1,8 @@
 import { TableManagerService } from './table-manager.service';
-import { ROOM_STATUS_UPDATED_EVENT, roomEvents } from '../websocket/room-events';
+import {
+  ROOM_STATUS_UPDATED_EVENT,
+  roomEvents,
+} from '../websocket/room-events';
 
 describe('TableManagerService', () => {
   const room = {

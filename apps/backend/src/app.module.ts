@@ -13,7 +13,9 @@ import { AdminModule } from './admin/admin.module';
 import { RedisModule } from './redis/redis.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { DepositModule } from './deposit/deposit.module';
+import { WithdrawModule } from './withdraw/withdraw.module';
 import { HealthController } from './health/health.controller';
+import { BotModule } from './bot/bot.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { HealthController } from './health/health.controller';
     AdminModule,
     MatchmakingModule,
     DepositModule,
+    WithdrawModule,
+    BotModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

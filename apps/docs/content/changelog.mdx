@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-03-30 — 安全与稳定性改进
+
+### 概述
+在 2026-03-20 完成充值功能后，继续完善系统安全性和稳定性。
+
+### 新增功能
+
+#### 1. 认证端点速率限制（防暴力破解）
+- 新增 `RateLimitGuard`（`src/auth/rate-limit.guard.ts`）
+- Redis 驱动，支持 IP + UserId 复合键
+- 登录接口：`5 次/15 分钟`（超出返回 HTTP 429 + `Retry-After` 头）
+- 注册接口：`10 次/小时`
+- 邮箱验证码请求：`3 次/小时`
+- 标准 `X-RateLimit-Limit/Remaining/Reset` 响应头
+
+#### 2. 房间密码独立验证接口
+- 新增 `POST /rooms/:id/verify-password`
+- JWT 保护，返回 `{ valid: boolean }`
+- 无需加入房间即可预先验证密码
+
+#### 3. 房间列表分页
+- `GET /rooms` 现在支持 `?page=&limit=` 分页参数
+- 返回格式：`{ data: Room[], total, page, limit }`
+- 向后兼容：前端同时支持旧版 flat array 和新版分页格式
+
+#### 4. Redis 增强
+- `RedisService` 新增 `incr(key, ttl?)` 原子递增方法
+- `RedisService` 新增 `ttl(key)` 查询剩余 TTL 方法
+- 为速率限制提供原子操作支持
+
+### 修改文件
+| 文件 | 改动 |
+|------|------|
+| `src/auth/rate-limit.guard.ts` | 新增 |
+| `src/auth/auth.controller.ts` | 对 login/register/request-email-code 应用速率限制 |
+| `src/auth/auth.module.ts` | 注册 RateLimitGuard |
+| `src/auth/auth.controller.spec.ts` | 更新测试，注入 RedisService 和 Reflector |
+| `src/redis/redis.service.ts` | 新增 `incr()` 和 `ttl()` 方法 |
+| `src/room/room.controller.ts` | 新增 verify-password 端点；findAll 支持分页 |
+| `src/room/room.service.ts` | 新增 `findAllPaginated()` 方法 |
+| `apps/web/app/rooms/page.tsx` | 兼容分页和 flat array 两种 API 响应格式 |
+
+---
+
 ## 2026-03-20 — ETH 测试网充值功能
 
 ### 概述

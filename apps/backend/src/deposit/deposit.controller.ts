@@ -1,4 +1,11 @@
-import { Controller, Get, Post, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Request,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DepositService } from './deposit.service';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';

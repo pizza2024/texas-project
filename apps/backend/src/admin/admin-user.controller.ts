@@ -1,7 +1,15 @@
 import {
-  Controller, Get, Patch, Post, Delete,
-  Param, Query, Body, UseGuards, Request,
-  ParseIntPipe, DefaultValuePipe,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
@@ -29,8 +37,20 @@ export class AdminUserController {
   }
 
   @Patch(':id')
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.adminService.updateUser(id, dto);
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Request() req: any,
+  ) {
+    const result = await this.adminService.updateUser(id, dto);
+    await this.adminService.log({
+      adminId: req.admin.sub,
+      action: 'UPDATE_USER',
+      targetType: 'USER',
+      targetId: id,
+      detail: dto,
+    });
+    return result;
   }
 
   @Post(':id/ban')
@@ -63,7 +83,12 @@ export class AdminUserController {
     @Body() dto: AdjustBalanceDto,
     @Request() req: any,
   ) {
-    return this.adminService.adjustBalance(id, dto.amount, dto.reason ?? '', req.admin.sub);
+    return this.adminService.adjustBalance(
+      id,
+      dto.amount,
+      dto.reason ?? '',
+      req.admin.sub,
+    );
   }
 
   @Get(':id/transactions')

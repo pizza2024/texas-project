@@ -3,6 +3,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Room, Prisma } from '@prisma/client';
 import { ROOM_CREATED_EVENT, roomEvents } from '../websocket/room-events';
 
+export interface PaginatedRooms {
+  data: Room[];
+  total: number;
+}
+
 @Injectable()
 export class RoomService {
   constructor(private prisma: PrismaService) {}
@@ -27,6 +32,20 @@ export class RoomService {
 
   async findAll(): Promise<Room[]> {
     return this.prisma.room.findMany({ where: { isMatchmaking: false } });
+  }
+
+  async findAllPaginated(page: number, limit: number): Promise<PaginatedRooms> {
+    const where = { isMatchmaking: false };
+    const [data, total] = await Promise.all([
+      this.prisma.room.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.room.count({ where }),
+    ]);
+    return { data, total };
   }
 
   async findOne(id: string): Promise<Room | null> {

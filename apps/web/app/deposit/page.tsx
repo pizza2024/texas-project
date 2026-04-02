@@ -44,7 +44,7 @@ function shortTxHash(hash: string): string {
   return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
 }
 
-const EXPLORER_URL = process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL ?? 'https://etherscan.io';
+const EXPLORER_URL = process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL ?? 'https://sepolia.etherscan.io';
 
 function txUrl(hash: string): string {
   return `${EXPLORER_URL}/tx/${hash}`;

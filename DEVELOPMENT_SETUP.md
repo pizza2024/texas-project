@@ -291,7 +291,39 @@ EXPO_PUBLIC_API_URL=http://localhost:4000
 - **测试账号**: 4 个
 - **运行时间**: ~6 小时 (12:06 - 18:06)
 
+## 📧 Development Email Testing
+
+### Option 1: Ethereal Email (Recommended - No Account Needed)
+1. Go to https://ethereal.email and click "Create Account"
+2. You'll receive free SMTP credentials instantly
+3. Add to `apps/backend/.env.development.local`:
+```
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=your-ethereal-username
+SMTP_PASS=your-ethereal-password
+SMTP_FROM=noreply@chips-poker.com
+```
+4. All sent emails appear at the preview URL shown after sending
+
+### Option 2: Mailtrap
+1. Sign up at https://mailtrap.io (free tier: 5 inboxes)
+2. Get SMTP credentials from your inbox settings
+3. Add to `apps/backend/.env.development.local`:
+```
+SMTP_HOST=smtp.mailtrap.io
+SMTP_PORT=587
+SMTP_USER=your-mailtrap-user
+SMTP_PASS=your-mailtrap-password
+SMTP_FROM=noreply@chips-poker.com
+```
+
+### Option 3: Console Logging (Current Default)
+When SMTP is not configured, all emails are printed to the backend console with the OTP code visible. This is sufficient for development but not convenient for testing email rendering.
+
+> **Note:** In production, set real SMTP credentials from your email provider (SendGrid, AWS SES, Mailgun, etc.).
+
 ---
 
-**最后更新**: 2026-03-22 18:06 GMT+8  
+**最后更新**: 2026-03-27 17:16 GMT+8  
 **提交者**: pizza
