@@ -26,34 +26,46 @@ function CardDisplay({ card, large }: { card: string; large?: boolean }) {
   const suit = card.slice(-1);
   const rank = card.slice(0, -1);
   const red = suit === 'h' || suit === 'd';
-  const w = large ? 'w-14 h-20' : 'w-9 h-13';
-  const fs = large ? 'text-lg' : 'text-[10px]';
-  const ss = large ? 'text-2xl' : 'text-xs';
+  // Mobile-optimised sizes: larger than before for readability
+  const w = large ? 'w-16 h-[5.5rem]' : 'w-12 h-[4.25rem]';
+  const fs = large ? 'text-xl' : 'text-sm';
+  const ss = large ? 'text-3xl' : 'text-base';
 
   if (hidden) {
     return (
       <div
-        className={`${w} rounded-lg flex items-center justify-center font-bold`}
+        className={`${w} rounded-xl flex flex-col items-center justify-center font-black relative overflow-hidden`}
         style={{
-          background: 'linear-gradient(135deg, #1e3a5f, #0f2540)',
-          border: '1px solid rgba(96,165,250,0.3)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          color: 'rgba(147,197,253,0.5)',
-          fontSize: large ? '28px' : '16px',
+          background: 'linear-gradient(135deg, #1e3a5f 0%, #0f2540 60%, #0a1a30 100%)',
+          border: '1px solid rgba(96,165,250,0.4)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5), inset 0 0 20px rgba(96,165,250,0.05)',
+          color: 'rgba(147,197,253,0.55)',
         }}
       >
-        ♦
+        {/* Decorative inner border */}
+        <div
+          className="absolute inset-1 rounded-lg pointer-events-none"
+          style={{ border: '1px solid rgba(96,165,250,0.15)' }}
+        />
+        {/* Card-back diamond pattern */}
+        <span className="text-2xl" style={{ color: 'rgba(147,197,253,0.35)', fontSize: large ? '36px' : '24px' }}>♦</span>
+        <span
+          className="absolute bottom-1 text-[8px] font-black"
+          style={{ color: 'rgba(147,197,253,0.25)', fontSize: large ? '10px' : '8px' }}
+        >
+          TEXAS
+        </span>
       </div>
     );
   }
 
   return (
     <div
-      className={`${w} rounded-lg flex flex-col items-center justify-center`}
+      className={`${w} rounded-xl flex flex-col items-center justify-center`}
       style={{
-        background: 'linear-gradient(160deg, #fff, #f0f0f0)',
-        border: '1px solid rgba(0,0,0,0.15)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+        background: 'linear-gradient(160deg, #fff 0%, #f5f5f5 100%)',
+        border: '1px solid rgba(0,0,0,0.18)',
+        boxShadow: '0 3px 12px rgba(0,0,0,0.4)',
         color: red ? '#dc2626' : '#111827',
       }}
     >
@@ -116,7 +128,6 @@ export default function MobileRoomPage() {
   useEffect(() => {
     if (autoActRef.current) clearTimeout(autoActRef.current);
     if (!table) return;
-    // Derive isMyTurn fresh from current table state to avoid stale closure.
     const activePlayer = table.activePlayerIndex >= 0 ? table.players[table.activePlayerIndex] : null;
     const isMyTurnNow = table.currentStage !== 'WAITING' && table.currentStage !== 'SETTLEMENT' && activePlayer?.id === myUserId;
     if (!isMyTurnNow) return;
@@ -133,7 +144,6 @@ export default function MobileRoomPage() {
     if (!currentTable) return;
     const socket = getSocket(getStoredToken()!);
     if (!socket) return;
-    // Derive canCheck fresh to avoid stale closure.
     const myP = currentTable.players.find((p: Player | null) => p?.id === myUserId) as Player | null;
     const callAmt = myP ? Math.max(0, (currentTable.currentBet ?? 0) - myP.bet) : 0;
     const action = callAmt === 0 ? 'check' : 'fold';
@@ -142,8 +152,10 @@ export default function MobileRoomPage() {
 
   // ── Derived state ───────────────────────────────────────────────────────
   if (!table) return (
-    <div className="min-h-screen flex items-center justify-center" style={pageBg}>
-      <p className="text-sm text-yellow-500/60 tracking-widest uppercase animate-pulse">Loading…</p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={pageBg}>
+      <div className="text-5xl animate-pulse">🃏</div>
+      <p className="text-sm tracking-[0.3em] uppercase font-semibold text-yellow-500/70">Connecting…</p>
+      <p className="text-xs text-white/30">Hold on while we join the table</p>
     </div>
   );
 
@@ -165,8 +177,6 @@ export default function MobileRoomPage() {
 
   // Winner info for settlement overlay
   const winners = (table.lastHandResult ?? []).filter((e: HandResultEntry) => e.winAmount > 0);
-  const myResult = (table.lastHandResult ?? []).find((e: HandResultEntry) => e.playerId === myUserId);
-  const didIFold = myResult?.handName === '弃牌';
 
   // ── Actions ────────────────────────────────────────────────────────────
   const emit = (action: string, amount?: number) => {
@@ -216,74 +226,83 @@ export default function MobileRoomPage() {
       </div>
 
       {/* ── Player strip ── */}
-      <div className="flex gap-2 px-3 py-2 overflow-x-auto shrink-0" style={{ background: 'rgba(0,0,0,0.25)' }}>
-        {players.map((p) => {
-          const active = table.activePlayerIndex >= 0 && table.players[table.activePlayerIndex]?.id === p.id;
-          const folded = p.status === 'FOLD';
-          return (
-            <div key={p.id} className="flex flex-col items-center gap-0.5 shrink-0">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
-                style={{
-                  background: folded ? 'rgba(80,80,80,0.5)' : 'linear-gradient(135deg, #1a3a2a, #0d2015)',
-                  border: active ? '2px solid #facc15' : p.id === myUserId ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
-                  boxShadow: active ? '0 0 10px rgba(250,204,21,0.4)' : 'none',
-                  color: 'rgba(255,255,255,0.9)',
-                  fontSize: '10px',
-                }}
-              >
-                {p.nickname.slice(0, 2).toUpperCase()}
+      <div className="relative shrink-0">
+        <div
+          className="flex gap-2.5 px-3 py-2.5 overflow-x-auto"
+          style={{ background: 'rgba(0,0,0,0.25)' }}
+          id="player-strip"
+        >
+          {players.map((p) => {
+            const active = table.activePlayerIndex >= 0 && table.players[table.activePlayerIndex]?.id === p.id;
+            const folded = p.status === 'FOLD';
+            return (
+              <div key={p.id} className="flex flex-col items-center gap-0.5 shrink-0">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{
+                    background: folded ? 'rgba(80,80,80,0.5)' : 'linear-gradient(135deg, #1a3a2a, #0d2015)',
+                    border: active ? '2.5px solid #facc15' : p.id === myUserId ? '2.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
+                    boxShadow: active ? '0 0 12px rgba(250,204,21,0.5)' : 'none',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: '10px',
+                  }}
+                >
+                  {p.nickname.slice(0, 2).toUpperCase()}
+                </div>
+                <span className="text-[9px] font-bold truncate max-w-[48px]" style={{ color: p.id === myUserId ? '#fcd34d' : 'rgba(255,255,255,0.7)' }}>
+                  {p.id === myUserId ? 'You' : p.nickname}
+                </span>
+                <span className="text-[9px] font-semibold" style={{ color: 'rgba(74,222,128,0.8)' }}>
+                  ${fmt(p.stack)}
+                </span>
+                {p.isButton && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#fcd34d', color: '#000' }}>D</span>}
+                {p.isBigBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#ef4444', color: '#fff' }}>BB</span>}
+                {p.isSmallBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#3b82f6', color: '#fff' }}>SB</span>}
+                {folded && <span className="text-[7px] text-gray-500">FOLD</span>}
               </div>
-              <span className="text-[9px] font-bold truncate max-w-[44px]" style={{ color: p.id === myUserId ? '#fcd34d' : 'rgba(255,255,255,0.7)' }}>
-                {p.id === myUserId ? 'You' : p.nickname}
-              </span>
-              <span className="text-[9px] font-semibold" style={{ color: 'rgba(74,222,128,0.8)' }}>
-                ${fmt(p.stack)}
-              </span>
-              {p.isButton && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#fcd34d', color: '#000' }}>D</span>}
-              {p.isBigBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#ef4444', color: '#fff' }}>BB</span>}
-              {p.isSmallBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#3b82f6', color: '#fff' }}>SB</span>}
-              {folded && <span className="text-[7px] text-gray-500">FOLD</span>}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        {/* Scroll fade indicators */}
+        <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none" style={{ background: 'linear-gradient(90deg, rgba(2,4,6,0.6) 0%, transparent 100%)' }} />
+        <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none" style={{ background: 'linear-gradient(270deg, rgba(2,4,6,0.6) 0%, transparent 100%)' }} />
       </div>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 py-3">
+      <div className="flex-1 flex flex-col items-center justify-center gap-5 px-4 py-4">
 
         {/* Community cards */}
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: 'rgba(156,163,175,0.5)' }}>Community</span>
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             {table.communityCards.length > 0
               ? table.communityCards.map((c, i) => <CardDisplay key={i} card={c} />)
-              : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>---</span>
+              : <span className="text-sm" style={{ color: 'rgba(255,255,255,0.15)' }}>---</span>
             }
           </div>
         </div>
 
         {/* Pot */}
         <div
-          className="px-5 py-1.5 rounded-full text-sm font-black"
+          className="px-6 py-2 rounded-full text-base font-black"
           style={{
             background: 'rgba(0,0,0,0.5)',
             border: '1px solid rgba(234,179,8,0.35)',
             color: '#fcd34d',
-            boxShadow: '0 0 12px rgba(234,179,8,0.1)',
+            boxShadow: '0 0 16px rgba(234,179,8,0.12)',
           }}
         >
           💰 ${fmt(table.pot)}
         </div>
 
         {/* My cards */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2.5">
           <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: 'rgba(156,163,175,0.5)' }}>Your Hand</span>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {myPlayer && myPlayer.cards.length > 0
               ? myPlayer.cards.map((c, i) => <CardDisplay key={i} card={c} large />)
-              : [<div key={0} className="w-14 h-20 rounded-lg" style={{ background: 'rgba(30,58,95,0.5)', border: '1px solid rgba(96,165,250,0.2)' }} />,
-                 <div key={1} className="w-14 h-20 rounded-lg" style={{ background: 'rgba(30,58,95,0.5)', border: '1px solid rgba(96,165,250,0.2)' }} />]}
+              : [<div key={0} className="w-16 h-[5.5rem] rounded-xl" style={{ background: 'rgba(30,58,95,0.5)', border: '1px solid rgba(96,165,250,0.2)' }} />,
+                 <div key={1} className="w-16 h-[5.5rem] rounded-xl" style={{ background: 'rgba(30,58,95,0.5)', border: '1px solid rgba(96,165,250,0.2)' }} />]}
           </div>
           {myPlayer && <span className="text-xs font-semibold" style={{ color: 'rgba(74,222,128,0.8)' }}>Stack $${fmt(myPlayer.stack)}</span>}
         </div>
@@ -291,7 +310,7 @@ export default function MobileRoomPage() {
 
       {/* ── Action bar (fixed bottom) ── */}
       <div
-        className="shrink-0 px-4 py-4"
+        className="shrink-0 px-4 pb-6 pt-3"
         style={{
           background: 'linear-gradient(180deg, rgba(2,4,6,0) 0%, rgba(2,4,6,0.97) 40%, rgba(2,4,6,1) 100%)',
           borderTop: '1px solid rgba(234,179,8,0.1)',
@@ -323,9 +342,9 @@ export default function MobileRoomPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {/* Timer bar */}
+            {/* Timer bar — taller for mobile visibility */}
             {isMyTurn && actionSecs > 0 && (
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -379,21 +398,41 @@ export default function MobileRoomPage() {
               </Button>
             </div>
 
-            {/* Raise amount */}
+            {/* Raise amount — touch-friendly slider + step buttons */}
             {isMyTurn && (
               <div className="flex items-center gap-2">
+                {/* Step-down */}
+                <button
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black shrink-0 select-none"
+                  style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(234,179,8,0.2)', color: '#fcd34d' }}
+                  onClick={() => setRaiseAmount(Math.max(minRaise, raiseAmount - (myPlayer?.stack ?? minRaise) / 10))}
+                  disabled={raiseAmount <= minRaise}
+                >
+                  −
+                </button>
+                {/* Slider — taller for thumb accuracy */}
                 <input
                   type="range"
-                  className="flex-1 h-2 rounded-full"
+                  className="flex-1 h-3 rounded-full cursor-pointer"
                   style={{ accentColor: '#f59e0b' }}
                   min={minRaise}
                   max={myPlayer?.stack ?? minRaise}
                   value={raiseAmount || minRaise}
                   onChange={(e) => setRaiseAmount(Number(e.target.value))}
                 />
+                {/* Step-up */}
+                <button
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-black shrink-0 select-none"
+                  style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(234,179,8,0.2)', color: '#fcd34d' }}
+                  onClick={() => setRaiseAmount(Math.min(myPlayer?.stack ?? minRaise, raiseAmount + (myPlayer?.stack ?? minRaise) / 10))}
+                  disabled={raiseAmount >= (myPlayer?.stack ?? minRaise)}
+                >
+                  +
+                </button>
+                {/* Amount display — larger for readability */}
                 <div
-                  className="w-20 h-10 rounded-lg flex items-center justify-center text-xs font-bold"
-                  style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(234,179,8,0.25)', color: '#fcd34d' }}
+                  className="w-24 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                  style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(234,179,8,0.25)', color: '#fcd34d' }}
                 >
                   ${fmt(raiseAmount || minRaise)}
                 </div>
