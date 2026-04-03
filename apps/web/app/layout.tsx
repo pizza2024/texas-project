@@ -19,7 +19,9 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
   themeColor: "#060e10",
   viewportFit: 'cover',
 };
@@ -41,6 +43,7 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "CHIPS",
     "mobile-web-app-capable": "yes",
+    "format-detection": "viewport",
   },
 };
 
