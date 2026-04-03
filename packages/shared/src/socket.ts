@@ -71,14 +71,35 @@ export function getSocket(
 
     socket = io(serverUrl, {
       query: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 10,
+      timeout: 10000,
     });
     socketToken = token;
 
     socket.on('force_logout', (data) => forceLogoutHandler?.(data));
     socket.on('rejoin_available', (data) => rejoinAvailableHandler?.(data));
     socket.on('deposit_confirmed', (data) => depositConfirmedHandler?.(data));
+  } else if (socket && !socket.connected) {
+    // Zombie socket: token unchanged but socket disconnected (e.g. mobile OS closed WS).
+    // Force immediate reconnect without waiting for socket.io backoff.
+    socket.connect();
   }
+
+  // Detect page coming back to foreground on mobile browsers (Safari/Chrome freeze JS threads
+  // while app is backgrounded, pausing socket.io's own reconnect timers).
+  if (typeof document !== 'undefined' && socket) {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && socket && !socket.connected) {
+        socket.connect();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  }
+
   return socket;
 }
 
