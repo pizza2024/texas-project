@@ -408,7 +408,7 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
                   key={n}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, maxPlayers: n }))}
-                  className="h-9 rounded-lg text-sm font-bold transition-all"
+                  className="h-8 sm:h-9 rounded-lg text-xs sm:text-sm font-bold transition-all"
                   style={{
                     background:
                       form.maxPlayers === n
@@ -563,6 +563,7 @@ export default function RoomsPage() {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createDialogCount, setCreateDialogCount] = useState(0);
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const isSearchingRef = useRef(false);
@@ -809,6 +810,7 @@ export default function RoomsPage() {
         minBuyIn: form.minBuyIn,
         password: form.password.trim() || undefined,
       });
+      setCreateDialogCount((c) => c + 1);
       setShowCreateDialog(false);
       const pwd = form.password.trim();
       if (pwd) {
@@ -871,7 +873,7 @@ export default function RoomsPage() {
     >
       {showCreateDialog && (
         <CreateRoomDialog
-          key={String(showCreateDialog)}
+          key={createDialogCount}
           onClose={() => setShowCreateDialog(false)}
           onCreate={handleCreateRoom}
         />
@@ -1109,7 +1111,10 @@ export default function RoomsPage() {
 
             {/* Create Table button */}
             <Button
-              onClick={() => setShowCreateDialog(true)}
+              onClick={() => {
+                setCreateDialogCount((c) => c + 1);
+                setShowCreateDialog(true);
+              }}
               className="font-bold tracking-widest text-xs uppercase h-10 px-3 sm:px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
               style={{
                 background:
@@ -1415,7 +1420,7 @@ export default function RoomsPage() {
                       >
                         {t("lobby.blinds")}
                       </span>
-                      <span className="font-bold text-white text-sm">
+                      <span className="font-bold text-white text-sm min-w-0 truncate">
                         ${room.blindSmall}{" "}
                         <span style={{ color: "rgba(234,179,8,0.5)" }}>/</span>{" "}
                         ${room.blindBig}
