@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { User } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -85,12 +86,31 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthUserDto> {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    const user = await this.userService.createUser({
-      username: registerDto.username,
-      nickname: registerDto.nickname || registerDto.username,
-      coinBalance: AuthService.STARTING_BALANCE,
-      password: hashedPassword,
-    });
+    let user: User;
+    try {
+      user = await this.userService.createUser({
+        username: registerDto.username,
+        nickname: registerDto.nickname || registerDto.username,
+        coinBalance: AuthService.STARTING_BALANCE,
+        password: hashedPassword,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          // Unique constraint violation - extract which field
+          const meta = error.meta as { target?: string[] };
+          const target = meta?.target;
+          if (target && target.includes('username')) {
+            throw new BadRequestException('Username already taken');
+          }
+          if (target && target.includes('nickname')) {
+            throw new BadRequestException('Nickname already taken');
+          }
+          throw new BadRequestException('Username or nickname already taken');
+        }
+      }
+      throw error;
+    }
 
     // Create wallet separately with explicit chips value to ensure it starts at 10000
     await this.walletService.setBalance(user.id, AuthService.STARTING_BALANCE);

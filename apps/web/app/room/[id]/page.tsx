@@ -168,6 +168,15 @@ const pageBg: React.CSSProperties = {
 export default function RoomPage() {
   const { id } = useParams();
   const router = useRouter();
+
+  // Redirect mobile users to the mobile room page
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    if (isMobile) {
+      router.replace(`/room-mobile/${id}`);
+    }
+  }, [id, router]);
   const [table, setTable] = useState<TableState | null>(null);
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
