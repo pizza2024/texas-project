@@ -8,6 +8,8 @@ ARG APP_NAME
 RUN test -n "$APP_NAME"
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 
 # Enable corepack and activate the correct package manager version
 RUN corepack enable && corepack prepare npm@10.0.0 --activate
