@@ -99,11 +99,6 @@ export class Table {
   /** Info about the last player auto-folded due to sitting out (playerId + seatIndex). */
   lastSitoutAutoFold: { playerId: string; seatIndex: number } | null;
 
-  /** True when a straddle has been placed this hand. */
-  get hasStraddle(): boolean {
-    return this.straddle !== null;
-  }
-
   constructor(
     id: string,
     roomId: string,
