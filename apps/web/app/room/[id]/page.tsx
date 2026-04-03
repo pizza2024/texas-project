@@ -569,7 +569,17 @@ export default function RoomPage() {
       }
     });
 
-    return () => { disconnectSocket(); };
+    const rejoinAvailableHandler = ({ roomId: rejoinRoomId }: { roomId: string }) => {
+      if (rejoinRoomId === id && !socket.connected) {
+        socket.connect();
+      }
+    };
+    socket.on('rejoin_available', rejoinAvailableHandler);
+
+    return () => {
+      socket.off('rejoin_available', rejoinAvailableHandler);
+      disconnectSocket();
+    };
   }, [id, router]);
 
   useEffect(() => {
