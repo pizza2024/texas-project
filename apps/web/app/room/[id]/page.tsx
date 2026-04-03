@@ -1249,7 +1249,7 @@ export default function RoomPage() {
 
                 {/* Avatar circle */}
                 <div
-                  className={`relative transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
+                  className={`relative overflow-hidden transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
                   style={{
                     opacity: isFolded ? 0.45 : isLoserHighlighted ? 0.62 : 1,
                     transform: isWinnerHighlighted
@@ -1350,7 +1350,7 @@ export default function RoomPage() {
                     )}
                     {player.isBigBlind && (
                       <span
-                        className="text-[8px] font-black px-1 rounded-full leading-4"
+                        className="text-[9px] font-black px-1.5 rounded-full leading-none"
                         style={{ background: '#ef4444', color: '#fff' }}
                       >BB</span>
                     )}

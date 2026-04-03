@@ -256,7 +256,7 @@ export default function MobileRoomPage() {
                   ${fmt(p.stack)}
                 </span>
                 {p.isButton && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#fcd34d', color: '#000' }}>D</span>}
-                {p.isBigBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#ef4444', color: '#fff' }}>BB</span>}
+                {p.isBigBlind && <span className="text-[9px] font-black px-1.5 rounded-full leading-none" style={{ background: '#ef4444', color: '#fff' }}>BB</span>}
                 {p.isSmallBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#3b82f6', color: '#fff' }}>SB</span>}
                 {folded && <span className="text-[7px] text-gray-500">FOLD</span>}
               </div>
