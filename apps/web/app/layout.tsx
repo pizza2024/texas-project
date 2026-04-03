@@ -4,6 +4,7 @@ import "./globals.css";
 import { SystemMessageProvider } from "@/components/system-message-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SocketSessionProvider } from "@/components/socket-session-provider";
+import { PWAProvider } from "@/components/PWAProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,13 +24,22 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
   title: {
-    template: '%s · Texas Hold\'em',
-    default: 'Texas Hold\'em — Play to Win',
+    template: "%s · Texas Hold'em",
+    default: "Texas Hold'em — Play to Win",
   },
-  description: "Multiplayer No-Limit Texas Hold'em poker. Real-time gameplay, casino-style tables.",
+  description:
+    "Multiplayer No-Limit Texas Hold'em poker. Real-time gameplay, casino-style tables.",
   icons: {
-    icon: '/icon.svg',
+    icon: "/icon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-title": "CHIPS",
+    "mobile-web-app-capable": "yes",
   },
 };
 
@@ -45,7 +55,10 @@ export default function RootLayout({
       >
         <I18nProvider>
           <SystemMessageProvider>
-            <SocketSessionProvider>{children}</SocketSessionProvider>
+            <SocketSessionProvider>
+              {children}
+              <PWAProvider />
+            </SocketSessionProvider>
           </SystemMessageProvider>
         </I18nProvider>
       </body>
