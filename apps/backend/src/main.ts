@@ -8,6 +8,7 @@ dotenv.config({
 
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -33,6 +34,16 @@ async function bootstrap() {
   if (parsedCorsOrigin !== '*') {
     logger.log(`CORS allowed origins: ${parsedCorsOrigin.join(', ')}`);
   }
+
+  // Enable validation for all DTOs
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
 
   app.enableCors({
     origin: (origin, callback) => {

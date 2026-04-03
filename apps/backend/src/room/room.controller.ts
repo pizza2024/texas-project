@@ -13,13 +13,40 @@ import { RoomService } from './room.service';
 import { AuthGuard } from '@nestjs/passport';
 import * as bcrypt from 'bcrypt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IsString, IsNumber, IsOptional, MaxLength, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
-interface CreateRoomDto {
+class CreateRoomDto {
+  @IsString()
+  @MaxLength(30)
   name: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(9999)
+  @Type(() => Number)
   blindSmall: number;
+
+  @IsNumber()
+  @Min(2)
+  @Max(99999)
+  @Type(() => Number)
   blindBig: number;
+
+  @IsNumber()
+  @Min(2)
+  @Max(9)
+  @Type(() => Number)
   maxPlayers: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
   minBuyIn?: number;
+
+  @IsString()
+  @IsOptional()
   password?: string;
 }
 
@@ -40,7 +67,7 @@ export class RoomController {
     const hashedPassword = dto.password
       ? await bcrypt.hash(dto.password, 10)
       : null;
-    return this.roomService.createRoom({
+    const room = await this.roomService.createRoom({
       name: dto.name,
       blindSmall: dto.blindSmall,
       blindBig: dto.blindBig,
@@ -48,6 +75,9 @@ export class RoomController {
       minBuyIn: dto.minBuyIn ?? 0,
       password: hashedPassword ?? undefined,
     });
+    // Never return password hash to client
+    const { password: _password, ...safeRoom } = room as any;
+    return { ...safeRoom, isPrivate: !!dto.password };
   }
 
   @Get()
