@@ -279,8 +279,8 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
 
   const labelStyle = {
     display: "block",
-    fontSize: "0.625rem",
-    letterSpacing: "0.2em",
+    fontSize: "0.6rem",
+    letterSpacing: "0.1em",
     textTransform: "uppercase" as const,
     color: "rgba(245,158,11,0.6)",
     marginBottom: "0.375rem",
@@ -402,13 +402,13 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
           {/* Max players */}
           <div>
             <label style={labelStyle}>{t("lobby.createDialog.maxSeats")}</label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
               {[2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, maxPlayers: n }))}
-                  className="w-9 h-9 rounded-lg text-sm font-bold transition-all"
+                  className="h-9 rounded-lg text-sm font-bold transition-all"
                   style={{
                     background:
                       form.maxPlayers === n
@@ -871,6 +871,7 @@ export default function RoomsPage() {
     >
       {showCreateDialog && (
         <CreateRoomDialog
+          key={String(showCreateDialog)}
           onClose={() => setShowCreateDialog(false)}
           onCreate={handleCreateRoom}
         />
