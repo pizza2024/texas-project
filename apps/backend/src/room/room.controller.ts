@@ -8,6 +8,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -64,6 +65,13 @@ export class RoomController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new room' })
   async create(@Body() dto: CreateRoomDto) {
+    if (dto.blindBig < dto.blindSmall * 2) {
+      throw new BadRequestException('大盲注必须大于等于小盲注的两倍');
+    }
+    const effectiveMinBuyIn = dto.minBuyIn ?? dto.blindBig;
+    if (effectiveMinBuyIn < dto.blindBig) {
+      throw new BadRequestException('最小买入必须大于等于大盲注');
+    }
     const hashedPassword = dto.password
       ? await bcrypt.hash(dto.password, 10)
       : null;
@@ -72,7 +80,7 @@ export class RoomController {
       blindSmall: dto.blindSmall,
       blindBig: dto.blindBig,
       maxPlayers: dto.maxPlayers,
-      minBuyIn: dto.minBuyIn ?? 0,
+      minBuyIn: effectiveMinBuyIn,
       password: hashedPassword ?? undefined,
     });
     // Never return password hash to client
