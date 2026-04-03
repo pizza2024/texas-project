@@ -1350,7 +1350,7 @@ export default function RoomPage() {
                     )}
                     {player.isBigBlind && (
                       <span
-                        className="text-[9px] font-black px-1.5 rounded-full leading-none"
+                        className="text-[9px] font-black px-1.5 rounded-full leading-4"
                         style={{ background: '#ef4444', color: '#fff' }}
                       >BB</span>
                     )}

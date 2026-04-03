@@ -324,6 +324,7 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
               lineHeight: 1,
             }}
             className="hover:text-white transition-colors"
+            type="button"
           >
             ✕
           </button>
@@ -402,13 +403,13 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
           {/* Max players */}
           <div>
             <label style={labelStyle}>{t("lobby.createDialog.maxSeats")}</label>
-            <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-4 gap-1 sm:gap-2">
               {[2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, maxPlayers: n }))}
-                  className="h-8 sm:h-9 rounded-lg text-xs sm:text-sm font-bold transition-all"
+                  className="h-8 sm:h-9 rounded-lg text-[10px] sm:text-xs font-bold transition-all truncate"
                   style={{
                     background:
                       form.maxPlayers === n
