@@ -49,6 +49,7 @@ type Handler<T> = ((data: T) => void) | null;
 let forceLogoutHandler: Handler<ForceLogoutPayload> = null;
 let rejoinAvailableHandler: Handler<{ roomId: string }> = null;
 let depositConfirmedHandler: Handler<DepositConfirmedPayload> = null;
+let visibilityChangeHandler: (() => void) | null = null;
 
 export function setForceLogoutHandler(h: (data: ForceLogoutPayload) => void) {
   forceLogoutHandler = h;
@@ -91,13 +92,17 @@ export function getSocket(
 
   // Detect page coming back to foreground on mobile browsers (Safari/Chrome freeze JS threads
   // while app is backgrounded, pausing socket.io's own reconnect timers).
+  // Remove any stale handler before registering a new one to prevent accumulation.
   if (typeof document !== 'undefined' && socket) {
-    const handleVisibilityChange = () => {
+    if (visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', visibilityChangeHandler);
+    }
+    visibilityChangeHandler = () => {
       if (document.visibilityState === 'visible' && socket && !socket.connected) {
         socket.connect();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', visibilityChangeHandler);
   }
 
   return socket;
@@ -105,6 +110,10 @@ export function getSocket(
 
 export function disconnectSocket() {
   if (socket) {
+    if (visibilityChangeHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', visibilityChangeHandler);
+      visibilityChangeHandler = null;
+    }
     socket.disconnect();
     socket = null;
     socketToken = null;

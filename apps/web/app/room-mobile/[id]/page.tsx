@@ -115,20 +115,29 @@ export default function MobileRoomPage() {
   // ── Auto-action ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (autoActRef.current) clearTimeout(autoActRef.current);
-    if (!table || !isMyTurn) return;
-    const remaining = (table.actionEndsAt ?? 0) - Date.now();
-    if (remaining <= 0) { doAutoAction(); return; }
-    autoActRef.current = setTimeout(doAutoAction, remaining);
-    return () => { if (autoActRef.current) clearTimeout(autoActRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table?.actionEndsAt, table?.currentStage]);
-
-  function doAutoAction() {
     if (!table) return;
+    // Derive isMyTurn fresh from current table state to avoid stale closure.
+    const activePlayer = table.activePlayerIndex >= 0 ? table.players[table.activePlayerIndex] : null;
+    const isMyTurnNow = table.currentStage !== 'WAITING' && table.currentStage !== 'SETTLEMENT' && activePlayer?.id === myUserId;
+    if (!isMyTurnNow) return;
+    const remaining = (table.actionEndsAt ?? 0) - Date.now();
+    if (remaining <= 0) {
+      doAutoAction(table);
+      return;
+    }
+    autoActRef.current = setTimeout(() => doAutoAction(table), remaining);
+    return () => { if (autoActRef.current) clearTimeout(autoActRef.current); };
+  }, [table?.actionEndsAt, table?.currentStage, table, myUserId]);
+
+  function doAutoAction(currentTable: typeof table) {
+    if (!currentTable) return;
     const socket = getSocket(getStoredToken()!);
     if (!socket) return;
-    const amt = canCheck ? 'check' : 'fold';
-    socket.emit('player_action', { roomId: id as string, action: amt });
+    // Derive canCheck fresh to avoid stale closure.
+    const myP = currentTable.players.find((p: Player | null) => p?.id === myUserId) as Player | null;
+    const callAmt = myP ? Math.max(0, (currentTable.currentBet ?? 0) - myP.bet) : 0;
+    const action = callAmt === 0 ? 'check' : 'fold';
+    socket.emit('player_action', { roomId: id as string, action });
   }
 
   // ── Derived state ───────────────────────────────────────────────────────
