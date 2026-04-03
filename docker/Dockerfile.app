@@ -11,8 +11,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 
-# Enable corepack and activate the correct package manager version
-RUN corepack enable && corepack prepare npm@10.0.0 --activate
+# Enable corepack (Node 20 ships with npm 10.x by default; use corepack to ensure consistent version)
+RUN corepack enable && corepack prepare npm@10 --activate
 
 # Copy only package manifests. Do not copy the root lockfile because it currently
 # mixes Next 15 and Next 16 SWC packages across workspaces and breaks Docker builds.
