@@ -47,7 +47,7 @@ export default function LoginPage() {
           style={{ background: 'radial-gradient(circle, rgba(234,179,8,0.04) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="relative z-10 w-[400px] rounded-2xl px-10 py-10"
+      <div className="relative z-10 w-full max-w-[400px] rounded-2xl px-6 sm:px-10 py-8 sm:py-10 mx-4"
         style={{
           background: 'linear-gradient(160deg, rgba(12,22,16,0.97) 0%, rgba(6,12,9,0.99) 100%)',
           border: '1px solid rgba(234,179,8,0.25)',

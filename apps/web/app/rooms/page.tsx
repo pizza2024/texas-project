@@ -347,7 +347,7 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
           </div>
 
           {/* Blinds */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>
                 {t("lobby.createDialog.smallBlind")}
@@ -1089,11 +1089,11 @@ export default function RoomsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Quick Match button */}
             <Button
               onClick={() => setShowQuickMatchDialog(true)}
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              className="font-bold tracking-widest text-xs uppercase h-10 px-3 sm:px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
               style={{
                 background:
                   "linear-gradient(135deg, #065f46 0%, #047857 40%, #10b981 100%)",
@@ -1103,13 +1103,13 @@ export default function RoomsPage() {
                   "0 0 20px rgba(16,185,129,0.2), 0 4px 10px rgba(0,0,0,0.4)",
               }}
             >
-              ⚡ {t("lobby.quickMatchBtn")}
+              ⚡ <span className="hidden sm:inline">{t("lobby.quickMatchBtn")}</span><span className="sm:hidden">{t("lobby.quickMatchBtn").split(' ')[0]}</span>
             </Button>
 
             {/* Create Table button */}
             <Button
               onClick={() => setShowCreateDialog(true)}
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              className="font-bold tracking-widest text-xs uppercase h-10 px-3 sm:px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
               style={{
                 background:
                   "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
@@ -1119,13 +1119,14 @@ export default function RoomsPage() {
                   "0 0 20px rgba(245,158,11,0.2), 0 4px 10px rgba(0,0,0,0.4)",
               }}
             >
-              {t("lobby.createTable")}
+              <span className="hidden sm:inline">{t("lobby.createTable")}</span>
+              <span className="sm:hidden">+ {t("lobby.createTable").split(' ').pop()}</span>
             </Button>
 
-            {/* Deposit button */}
+            {/* Deposit button — sm+ only */}
             <Button
               onClick={() => router.push("/deposit")}
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
               style={{
                 background:
                   "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #4ade80 100%)",
@@ -1138,10 +1139,10 @@ export default function RoomsPage() {
               💰 {t("common.deposit")}
             </Button>
 
-            {/* Withdraw button */}
+            {/* Withdraw button — sm+ only */}
             <Button
               onClick={() => router.push("/withdraw")}
-              className="font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
               style={{
                 background:
                   "linear-gradient(135deg, #3b0a0a 0%, #5f1111 40%, #dc2626 100%)",
@@ -1237,6 +1238,30 @@ export default function RoomsPage() {
 
                   {/* Menu items */}
                   <div className="py-1">
+                    {/* Deposit & Withdraw — mobile only (shown in avatar dropdown) */}
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-green-900/20 sm:hidden"
+                      style={{ color: "rgba(74,222,128,0.9)" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push("/deposit");
+                      }}
+                    >
+                      <span>💰</span>
+                      {t("common.deposit")}
+                    </button>
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-red-900/20 sm:hidden"
+                      style={{ color: "rgba(248,113,113,0.85)" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push("/withdraw");
+                      }}
+                    >
+                      <span>💸</span>
+                      {t("common.withdraw")}
+                    </button>
+                    <div className="h-px mx-4 my-1 sm:hidden" style={{ background: "rgba(234,179,8,0.1)" }} />
                     <button
                       className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
                       style={{ color: "rgba(245,158,11,0.85)" }}
@@ -1303,7 +1328,7 @@ export default function RoomsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
             {rooms.map((room) => {
               const status = roomStatusMap[room.id];
               const current = status?.currentPlayers ?? 0;
@@ -1314,7 +1339,7 @@ export default function RoomsPage() {
               return (
                 <div
                   key={room.id}
-                  className="rounded-2xl p-5 flex flex-col gap-4 transition-all duration-200 hover:scale-[1.01]"
+                  className="rounded-2xl p-4 sm:p-5 flex flex-col gap-3 sm:gap-4 transition-all duration-200 hover:scale-[1.01]"
                   style={{
                     background:
                       "linear-gradient(160deg, rgba(12,22,16,0.97) 0%, rgba(6,12,9,0.99) 100%)",

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SystemMessageProvider } from "@/components/system-message-provider";
@@ -15,12 +15,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#060e10",
+};
+
 export const metadata: Metadata = {
   title: {
     template: '%s · Texas Hold\'em',
     default: 'Texas Hold\'em — Play to Win',
   },
-  description: 'Multiplayer No-Limit Texas Hold\'em poker. Real-time gameplay, casino-style tables.',
+  description: "Multiplayer No-Limit Texas Hold'em poker. Real-time gameplay, casino-style tables.",
   icons: {
     icon: '/icon.svg',
   },
