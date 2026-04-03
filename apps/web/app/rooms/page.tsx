@@ -874,7 +874,7 @@ export default function RoomsPage() {
       {showCreateDialog && (
         <CreateRoomDialog
           key={createDialogCount}
-          onClose={() => setShowCreateDialog(false)}
+          onClose={() => { setCreateDialogCount((c) => c + 1); setShowCreateDialog(false); }}
           onCreate={handleCreateRoom}
         />
       )}
