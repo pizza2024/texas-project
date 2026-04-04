@@ -43,6 +43,7 @@ export interface TableSnapshot {
   foldWinnerRevealed: boolean;
   straddle: StraddleInfo | null;
   calledAllIn: number | null;
+  sittingOutTimeout: number;
 }
 
 export enum GameStage {
@@ -90,6 +91,11 @@ export class Table {
   calledAllIn: number | null;
   /** Milliseconds to wait before auto-folding a sitting-out player whose turn it is. */
   sittingOutTimeout: number;
+
+  /** True if a straddle has been placed this hand. */
+  get hasStraddle(): boolean {
+    return this.straddle !== null;
+  }
   /** Info about the last player auto-folded due to sitting out (playerId + seatIndex). */
   lastSitoutAutoFold: { playerId: string; seatIndex: number } | null;
 
@@ -219,6 +225,7 @@ export class Table {
       foldWinnerRevealed: this.foldWinnerRevealed,
       straddle: this.straddle,
       calledAllIn: this.calledAllIn,
+      sittingOutTimeout: this.sittingOutTimeout,
     };
   }
 
@@ -740,6 +747,13 @@ export class Table {
     this.pot += extraAmount;
     this.currentBet = straddleAmount;
     this.minBet = this.bigBlind;
+    if (activePlayer.stack === 0) {
+      activePlayer.status = PlayerStatus.ALLIN;
+    }
+
+    if (activePlayer.stack === 0) {
+      activePlayer.status = PlayerStatus.ALLIN;
+    }
 
     this.straddle = {
       playerId: activePlayer.id,

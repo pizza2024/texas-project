@@ -25,36 +25,36 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get()
-  async getWallet(@Request() req: { user: { sub: string } }) {
-    const chips = await this.walletService.getBalance(req.user.sub);
+  async getWallet(@Request() req: { user: { userId: string } }) {
+    const chips = await this.walletService.getBalance(req.user.userId);
     const available = await this.walletService.getAvailableBalance(
-      req.user.sub,
+      req.user.userId,
     );
-    const balance = await this.walletService.getRealBalance(req.user.sub);
+    const balance = await this.walletService.getRealBalance(req.user.userId);
     return { chips, availableChips: available, balance };
   }
 
   @Get('history')
-  async getHistory(@Request() req: { user: { sub: string } }) {
-    const withdraws = await this.walletService.getWithdrawHistory(req.user.sub);
+  async getHistory(@Request() req: { user: { userId: string } }) {
+    const withdraws = await this.walletService.getWithdrawHistory(req.user.userId);
     return { withdraws };
   }
 
   @Post('exchange/to-chips')
   async exchangeToChips(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: string } },
     @Body() body: ExchangeToChipsDto,
   ) {
     const { amount } = body;
     if (!amount || amount <= 0) {
       throw new BadRequestException('Amount must be positive');
     }
-    return this.walletService.exchangeBalanceToChips(req.user.sub, amount);
+    return this.walletService.exchangeBalanceToChips(req.user.userId, amount);
   }
 
   @Post('exchange/to-balance')
   async exchangeToBalance(
-    @Request() req: { user: { sub: string } },
+    @Request() req: { user: { userId: string } },
     @Body() body: ExchangeFromChipsDto,
   ) {
     const { amount, address } = body;
@@ -65,7 +65,7 @@ export class WalletController {
       throw new BadRequestException('Withdraw address is required');
     }
     return this.walletService.exchangeChipsToBalance(
-      req.user.sub,
+      req.user.userId,
       amount,
       address,
     );

@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SystemMessageProvider } from "@/components/system-message-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SocketSessionProvider } from "@/components/socket-session-provider";
+import { PWAProvider } from "@/components/PWAProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,14 +16,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
+  themeColor: "#060e10",
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
   title: {
-    template: '%s · Texas Hold\'em',
-    default: 'Texas Hold\'em — Play to Win',
+    template: "%s · Texas Hold'em",
+    default: "Texas Hold'em — Play to Win",
   },
-  description: 'Multiplayer No-Limit Texas Hold\'em poker. Real-time gameplay, casino-style tables.',
+  description:
+    "Multiplayer No-Limit Texas Hold'em poker. Real-time gameplay, casino-style tables.",
   icons: {
-    icon: '/icon.svg',
+    icon: "/icon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-title": "CHIPS",
+    "mobile-web-app-capable": "yes",
+    "format-detection": "viewport",
   },
 };
 
@@ -38,7 +59,10 @@ export default function RootLayout({
       >
         <I18nProvider>
           <SystemMessageProvider>
-            <SocketSessionProvider>{children}</SocketSessionProvider>
+            <SocketSessionProvider>
+              {children}
+              <PWAProvider />
+            </SocketSessionProvider>
           </SystemMessageProvider>
         </I18nProvider>
       </body>

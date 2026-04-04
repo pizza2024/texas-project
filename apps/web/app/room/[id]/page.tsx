@@ -168,6 +168,15 @@ const pageBg: React.CSSProperties = {
 export default function RoomPage() {
   const { id } = useParams();
   const router = useRouter();
+
+  // Redirect mobile users to the mobile room page
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    if (isMobile) {
+      router.replace(`/room-mobile/${id}`);
+    }
+  }, [id, router]);
   const [table, setTable] = useState<TableState | null>(null);
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -569,7 +578,17 @@ export default function RoomPage() {
       }
     });
 
-    return () => { disconnectSocket(); };
+    const rejoinAvailableHandler = ({ roomId: rejoinRoomId }: { roomId: string }) => {
+      if (rejoinRoomId === id && !socket.connected) {
+        socket.connect();
+      }
+    };
+    socket.on('rejoin_available', rejoinAvailableHandler);
+
+    return () => {
+      socket.off('rejoin_available', rejoinAvailableHandler);
+      disconnectSocket();
+    };
   }, [id, router]);
 
   useEffect(() => {
@@ -1240,10 +1259,12 @@ export default function RoomPage() {
                         : 'scale(1)',
                   }}
                 >
-                  <UserAvatar
-                    userId={player.id}
-                    avatar={player.avatar}
-                    size={68}
+                  {/* Inner clip container for avatar + cards only */}
+                  <div className="overflow-hidden rounded-full">
+                    <UserAvatar
+                      userId={player.id}
+                      avatar={player.avatar}
+                      size={68}
                     style={{
                       background: isFolded
                         ? 'rgba(0,0,0,0.5)'
@@ -1303,6 +1324,9 @@ export default function RoomPage() {
                     </div>
                   )}
 
+                  {/* End of inner clip container for avatar + cards */}
+                  </div>
+
                   {/* Position badges */}
                   <div className="absolute -top-1.5 -right-1 flex gap-0.5">
                     {isWinnerHighlighted && (
@@ -1331,7 +1355,7 @@ export default function RoomPage() {
                     )}
                     {player.isBigBlind && (
                       <span
-                        className="text-[8px] font-black px-1 rounded-full leading-4"
+                        className="text-[9px] font-black px-1.5 rounded-full leading-4"
                         style={{ background: '#ef4444', color: '#fff' }}
                       >BB</span>
                     )}

@@ -1,0 +1,41 @@
+{
+  "name": "CHIPS - Texas Hold'em",
+  "short_name": "CHIPS",
+  "description": "Multiplayer No-Limit Texas Hold'em poker. Real-time gameplay, casino-style tables.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#060e10",
+  "theme_color": "#060e10",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Match",
+      "short_name": "Match",
+      "description": "Jump into a quick game",
+      "url": "/?action=quick-match",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Stats",
+      "short_name": "Stats",
+      "description": "View your game statistics",
+      "url": "/?action=stats",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

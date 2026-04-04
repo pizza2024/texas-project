@@ -1,7 +1,7 @@
 # AWS Lightsail Docker 部署清单
 
 日期：2026-03-23  
-环境：Texas Hold'em Staging (zo-op.com)
+环境：Texas Hold'em Staging (not-replaced-yet.com)
 
 ---
 
@@ -72,16 +72,16 @@ cd texas-project
 在你的 DNS 提供商（如 Cloudflare、Route53）添加以下 A 记录：
 
 ```
-web.zo-op.com          A  <Lightsail 实例公网 IP>
-admin.zo-op.com        A  <Lightsail 实例公网 IP>
-api.zo-op.com          A  <Lightsail 实例公网 IP>
+web.not-replaced-yet.com          A  <Lightsail 实例公网 IP>
+admin.not-replaced-yet.com        A  <Lightsail 实例公网 IP>
+api.not-replaced-yet.com          A  <Lightsail 实例公网 IP>
 ```
 
 验证 DNS 解析：
 ```bash
-nslookup web.zo-op.com
-nslookup admin.zo-op.com
-nslookup api.zo-op.com
+nslookup web.not-replaced-yet.com
+nslookup admin.not-replaced-yet.com
+nslookup api.not-replaced-yet.com
 ```
 
 - [ ] DNS 已配置，nslookup 可正常解析
@@ -96,13 +96,13 @@ nslookup api.zo-op.com
 cd /home/ubuntu/texas-project
 
 # 运行证书生成脚本
-bash docker/nginx/generate-cert.sh
+bash docker/nginx/generate-cert.sh not-replaced-yet.com
 
 # 验证证书生成
 ls -la docker/nginx/certs/
 ```
 
-- [ ] 证书已生成在 `docker/nginx/certs/zo-op.com.crt` 和 `.key`
+- [ ] 证书已生成在 `docker/nginx/certs/not-replaced-yet.com.crt` 和 `.key`
 
 ---
 
@@ -111,28 +111,30 @@ ls -la docker/nginx/certs/
 ```bash
 cd /home/ubuntu/texas-project
 
-# 复制环境变量模板
-cp docker/.env.staging.example docker/.env.staging
+# 按 DOMAIN 一键生成环境变量文件
+bash docker/generate-staging-env.sh not-replaced-yet.com
 
-# 编辑环境变量（使用 nano 或 vi）
-nano docker/.env.staging
+# 如需覆盖已存在文件
+# FORCE=1 bash docker/generate-staging-env.sh not-replaced-yet.com
+
+# 二次检查关键项
+grep -E '^(DOMAIN|CORS_ORIGIN|SOCKET_CORS_ORIGIN|NEXT_PUBLIC_API_URL|EXPO_PUBLIC_API_URL|JWT_SECRET)=' docker/.env.staging
 ```
 
-关键项修改：
+如果需要手工微调，可继续编辑：
 
 ```bash
-# 1. JWT_SECRET：改为强随机值
+# 1. DOMAIN
+DOMAIN=not-replaced-yet.com
+
+# 2. CORS 和 API 域名
+CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
+SOCKET_CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
+NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
+EXPO_PUBLIC_API_URL=https://api.not-replaced-yet.com
+
+# 3. JWT_SECRET：改为强随机值（脚本会自动填充一次）
 JWT_SECRET=<执行: openssl rand -base64 32>
-
-# 2. 数据库和 Redis：保持默认（内网）
-DATABASE_URL=postgresql://texas:texas_password@postgres:5432/texas_staging?schema=public
-REDIS_URL=redis://redis:6379
-
-# 3. CORS 和 API 域名（已在 .example 里改好了）
-CORS_ORIGIN=https://web.zo-op.com,https://admin.zo-op.com
-SOCKET_CORS_ORIGIN=https://web.zo-op.com,https://admin.zo-op.com
-NEXT_PUBLIC_API_URL=https://api.zo-op.com
-EXPO_PUBLIC_API_URL=https://api.zo-op.com
 ```
 
 - [ ] `docker/.env.staging` 已创建并正确配置
@@ -175,17 +177,17 @@ texas-backend   | ✅ Starting application...
 
 ```bash
 # 检查后端 API 健康状态
-curl -k https://api.zo-op.com/health
+curl -k https://api.not-replaced-yet.com/health
 
 # 预期响应：
 # {"status":"ok","timestamp":"2026-03-23T...","uptime":123.45,"environment":"production"}
 
 # 检查 Web 前台
-curl -k https://web.zo-op.com
+curl -k https://web.not-replaced-yet.com
 # 应返回 HTML 内容
 
 # 检查 Admin 面板
-curl -k https://admin.zo-op.com
+curl -k https://admin.not-replaced-yet.com
 # 应返回 HTML 内容
 ```
 
@@ -198,7 +200,7 @@ curl -k https://admin.zo-op.com
 ## 第 8 步：测试基础功能
 
 1. **浏览器测试**（忽略自签证书警告）
-   - 访问 https://web.zo-op.com
+   - 访问 https://web.not-replaced-yet.com
    - 登录（用已有测试账号）
    - 验证建房、入房功能
    
@@ -209,7 +211,7 @@ curl -k https://admin.zo-op.com
    
 3. **API 测试**
    ```bash
-   curl -k -X POST https://api.zo-op.com/auth/login \
+   curl -k -X POST https://api.not-replaced-yet.com/auth/login \
      -H "Content-Type: application/json" \
      -d '{"username":"test","password":"test123"}'
    ```
@@ -303,10 +305,10 @@ docker compose logs backend
 
 ```bash
 # 验证证书有效期
-openssl x509 -in docker/nginx/certs/zo-op.com.crt -text -noout | grep -A 2 "Validity"
+openssl x509 -in docker/nginx/certs/not-replaced-yet.com.crt -text -noout | grep -A 2 "Validity"
 
 # 如果证书过期，重新生成
-bash docker/nginx/generate-cert.sh
+bash docker/nginx/generate-cert.sh not-replaced-yet.com
 docker compose restart nginx
 ```
 
@@ -340,7 +342,7 @@ npm run docker:staging:up
 docker compose logs -f backend
 
 # 4. 验证健康检查
-curl -k https://api.zo-op.com/health
+curl -k https://api.not-replaced-yet.com/health
 
 # 5. 冒烟测试（登录、建房等）
 ```
@@ -357,7 +359,7 @@ curl -k https://api.zo-op.com/health
 - [ ] Web/Admin/API 可通过 HTTPS 访问
 - [ ] 登录、建房、WebSocket 基本功能正常
 - [ ] 快照已创建
-- [ ] 团队已知道 https://web.zo-op.com 可以测试
+- [ ] 团队已知道 https://web.not-replaced-yet.com 可以测试
 
 ---
 

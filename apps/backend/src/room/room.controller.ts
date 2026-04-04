@@ -8,18 +8,46 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
 import { AuthGuard } from '@nestjs/passport';
 import * as bcrypt from 'bcrypt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IsString, IsNumber, IsOptional, MaxLength, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
-interface CreateRoomDto {
+class CreateRoomDto {
+  @IsString()
+  @MaxLength(30)
   name: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(9999)
+  @Type(() => Number)
   blindSmall: number;
+
+  @IsNumber()
+  @Min(2)
+  @Max(99999)
+  @Type(() => Number)
   blindBig: number;
+
+  @IsNumber()
+  @Min(2)
+  @Max(9)
+  @Type(() => Number)
   maxPlayers: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
   minBuyIn?: number;
+
+  @IsString()
+  @IsOptional()
   password?: string;
 }
 
@@ -37,17 +65,27 @@ export class RoomController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new room' })
   async create(@Body() dto: CreateRoomDto) {
+    if (dto.blindBig < dto.blindSmall * 2) {
+      throw new BadRequestException('大盲注必须大于等于小盲注的两倍');
+    }
+    const effectiveMinBuyIn = dto.minBuyIn ?? dto.blindBig;
+    if (effectiveMinBuyIn < dto.blindBig) {
+      throw new BadRequestException('最小买入必须大于等于大盲注');
+    }
     const hashedPassword = dto.password
       ? await bcrypt.hash(dto.password, 10)
       : null;
-    return this.roomService.createRoom({
+    const room = await this.roomService.createRoom({
       name: dto.name,
       blindSmall: dto.blindSmall,
       blindBig: dto.blindBig,
       maxPlayers: dto.maxPlayers,
-      minBuyIn: dto.minBuyIn ?? 0,
+      minBuyIn: effectiveMinBuyIn,
       password: hashedPassword ?? undefined,
     });
+    // Never return password hash to client
+    const { password: _password, ...safeRoom } = room as any;
+    return { ...safeRoom, isPrivate: !!dto.password };
   }
 
   @Get()
@@ -77,9 +115,7 @@ export class RoomController {
     return { ...rest, isPrivate: !!password };
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post(':id/verify-password')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify room password for private rooms' })
   async verifyPassword(
     @Param('id') id: string,

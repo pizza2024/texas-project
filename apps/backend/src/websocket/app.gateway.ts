@@ -46,7 +46,7 @@ export class AppGateway
     OnModuleInit,
     OnModuleDestroy
 {
-  private static readonly DISCONNECT_GRACE_PERIOD_MS = 5000;
+  private static readonly DISCONNECT_GRACE_PERIOD_MS = 15000;
   private static readonly SETTLEMENT_DURATION_MS = 5000;
   private static readonly READY_COUNTDOWN_MS = 5000;
   private static readonly ACTION_DURATION_MS = 20000;
@@ -367,7 +367,9 @@ export class AppGateway
    * Solo-mode: after SOLO_READY_COUNTDOWN_MS, if only 1 player is seated and ready,
    * fill the room with a bot to start the game.
    */
-  private async scheduleSoloModeBotFill(roomId: string) {
+  private async startSoloModeBotFillTimer(roomId: string) {
+    // Bot fill disabled — only real human players from now on
+    return;
     // Cancel any existing solo timer for this room
     const existing = this.soloBotTimers.get(roomId);
     if (existing) {
@@ -761,7 +763,7 @@ export class AppGateway
         this.logger.log(
           `[SoloMode] TRIGGER CHECK: allReady=${allReady}, countdown=${table.readyCountdownEndsAt}, playerCount=${table.getPlayerCount()}`,
         );
-        await this.scheduleSoloModeBotFill(roomId, table);
+        // [BotFill DISABLED in production] await this.executeSoloModeBotFill(roomId, table);
       }
 
       if (table.readyCountdownEndsAt) {
@@ -789,7 +791,7 @@ export class AppGateway
         if (playable.length === 1 && playable[0]!.ready && playable[0]!.id === userId) {
           // Solo mode: start 10-second countdown, then fill with bot
           await this.scheduleAutoStart(roomId, table, AppGateway.SOLO_READY_COUNTDOWN_MS);
-          await this.scheduleSoloModeBotFill(roomId);
+          // [BotFill DISABLED in production] await this.startSoloModeBotFillTimer(roomId);
         }
       }
 
@@ -978,10 +980,16 @@ export class AppGateway
    * Solo mode bot fill: add bots to reach at least 2 playable players.
    * Bots are added with ready=true so the table can start the hand.
    */
-  private async scheduleSoloModeBotFill(
+  /**
+   * Solo mode bot fill (immediate execution): add bots to reach at least 2 playable players.
+   * Bots are added with ready=true so the table can start the hand.
+   */
+  private async executeSoloModeBotFill(
     roomId: string,
     table: import('../table-engine/table').Table,
   ): Promise<void> {
+    // Bot fill disabled — only real human players from now on
+    return;
     const MIN_PLAYERS = 2;
     const botsToAdd = MIN_PLAYERS - table.getPlayerCount();
     this.logger.log(

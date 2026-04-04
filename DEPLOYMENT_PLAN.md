@@ -73,20 +73,25 @@ npm run docker:local:down
 ## 5. 环境变量规范
 
 backend:
+- DOMAIN=not-replaced-yet.com
 - NODE_ENV=production
 - PORT=4000
 - DATABASE_URL=postgresql://texas:***@postgres:5432/texas_staging?schema=public
 - REDIS_URL=redis://redis:6379
 - JWT_SECRET=<强随机>
 - JWT_EXPIRES_IN=7d
-- CORS_ORIGIN=https://web.zo-op.com,https://admin.zo-op.com
-- SOCKET_CORS_ORIGIN=https://web.zo-op.com,https://admin.zo-op.com
+- CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
+- SOCKET_CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
 
 web/admin:
-- NEXT_PUBLIC_API_URL=https://api.zo-op.com
+- NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
 
 mobile:
-- EXPO_PUBLIC_API_URL=https://api.zo-op.com
+- EXPO_PUBLIC_API_URL=https://api.not-replaced-yet.com
+
+辅助脚本:
+- bash docker/generate-staging-env.sh <your-domain>
+- FORCE=1 bash docker/generate-staging-env.sh <your-domain> # 覆盖已有 docker/.env.staging
 
 ---
 

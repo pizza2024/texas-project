@@ -12,14 +12,14 @@ services:
 
   web:
     ports:
-      - '3000:3000'
+      - '3001:3001'
     expose: []
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:4000"
 
   admin:
     ports:
-      - '3001:3001'
+      - '3003:3003'
     expose: []
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:4000"

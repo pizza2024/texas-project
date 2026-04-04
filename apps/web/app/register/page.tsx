@@ -304,7 +304,7 @@ export default function RegisterPage() {
       </div>
 
       <div
-        className="relative z-10 w-[400px] rounded-2xl px-10 py-10"
+        className="relative z-10 w-full max-w-[400px] rounded-2xl px-6 sm:px-10 py-8 sm:py-10 mx-4"
         style={{
           background:
             "linear-gradient(160deg, rgba(12,22,16,0.97) 0%, rgba(6,12,9,0.99) 100%)",

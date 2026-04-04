@@ -10,6 +10,7 @@
     "clean": "turbo clean",
     "docker:local:up": "docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build",
     "docker:local:down": "docker compose -f docker-compose.yml -f docker-compose.local.yml down",
+    "docker:staging:env": "bash docker/generate-staging-env.sh",
     "docker:staging:up": "docker compose --env-file docker/.env.staging up -d --build",
     "docker:staging:down": "docker compose --env-file docker/.env.staging down",
     "docker:remote:up": "docker compose -f docker-compose.remote.yml --env-file docker/.env.staging up -d",

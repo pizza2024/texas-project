@@ -26,7 +26,7 @@ This is a Turborepo monorepo containing:
 
 2. Then deploy to staging/Lightsail:
 	- `npm run docker:staging:up`
-	- verify `https://api.zo-op.com/health`
+	- verify `https://api.not-replaced-yet.com/health`
 	- smoke test login, room list/create/join, websocket events
 
 ## Deployment Docs
