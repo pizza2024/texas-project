@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 sm:p-6">
             <h2 className="text-white font-medium mb-4">近14天流水</h2>
-            <ResponsiveContainer width="100%" minHeight={180}>
+            <ResponsiveContainer width="100%" style={{ minHeight: 180 }}>
               <AreaChart data={revenue}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
           <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 sm:p-6">
             <h2 className="text-white font-medium mb-4">近14天新用户</h2>
-            <ResponsiveContainer width="100%" minHeight={180}>
+            <ResponsiveContainer width="100%" style={{ minHeight: 180 }}>
               <LineChart data={growth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2535" />
                 <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
