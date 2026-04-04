@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { TableManagerService } from '../table-engine/table-manager.service';
@@ -32,6 +32,7 @@ import {
 import { RedisService } from '../redis/redis.service';
 import { BotService } from '../bot/bot.service';
 import { WebSocketManager } from './websocket-manager';
+import { FriendService } from '../friend/friend.service';
 
 @WebSocketGateway({
   cors: {
@@ -73,7 +74,32 @@ export class AppGateway
     private redisService: RedisService,
     private botService: BotService,
     private wsManager: WebSocketManager,
+    @Inject(forwardRef(() => FriendService))
+    private friendService: FriendService,
   ) {}
+
+  /**
+   * Notify all accepted friends of a user status change (online/offline)
+   */
+  private async notifyFriendsOfStatusChange(
+    userId: string,
+    online: boolean,
+  ): Promise<void> {
+    try {
+      const friends = await this.friendService.getAcceptedFriends(userId);
+
+      for (const friend of friends) {
+        this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
+          friendUserId: userId,
+          friendNickname: friend.nickname,
+          friendAvatar: friend.avatar,
+          online,
+        });
+      }
+    } catch (err) {
+      this.logger.error('notifyFriendsOfStatusChange error', err);
+    }
+  }
 
   /**
    * Serialize all async operations for a given room through a promise chain.
@@ -630,6 +656,9 @@ export class AppGateway
       this.logger.log(
         `Client connected: ${client.id} User: ${payload.username}`,
       );
+
+      // Push friend_status_update (online=true) to all accepted friends
+      void this.notifyFriendsOfStatusChange(payload.sub, true);
     } catch (e) {
       client.disconnect();
     }
@@ -641,6 +670,11 @@ export class AppGateway
     const userId = client.data.user?.sub as string | undefined;
     if (!userId) {
       return;
+    }
+
+    // Only notify friends if this is the user's last active socket
+    if (!(await this.hasOtherActiveSocket(userId, client.id))) {
+      void this.notifyFriendsOfStatusChange(userId, false);
     }
 
     const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);

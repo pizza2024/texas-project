@@ -20,6 +20,9 @@ describe('AppGateway', () => {
   let userService: {
     getUserAvatar: jest.Mock;
   };
+  let friendService: {
+    getAcceptedFriends: jest.Mock;
+  };
 
   let gateway: AppGateway;
 
@@ -61,6 +64,7 @@ describe('AppGateway', () => {
       { isAvailable: false, get: jest.fn().mockResolvedValue(null) } as any,
       { createBot: jest.fn().mockReturnValue({ id: 'bot-1', nickname: '[Bot]TestBot', stack: 1000 }), fillTableWithBots: jest.fn(), removeBot: jest.fn() } as any,
       { setServer: jest.fn() } as any,
+      { getAcceptedFriends: jest.fn().mockResolvedValue([]) } as any,
     );
     gateway.server = {
       in: jest.fn(),

@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
+import type { FriendStatus } from './types/friend';
 import type {
   ForceLogoutPayload,
   MatchFoundPayload,
@@ -6,6 +7,10 @@ import type {
   DepositConfirmedPayload,
   TableState,
 } from './types/game';
+import type {
+  FriendStatusUpdatePayload,
+  FriendRequestReceivedPayload,
+} from './types/friend';
 
 export type { ForceLogoutPayload, MatchFoundPayload, MatchErrorPayload, DepositConfirmedPayload };
 
@@ -27,6 +32,10 @@ export interface ServerToClientEvents {
   match_error: (data: MatchErrorPayload) => void;
   /** 充值到账通知 */
   deposit_confirmed: (data: DepositConfirmedPayload) => void;
+  /** 好友状态更新（上下线） */
+  friend_status_update: (data: FriendStatusUpdatePayload) => void;
+  /** 收到好友请求 */
+  friend_request_received: (data: FriendRequestReceivedPayload) => void;
   error: (message: string) => void;
 }
 

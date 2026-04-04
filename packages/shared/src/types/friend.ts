@@ -22,6 +22,13 @@ export interface FriendRequestAcceptedPayload {
   friendAvatar: string | null;
 }
 
+export interface FriendStatusUpdatePayload {
+  friendUserId: string;
+  friendNickname: string;
+  friendAvatar: string | null;
+  online: boolean;
+}
+
 export interface FriendStatusChangedPayload {
   friendId: string;
   status: FriendStatus;

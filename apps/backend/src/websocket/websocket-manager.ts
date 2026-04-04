@@ -21,6 +21,18 @@ export class WebSocketManager {
     }
   }
 
+  /**
+   * 向指定用户的 所有 WebSocket 连接发送事件
+   */
+  emitToUser(userId: string, event: string, data: any): void {
+    if (!this.server) return;
+    for (const [, socket] of this.server.sockets.sockets) {
+      if ((socket.data.user?.sub as string | undefined) === userId) {
+        socket.emit(event, data);
+      }
+    }
+  }
+
   getConnectedCount(): number {
     if (!this.server) return 0;
     return this.server.sockets.sockets.size;
