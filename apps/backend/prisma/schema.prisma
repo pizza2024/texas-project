@@ -38,6 +38,9 @@ model User {
   depositRecords DepositRecord[]
   withdrawRequests WithdrawRequest[]
 
+  sentFriends     Friend[]    @relation("FriendRequester")
+  receivedFriends Friend[]    @relation("FriendAddressee")
+
   @@map("users")
 }
 
@@ -204,4 +207,19 @@ model WithdrawRequest {
   @@map("withdraw_requests")
   @@index([userId, status])
   @@index([status, createdAt])
+}
+
+model Friend {
+  id          String   @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("PENDING") // PENDING | ACCEPTED | REJECTED | BLOCKED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester   User     @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@map("friends")
 }

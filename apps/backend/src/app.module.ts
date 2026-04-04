@@ -16,6 +16,7 @@ import { DepositModule } from './deposit/deposit.module';
 import { WithdrawModule } from './withdraw/withdraw.module';
 import { HealthController } from './health/health.controller';
 import { BotModule } from './bot/bot.module';
+import { FriendModule } from './friend/friend.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { BotModule } from './bot/bot.module';
     DepositModule,
     WithdrawModule,
     BotModule,
+    FriendModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
