@@ -143,6 +143,7 @@ export default function RoomsPage() {
   // Batch delete state
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedRoomsMap, setSelectedRoomsMap] = useState<Map<string, any>>(new Map());
   const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: any[] }>({ open: false, rooms: [] });
   const [selectAllConfirm, setSelectAllConfirm] = useState(false);
 
@@ -161,22 +162,36 @@ export default function RoomsPage() {
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
   const toggleSelect = useCallback((id: string) => {
+    const room = (data?.data ?? []).find((r: any) => r.id === id);
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, []);
+    setSelectedRoomsMap(prev => {
+      const next = new Map(prev);
+      if (next.has(id)) next.delete(id);
+      else if (room) next.set(id, room);
+      return next;
+    });
+  }, [data?.data]);
 
   const selectAllCurrentPage = useCallback(() => {
-    const pageIds = (data?.data ?? []).map((r: any) => r.id);
+    const pageRooms = data?.data ?? [];
+    const pageIds = pageRooms.map((r: any) => r.id);
     setSelectedIds(prev => {
       const next = new Set(prev);
-      // If any on page are unselected, select all; otherwise deselect all on page
       const allSelected = pageIds.every((id: string) => prev.has(id));
       if (allSelected) pageIds.forEach((id: string) => next.delete(id));
       else pageIds.forEach((id: string) => next.add(id));
+      return next;
+    });
+    setSelectedRoomsMap(prev => {
+      const next = new Map(prev);
+      const allSelected = pageIds.every((id: string) => prev.has(id));
+      if (allSelected) pageIds.forEach((id: string) => next.delete(id));
+      else pageRooms.forEach((r: any) => { if (!next.has(r.id)) next.set(r.id, r); });
       return next;
     });
   }, [data?.data]);
@@ -189,27 +204,29 @@ export default function RoomsPage() {
     setSelectAllConfirm(false);
     setLoading(true);
     try {
-      // Fetch all rooms across pages
       const allIds: string[] = [];
+      const allRoomsMap = new Map<string, any>();
       let currentPage = 1;
       const limit = 20;
       while (true) {
         const res = await getRooms({ page: currentPage, limit, search: search || undefined });
+        res.data.forEach((r: any) => allRoomsMap.set(r.id, r));
         allIds.push(...res.data.map((r: any) => r.id));
         if (allIds.length >= res.total) break;
         currentPage++;
-        if (currentPage > 100) break; // safety
+        if (currentPage > 100) break;
       }
       setSelectedIds(new Set(allIds));
+      setSelectedRoomsMap(allRoomsMap);
     } finally {
       setLoading(false);
     }
   }, [search]);
 
   const startBatchDelete = useCallback(() => {
-    const selectedRooms = (data?.data ?? []).filter((r: any) => selectedIds.has(r.id));
+    const selectedRooms = Array.from(selectedRoomsMap.values());
     setBatchDeleteDialog({ open: true, rooms: selectedRooms });
-  }, [data?.data, selectedIds]);
+  }, [selectedRoomsMap]);
 
   const handleBatchDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
@@ -217,6 +234,7 @@ export default function RoomsPage() {
       await deleteRoom(id);
     }
     setSelectedIds(new Set());
+    setSelectedRoomsMap(new Map());
     setIsSelecting(false);
     setBatchDeleteDialog({ open: false, rooms: [] });
     fetchRooms();
@@ -225,6 +243,7 @@ export default function RoomsPage() {
   const exitSelectionMode = useCallback(() => {
     setIsSelecting(false);
     setSelectedIds(new Set());
+    setSelectedRoomsMap(new Map());
   }, []);
 
   const currentPageAllSelected = data?.data?.length > 0 && (data?.data ?? []).every((r: any) => selectedIds.has(r.id));
