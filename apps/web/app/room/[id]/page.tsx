@@ -1249,7 +1249,7 @@ export default function RoomPage() {
 
                 {/* Avatar circle */}
                 <div
-                  className={`relative overflow-hidden transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
+                  className={`relative transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
                   style={{
                     opacity: isFolded ? 0.45 : isLoserHighlighted ? 0.62 : 1,
                     transform: isWinnerHighlighted
@@ -1259,10 +1259,12 @@ export default function RoomPage() {
                         : 'scale(1)',
                   }}
                 >
-                  <UserAvatar
-                    userId={player.id}
-                    avatar={player.avatar}
-                    size={68}
+                  {/* Inner clip container for avatar + cards only */}
+                  <div className="overflow-hidden rounded-full">
+                    <UserAvatar
+                      userId={player.id}
+                      avatar={player.avatar}
+                      size={68}
                     style={{
                       background: isFolded
                         ? 'rgba(0,0,0,0.5)'
@@ -1321,6 +1323,9 @@ export default function RoomPage() {
                       {actionCountdown}s
                     </div>
                   )}
+
+                  {/* End of inner clip container for avatar + cards */}
+                  </div>
 
                   {/* Position badges */}
                   <div className="absolute -top-1.5 -right-1 flex gap-0.5">

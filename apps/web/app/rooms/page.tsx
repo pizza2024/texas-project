@@ -409,7 +409,7 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
                   key={n}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, maxPlayers: n }))}
-                  className="h-8 sm:h-9 rounded-lg text-[10px] sm:text-xs font-bold transition-all truncate"
+                  className="h-8 sm:h-9 rounded-lg text-[10px] sm:text-xs font-bold transition-all truncate overflow-hidden min-w-0"
                   style={{
                     background:
                       form.maxPlayers === n
@@ -875,7 +875,11 @@ export default function RoomsPage() {
       {showCreateDialog && (
         <CreateRoomDialog
           key={createDialogCount}
-          onClose={() => { setCreateDialogCount((c) => c + 1); setShowCreateDialog(false); }}
+          onClose={() => {
+            setCreateDialogCount((c) => c + 1);
+            // Defer hide so the key prop update (which remounts with fresh form) takes effect first
+            setTimeout(() => setShowCreateDialog(false), 0);
+          }}
           onCreate={handleCreateRoom}
         />
       )}
