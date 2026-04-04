@@ -115,9 +115,7 @@ export class RoomController {
     return { ...rest, isPrivate: !!password };
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post(':id/verify-password')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify room password for private rooms' })
   async verifyPassword(
     @Param('id') id: string,
