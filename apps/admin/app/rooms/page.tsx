@@ -143,7 +143,7 @@ export default function RoomsPage() {
   // Batch delete state
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: any[] }>({ open: false });
+  const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: any[] }>({ open: false, rooms: [] });
   const [selectAllConfirm, setSelectAllConfirm] = useState(false);
 
   const fetchRooms = useCallback(async () => {
@@ -174,9 +174,9 @@ export default function RoomsPage() {
     setSelectedIds(prev => {
       const next = new Set(prev);
       // If any on page are unselected, select all; otherwise deselect all on page
-      const allSelected = pageIds.every(id => prev.has(id));
-      if (allSelected) pageIds.forEach(id => next.delete(id));
-      else pageIds.forEach(id => next.add(id));
+      const allSelected = pageIds.every((id: string) => prev.has(id));
+      if (allSelected) pageIds.forEach((id: string) => next.delete(id));
+      else pageIds.forEach((id: string) => next.add(id));
       return next;
     });
   }, [data?.data]);
