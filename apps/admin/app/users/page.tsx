@@ -42,6 +42,41 @@ function roleBadge(role: string) {
   return <Badge variant={r.variant}>{r.label}</Badge>;
 }
 
+function UserCard({ user, onBan, onUnban, onBalance }: { user: any; onBan: () => void; onUnban: () => void; onBalance: () => void }) {
+  return (
+    <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 space-y-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <Link href={`/users/${user.id}`} className="text-white font-medium hover:text-indigo-400">
+            {user.nickname}
+          </Link>
+          <p className="text-slate-500 text-xs">@{user.username}</p>
+        </div>
+        {roleBadge(user.role)}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {statusBadge(user.status)}
+        <span className="text-green-400 font-mono text-sm">{user.coinBalance.toLocaleString()}</span>
+      </div>
+      <p className="text-slate-500 text-xs">{new Date(user.createdAt).toLocaleDateString("zh-CN")}</p>
+      <div className="flex gap-2">
+        {user.status === "BANNED" ? (
+          <button onClick={onUnban} className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300">
+            <UserCheck size={13} /> 解封
+          </button>
+        ) : (
+          <button onClick={onBan} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
+            <UserX size={13} /> 封禁
+          </button>
+        )}
+        <button onClick={onBalance} className="flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300">
+          <PlusCircle size={13} /> 余额
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [data, setData] = useState<PaginatedResponse<User> | null>(null);
   const [page, setPage] = useState(1);
@@ -81,7 +116,7 @@ export default function UsersPage() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">用户管理</h1>
           <span className="text-slate-400 text-sm">
@@ -111,100 +146,121 @@ export default function UsersPage() {
           </button>
         </form>
 
-        {/* Table */}
-        <div className="bg-[#161b27] border border-[#1e2535] rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1e2535]">
-                {[
-                  "昵称",
-                  "用户名",
-                  "角色",
-                  "状态",
-                  "余额",
-                  "注册时间",
-                  "操作",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-slate-400 font-medium"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
-                    加载中...
-                  </td>
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-3 mb-4">
+          {loading ? (
+            <div className="text-center py-12 text-slate-500">加载中...</div>
+          ) : data?.data?.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">暂无数据</div>
+          ) : (
+            data?.data?.map((user: any) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                onBan={() => setDialog({ type: "ban", user })}
+                onUnban={() => setDialog({ type: "unban", user })}
+                onBalance={() => { setBalanceAmount(""); setDialog({ type: "balance", user }); }}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block bg-[#161b27] border border-[#1e2535] rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="border-b border-[#1e2535]">
+                  {[
+                    "昵称",
+                    "用户名",
+                    "角色",
+                    "状态",
+                    "余额",
+                    "注册时间",
+                    "操作",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-4 py-3 text-slate-400 font-medium"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ) : data?.data?.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
-                    暂无数据
-                  </td>
-                </tr>
-              ) : (
-                data?.data?.map((user: any) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-[#1e2535] hover:bg-white/2 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-white font-medium">
-                      <Link
-                        href={`/users/${user.id}`}
-                        className="hover:text-indigo-400 transition-colors"
-                      >
-                        {user.nickname}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-slate-400">
-                      {user.username}
-                    </td>
-                    <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                    <td className="px-4 py-3">{statusBadge(user.status)}</td>
-                    <td className="px-4 py-3 text-green-400 font-mono">
-                      {user.coinBalance.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
-                      {new Date(user.createdAt).toLocaleDateString("zh-CN")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {user.status === "BANNED" ? (
-                          <button
-                            onClick={() => setDialog({ type: "unban", user })}
-                            className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300"
-                          >
-                            <UserCheck size={13} /> 解封
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setDialog({ type: "ban", user })}
-                            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
-                          >
-                            <UserX size={13} /> 封禁
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            setBalanceAmount("");
-                            setDialog({ type: "balance", user });
-                          }}
-                          className="flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300"
-                        >
-                          <PlusCircle size={13} /> 余额
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-slate-500">
+                      加载中...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : data?.data?.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-slate-500">
+                      暂无数据
+                    </td>
+                  </tr>
+                ) : (
+                  data?.data?.map((user: any) => (
+                    <tr
+                      key={user.id}
+                      className="border-b border-[#1e2535] hover:bg-white/2 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-white font-medium">
+                        <Link
+                          href={`/users/${user.id}`}
+                          className="hover:text-indigo-400 transition-colors"
+                        >
+                          {user.nickname}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">
+                        {user.username}
+                      </td>
+                      <td className="px-4 py-3">{roleBadge(user.role)}</td>
+                      <td className="px-4 py-3">{statusBadge(user.status)}</td>
+                      <td className="px-4 py-3 text-green-400 font-mono">
+                        {user.coinBalance.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">
+                        {new Date(user.createdAt).toLocaleDateString("zh-CN")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {user.status === "BANNED" ? (
+                            <button
+                              onClick={() => setDialog({ type: "unban", user })}
+                              className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300"
+                            >
+                              <UserCheck size={13} /> 解封
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setDialog({ type: "ban", user })}
+                              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
+                            >
+                              <UserX size={13} /> 封禁
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setBalanceAmount("");
+                              setDialog({ type: "balance", user });
+                            }}
+                            className="flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300"
+                          >
+                            <PlusCircle size={13} /> 余额
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Pagination */}

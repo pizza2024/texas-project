@@ -91,11 +91,11 @@ export default function FinancePage() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <h1 className="text-2xl font-bold text-white mb-6">财务管理</h1>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[
             { label: '系统总资产', value: summary?.totalAssets, color: 'text-green-400' },
             { label: '今日流水', value: summary?.dayFlow, color: 'text-blue-400' },

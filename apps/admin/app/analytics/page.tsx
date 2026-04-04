@@ -38,11 +38,11 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <AdminLayout><div className="p-8 text-slate-400">加载中...</div></AdminLayout>;
+  if (loading) return <AdminLayout><div className="p-4 sm:p-6 lg:p-8 text-slate-400">加载中...</div></AdminLayout>;
 
   return (
     <AdminLayout>
-      <div className="p-8 space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <h1 className="text-2xl font-bold text-white">数据统计</h1>
 
         {/* Hands stats */}
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
               ))}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" minHeight={200}>
             <AreaChart data={revenue}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
         {/* Growth Chart */}
         <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-6">
           <h2 className="text-white font-medium mb-4">用户增长（近30天）</h2>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" minHeight={180}>
             <BarChart data={growth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2535" />
               <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
@@ -111,33 +111,57 @@ export default function AnalyticsPage() {
           <div className="px-5 py-4 border-b border-[#1e2535]">
             <h2 className="text-white font-medium">房间热度排行 TOP 10</h2>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1e2535]">
-                {['排名', '房间名称', '状态', '历史牌局数'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-slate-400 font-medium">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {hotRooms.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-8 text-slate-500">暂无数据</td></tr>
-              ) : (
-                hotRooms.map((room, idx) => (
-                  <tr key={room.id} className="border-b border-[#1e2535]">
-                    <td className="px-4 py-3 text-slate-400 font-mono">#{idx + 1}</td>
-                    <td className="px-4 py-3 text-white">{room.name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs ${room.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}`}>
-                        {room.status === 'ACTIVE' ? '正常' : '维护中'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-indigo-400 font-mono">{room.handCount}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-[#1e2535]">
+            {hotRooms.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">暂无数据</div>
+            ) : (
+              hotRooms.map((room, idx) => (
+                <div key={room.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-500 font-mono text-xs">#{idx + 1}</span>
+                    <span className="text-white text-sm">{room.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs ${room.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {room.status === 'ACTIVE' ? '正常' : '维护中'}
+                    </span>
+                    <span className="text-indigo-400 font-mono text-sm">{room.handCount}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
+              <thead>
+                <tr className="border-b border-[#1e2535]">
+                  {['排名', '房间名称', '状态', '历史牌局数'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-slate-400 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {hotRooms.length === 0 ? (
+                  <tr><td colSpan={4} className="text-center py-8 text-slate-500">暂无数据</td></tr>
+                ) : (
+                  hotRooms.map((room, idx) => (
+                    <tr key={room.id} className="border-b border-[#1e2535]">
+                      <td className="px-4 py-3 text-slate-400 font-mono">#{idx + 1}</td>
+                      <td className="px-4 py-3 text-white">{room.name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs ${room.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {room.status === 'ACTIVE' ? '正常' : '维护中'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-indigo-400 font-mono">{room.handCount}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </AdminLayout>

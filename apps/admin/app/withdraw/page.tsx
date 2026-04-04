@@ -272,7 +272,7 @@ export default function WithdrawPage() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">提现管理</h1>
@@ -303,8 +303,45 @@ export default function WithdrawPage() {
           )}
         </div>
 
-        <div className="bg-[#161b27] border border-[#1e2535] rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+        {/* Mobile card list */}
+        <div className="md:hidden space-y-3 mb-4">
+          {loading ? (
+            <div className="text-center py-12 text-slate-500">加载中...</div>
+          ) : data?.data?.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">暂无提现记录</div>
+          ) : (
+            data?.data?.map((req) => (
+              <div key={req.id} className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white text-sm font-medium">{req.user?.nickname ?? '-'}</p>
+                    <p className="text-slate-500 text-xs">@{req.user?.username ?? req.userId.slice(0, 8)}</p>
+                  </div>
+                  <Badge variant={statusVariant(req.status)}>{statusLabel(req.status)}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div><span className="text-slate-500">筹码：</span><span className="font-mono text-red-400">-{req.amountChips.toLocaleString()}</span></div>
+                  <div><span className="text-slate-500">USDT：</span><span className="font-mono text-yellow-400">≈ {req.amountUsdt}</span></div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-blue-400 font-mono text-xs">{shortAddress(req.toAddress)}</span>
+                  <a href={`https://sepolia.etherscan.io/address/${req.toAddress}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs">{formatDateTime(req.createdAt)}</span>
+                  <button onClick={() => void handleOpen(req.id)} className="text-indigo-400 hover:text-indigo-300 text-xs underline">查看</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block bg-[#161b27] border border-[#1e2535] rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-[#1e2535]">
                 {['用户', '筹码', 'USDT', '收款地址', '状态', '时间', '操作'].map((h) => (
@@ -352,6 +389,7 @@ export default function WithdrawPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {totalPages > 1 && (
