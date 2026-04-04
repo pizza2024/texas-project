@@ -81,15 +81,28 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
   );
 }
 
-function RoomCard({ room, onEdit, onToggle, onDelete }: { room: any; onEdit: () => void; onToggle: () => void; onDelete: () => void }) {
+function RoomCard({ room, onEdit, onToggle, onDelete, selectable, selected, onSelect }: {
+  room: any; onEdit: () => void; onToggle: () => void; onDelete: () => void;
+  selectable?: boolean; selected?: boolean; onSelect?: (id: string) => void;
+}) {
   return (
-    <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 space-y-3">
+    <div className={`bg-[#161b27] border rounded-xl p-4 space-y-3 transition-colors ${selectable && selected ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-[#1e2535]'}`}>
       <div className="flex items-start justify-between">
-        <div>
-          <Link href={`/rooms/${room.id}`} className="text-white font-medium hover:text-indigo-400">
-            {room.name}
-          </Link>
-          {room.password && <span className="ml-2 text-xs text-yellow-500">🔒</span>}
+        <div className="flex items-center gap-2">
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={() => onSelect?.(room.id)}
+              className="w-4 h-4 rounded border-slate-600 bg-[#0f1117] text-red-500 focus:ring-red-500/50 cursor-pointer"
+            />
+          )}
+          <div>
+            <Link href={`/rooms/${room.id}`} className="text-white font-medium hover:text-indigo-400">
+              {room.name}
+            </Link>
+            {room.password && <span className="ml-2 text-xs text-yellow-500">🔒</span>}
+          </div>
         </div>
         <Badge variant={room.status === 'ACTIVE' ? 'success' : 'warning'}>
           {room.status === 'ACTIVE' ? '正常' : '维护中'}
@@ -101,17 +114,19 @@ function RoomCard({ room, onEdit, onToggle, onDelete }: { room: any; onEdit: () 
         <div><span className="text-slate-500">买入：</span><span className="font-mono text-white">{room.minBuyIn}</span></div>
       </div>
       <p className="text-slate-500 text-xs">牌桌数：{room.tables?.length ?? 0}</p>
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={onEdit} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-          <Settings size={13} /> 编辑
-        </button>
-        <button onClick={onToggle} className="text-xs text-yellow-400 hover:text-yellow-300">
-          {room.status === 'MAINTENANCE' ? '恢复' : '维护'}
-        </button>
-        <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-          <Trash2 size={13} /> 删除
-        </button>
-      </div>
+      {!selectable && (
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={onEdit} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+            <Settings size={13} /> 编辑
+          </button>
+          <button onClick={onToggle} className="text-xs text-yellow-400 hover:text-yellow-300">
+            {room.status === 'MAINTENANCE' ? '恢复' : '维护'}
+          </button>
+          <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+            <Trash2 size={13} /> 删除
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -124,6 +139,12 @@ export default function RoomsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<any>(null);
   const [roomModal, setRoomModal] = useState<{ open: boolean; room?: any }>({ open: false });
+
+  // Batch delete state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: any[] }>({ open: false });
+  const [selectAllConfirm, setSelectAllConfirm] = useState(false);
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -139,17 +160,115 @@ export default function RoomsPage() {
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllCurrentPage = useCallback(() => {
+    const pageIds = (data?.data ?? []).map((r: any) => r.id);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      // If any on page are unselected, select all; otherwise deselect all on page
+      const allSelected = pageIds.every(id => prev.has(id));
+      if (allSelected) pageIds.forEach(id => next.delete(id));
+      else pageIds.forEach(id => next.add(id));
+      return next;
+    });
+  }, [data?.data]);
+
+  const selectAllAllPages = useCallback(async () => {
+    setSelectAllConfirm(true);
+  }, []);
+
+  const confirmSelectAll = useCallback(async () => {
+    setSelectAllConfirm(false);
+    setLoading(true);
+    try {
+      // Fetch all rooms across pages
+      const allIds: string[] = [];
+      let currentPage = 1;
+      const limit = 20;
+      while (true) {
+        const res = await getRooms({ page: currentPage, limit, search: search || undefined });
+        allIds.push(...res.data.map((r: any) => r.id));
+        if (allIds.length >= res.total) break;
+        currentPage++;
+        if (currentPage > 100) break; // safety
+      }
+      setSelectedIds(new Set(allIds));
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
+
+  const startBatchDelete = useCallback(() => {
+    const selectedRooms = (data?.data ?? []).filter((r: any) => selectedIds.has(r.id));
+    setBatchDeleteDialog({ open: true, rooms: selectedRooms });
+  }, [data?.data, selectedIds]);
+
+  const handleBatchDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await deleteRoom(id);
+    }
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+    setBatchDeleteDialog({ open: false, rooms: [] });
+    fetchRooms();
+  }, [selectedIds, fetchRooms]);
+
+  const exitSelectionMode = useCallback(() => {
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const currentPageAllSelected = data?.data?.length > 0 && (data?.data ?? []).every((r: any) => selectedIds.has(r.id));
+
   return (
     <AdminLayout>
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">房间管理</h1>
-          <button
-            onClick={() => setRoomModal({ open: true })}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2.5 rounded-lg transition-colors"
-          >
-            <Plus size={16} /> 新建房间
-          </button>
+          <div className="flex items-center gap-3">
+            {isSelecting ? (
+              <>
+                <span className="text-sm text-slate-400">已选中 <span className="text-white font-medium">{selectedIds.size}</span> 项</span>
+                <button
+                  onClick={exitSelectionMode}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white text-sm px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  <X size={16} /> 取消选择
+                </button>
+                <button
+                  onClick={startBatchDelete}
+                  disabled={selectedIds.size === 0}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} /> 批量删除{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsSelecting(true)}
+                  className="flex items-center gap-2 border border-red-500/60 hover:border-red-500 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-sm px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} /> 批量删除
+                </button>
+                <button
+                  onClick={() => setRoomModal({ open: true })}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  <Plus size={16} /> 新建房间
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); setSearch(searchInput); setPage(1); }} className="flex gap-3 mb-6">
@@ -176,6 +295,9 @@ export default function RoomsPage() {
               <RoomCard
                 key={room.id}
                 room={room}
+                selectable={isSelecting}
+                selected={selectedIds.has(room.id)}
+                onSelect={toggleSelect}
                 onEdit={() => setRoomModal({ open: true, room })}
                 onToggle={async () => { await toggleRoomMaintenance(room.id); fetchRooms(); }}
                 onDelete={() => setDeleteDialog(room)}
@@ -190,19 +312,50 @@ export default function RoomsPage() {
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-[#1e2535]">
-                  {['房间名称', '盲注', '最大人数', '最低买入', '状态', '牌桌数', '操作'].map((h) => (
+                  {isSelecting && (
+                    <th className="text-left px-4 py-3 text-slate-400 font-medium">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={currentPageAllSelected && (data?.data?.length ?? 0) > 0}
+                          ref={el => { if (el) el.indeterminate = !currentPageAllSelected && (data?.data?.length ?? 0) > 0; }}
+                          onChange={selectAllCurrentPage}
+                          className="w-4 h-4 rounded border-slate-600 bg-[#0f1117] text-red-500 focus:ring-red-500/50 cursor-pointer"
+                        />
+                        <span className="text-xs text-slate-500">
+                          {currentPageAllSelected ? '取消全选' : '全选当前页'}
+                        </span>
+                      </div>
+                    </th>
+                  )}
+                  {['房间名称', '盲注', '最大人数', '最低买入', '状态', '牌桌数'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-slate-400 font-medium">{h}</th>
                   ))}
+                  {isSelecting ? (
+                    <th className="text-left px-4 py-3 text-slate-400 font-medium">已选中 {selectedIds.size} 项</th>
+                  ) : (
+                    <th className="text-left px-4 py-3 text-slate-400 font-medium">操作</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="text-center py-12 text-slate-500">加载中...</td></tr>
+                  <tr><td colSpan={isSelecting ? 8 : 7} className="text-center py-12 text-slate-500">加载中...</td></tr>
                 ) : data?.data?.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-12 text-slate-500">暂无房间</td></tr>
+                  <tr><td colSpan={isSelecting ? 8 : 7} className="text-center py-12 text-slate-500">暂无房间</td></tr>
                 ) : (
                   data?.data?.map((room: any) => (
-                    <tr key={room.id} className="border-b border-[#1e2535] hover:bg-white/2 transition-colors">
+                    <tr key={room.id} className={`border-b border-[#1e2535] hover:bg-white/2 transition-colors ${selectedIds.has(room.id) ? 'bg-red-500/5' : ''}`}>
+                      {isSelecting && (
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(room.id)}
+                            onChange={() => toggleSelect(room.id)}
+                            className="w-4 h-4 rounded border-slate-600 bg-[#0f1117] text-red-500 focus:ring-red-500/50 cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-white font-medium">
                         <Link href={`/rooms/${room.id}`} className="hover:text-indigo-400">{room.name}</Link>
                         {room.password && <span className="ml-2 text-xs text-yellow-500">🔒</span>}
@@ -216,28 +369,32 @@ export default function RoomsPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-slate-400">{room.tables?.length ?? 0}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setRoomModal({ open: true, room })}
-                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                          >
-                            <Settings size={13} /> 编辑
-                          </button>
-                          <button
-                            onClick={async () => { await toggleRoomMaintenance(room.id); fetchRooms(); }}
-                            className="text-xs text-yellow-400 hover:text-yellow-300"
-                          >
-                            {room.status === 'MAINTENANCE' ? '恢复' : '维护'}
-                          </button>
-                          <button
-                            onClick={() => setDeleteDialog(room)}
-                            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
-                          >
-                            <Trash2 size={13} /> 删除
-                          </button>
-                        </div>
-                      </td>
+                      {isSelecting ? (
+                        <td className="px-4 py-3" />
+                      ) : (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setRoomModal({ open: true, room })}
+                              className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                            >
+                              <Settings size={13} /> 编辑
+                            </button>
+                            <button
+                              onClick={async () => { await toggleRoomMaintenance(room.id); fetchRooms(); }}
+                              className="text-xs text-yellow-400 hover:text-yellow-300"
+                            >
+                              {room.status === 'MAINTENANCE' ? '恢复' : '维护'}
+                            </button>
+                            <button
+                              onClick={() => setDeleteDialog(room)}
+                              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                            >
+                              <Trash2 size={13} /> 删除
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -250,6 +407,14 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between mt-4">
             <span className="text-slate-500 text-sm">第 {page} / {totalPages} 页</span>
             <div className="flex gap-2">
+              {isSelecting && selectedIds.size > 0 && (
+                <button
+                  onClick={selectAllAllPages}
+                  className="text-xs text-red-400 hover:text-red-300 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  全选所有页（{data?.total} 项）
+                </button>
+              )}
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                 className="p-2 rounded-lg bg-[#161b27] border border-[#1e2535] text-slate-400 disabled:opacity-40 hover:bg-white/5">
                 <ChevronLeft size={16} />
@@ -270,6 +435,28 @@ export default function RoomsPage() {
             danger
             onConfirm={async () => { await deleteRoom(deleteDialog.id); fetchRooms(); }}
             onClose={() => setDeleteDialog(null)}
+          />
+        )}
+
+        {batchDeleteDialog.open && (
+          <ConfirmDialog
+            title="批量删除房间"
+            message={`确定要删除以下 ${batchDeleteDialog.rooms.length} 个房间吗？此操作不可撤销。\n\n${batchDeleteDialog.rooms.map(r => `• ${r.name}`).join('\n')}`}
+            confirmLabel={`删除 ${batchDeleteDialog.rooms.length} 个房间`}
+            danger
+            onConfirm={handleBatchDelete}
+            onClose={() => setBatchDeleteDialog({ open: false, rooms: [] })}
+          />
+        )}
+
+        {selectAllConfirm && (
+          <ConfirmDialog
+            title="全选所有房间"
+            message={`确定要选中全部 ${data?.total} 个房间吗？这将选中所有分页中的房间。`}
+            confirmLabel="确定全选"
+            danger={false}
+            onConfirm={confirmSelectAll}
+            onClose={() => setSelectAllConfirm(false)}
           />
         )}
 
