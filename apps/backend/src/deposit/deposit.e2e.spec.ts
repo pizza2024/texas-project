@@ -7,6 +7,7 @@ import { ethers, Mnemonic, HDNodeWallet } from 'ethers';
 import { DepositService } from './deposit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
 
 describe('DepositService E2E', () => {
   let service: DepositService;
@@ -14,6 +15,7 @@ describe('DepositService E2E', () => {
   let mockWalletService: any;
   let mockMint: jest.Mock;
   let mockWait: jest.Mock;
+  let mockRedisService: any;
 
   beforeEach(() => {
     mockMint = jest.fn();
@@ -62,6 +64,15 @@ describe('DepositService E2E', () => {
       getBalance: jest.fn().mockResolvedValue(1000),
       setBalance: jest.fn(),
     };
+
+    // Redis mock — return -2 (key absent) to exercise in-memory fallback path
+    mockRedisService = {
+      ttl: jest.fn().mockResolvedValue(-2),
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockResolvedValue(null),
+      incr: jest.fn().mockResolvedValue(null),
+    };
   });
 
   const setupModule = async (overrides: Record<string, string> = {}) => {
@@ -77,6 +88,7 @@ describe('DepositService E2E', () => {
         DepositService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: WalletService, useValue: mockWalletService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
@@ -106,15 +118,17 @@ describe('DepositService E2E', () => {
 
     it('throws BadRequestException when faucet is called within cooldown period', async () => {
       await setupModule();
-      const thirtySecondsAgo = Date.now() - 30_000;
-      (service as any).faucetCooldowns.set('user-1', thirtySecondsAgo);
+      // Force Redis TTL to throw → triggers in-memory fallback path
+      mockRedisService.ttl = jest.fn().mockRejectedValue(new Error('Redis unavailable'));
+      (service as any).faucetCooldowns.set('user-1', Date.now() - 30_000);
       await expect(service.faucet('user-1')).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException with remaining time when called during cooldown', async () => {
       await setupModule();
-      const fiftySecondsAgo = Date.now() - 50_000;
-      (service as any).faucetCooldowns.set('user-1', fiftySecondsAgo);
+      // Force Redis TTL to throw → triggers in-memory fallback path
+      mockRedisService.ttl = jest.fn().mockRejectedValue(new Error('Redis unavailable'));
+      (service as any).faucetCooldowns.set('user-1', Date.now() - 50_000);
       try {
         await service.faucet('user-1');
         fail('Expected BadRequestException');
@@ -194,7 +208,11 @@ describe('DepositService E2E', () => {
         index: 1,
       });
 
+      // First call succeeds (Redis reports no active key)
       await service.faucet('user-1');
+
+      // Second call: Redis reports 59s remaining on cooldown key
+      jest.spyOn(mockRedisService, 'ttl').mockResolvedValue(59);
       await expect(service.faucet('user-1')).rejects.toThrow(BadRequestException);
     });
 

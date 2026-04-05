@@ -9,6 +9,7 @@ import { ethers, HDNodeWallet, Mnemonic } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
 
 // 不使用科学计数法，精度足够大
 BigNumber.config({ EXPONENTIAL_AT: 1e9, DECIMAL_PLACES: 18 });
@@ -17,6 +18,7 @@ const USDT_DECIMALS = 6;
 const USDT_DECIMALS_BN = new BigNumber(10).pow(USDT_DECIMALS);
 const USDT_TO_CHIPS_RATE = 100;
 const FAUCET_COOLDOWN_MS = 60_000; // 60s per user
+const FAUCET_COOLDOWN_KEY = (userId: string) => `faucet_cooldown:${userId}`;
 
 const TRANSFER_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
@@ -32,6 +34,7 @@ export class DepositService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
+    private readonly redisService: RedisService,
   ) {}
 
   private get usdtContractAddress(): string {
@@ -97,13 +100,25 @@ export class DepositService {
       throw new ForbiddenException('Faucet not configured');
     }
 
-    // Cooldown check
-    const lastUsed = this.faucetCooldowns.get(userId) ?? 0;
-    const remaining = FAUCET_COOLDOWN_MS - (Date.now() - lastUsed);
-    if (remaining > 0) {
-      throw new BadRequestException(
-        `请等待 ${Math.ceil(remaining / 1000)} 秒后再试`,
-      );
+    // Cooldown check — Redis-backed with in-memory fallback
+    try {
+      const ttl = await this.redisService.ttl(FAUCET_COOLDOWN_KEY(userId));
+      if (ttl > 0) {
+        throw new BadRequestException(
+          `请等待 ${Math.ceil(ttl)} 秒后再试`,
+        );
+      }
+      // Key absent / expired in Redis — clear any stale in-memory entry
+      this.faucetCooldowns.delete(userId);
+    } catch {
+      // Redis unavailable — use in-memory fallback
+      const lastUsed = this.faucetCooldowns.get(userId) ?? 0;
+      const remaining = FAUCET_COOLDOWN_MS - (Date.now() - lastUsed);
+      if (remaining > 0) {
+        throw new BadRequestException(
+          `请等待 ${Math.ceil(remaining / 1000)} 秒后再试`,
+        );
+      }
     }
 
     const depositAddress = await this.getOrCreateDepositAddress(userId);
@@ -132,6 +147,16 @@ export class DepositService {
     )) as ethers.ContractTransactionResponse;
     await tx.wait(1);
 
+    // Update cooldown — Redis with in-memory fallback
+    try {
+      await this.redisService.set(
+        FAUCET_COOLDOWN_KEY(userId),
+        String(Date.now()),
+        Math.ceil(FAUCET_COOLDOWN_MS / 1000),
+      );
+    } catch {
+      // Redis unavailable — in-memory fallback only
+    }
     this.faucetCooldowns.set(userId, Date.now());
     this.logger.log(
       `Faucet: minted ${faucetAmount.toFixed()} USDT to ${depositAddress} (tx: ${tx.hash})`,
