@@ -66,11 +66,12 @@ export class TableManagerService implements OnModuleInit {
       }
 
       for (const player of seatedPlayers) {
-        await this.walletService.setBalance(
+        // Use atomic resetBalanceAndUnfreeze to prevent stale frozenChips
+        // if the process crashes between setBalance and unfreezeBalance.
+        await this.walletService.resetBalanceAndUnfreeze(
           player.id,
           Math.max(0, Number(player.stack) || 0),
         );
-        await this.walletService.unfreezeBalance(player.id);
       }
 
       this.tables.delete(persistedTable.id);

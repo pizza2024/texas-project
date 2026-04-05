@@ -133,6 +133,33 @@ export class WalletService {
     });
   }
 
+  /**
+   * Atomically reset a player's chip balance AND unfreeze their chips.
+   * Used during startup cleanup when a previous process exited without
+   * properly removing players from waiting tables.
+   *
+   * Combines setBalance + unfreezeBalance into a single transaction
+   * to prevent the race condition where balance is restored but
+   * frozenChips remains non-zero (player cannot spend their chips).
+   */
+  async resetBalanceAndUnfreeze(
+    userId: string,
+    balance: number,
+  ): Promise<void> {
+    const normalized = Math.max(0, balance);
+    await this.prisma.$transaction([
+      this.prisma.wallet.upsert({
+        where: { userId },
+        update: { chips: normalized, frozenChips: 0 },
+        create: { userId, chips: normalized, frozenChips: 0 },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { coinBalance: normalized },
+      }),
+    ]);
+  }
+
   /** Release frozen chips when a player leaves a table. */
   async unfreezeBalance(userId: string): Promise<void> {
     await this.prisma.wallet.updateMany({

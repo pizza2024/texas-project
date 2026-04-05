@@ -47,18 +47,23 @@ export interface RoomStatus {
 
 // ── 牌桌 ────────────────────────────────────────────────────────────────────
 
+export type PlayerStatus = 'ACTIVE' | 'FOLD' | 'ALLIN' | 'SITOUT' | 'DISCONNECTED';
+
 export interface Player {
   id: string;
   nickname: string;
   avatar: string;
   stack: number;
-  bet: number;
+  bet: number; // Current round bet
+  totalBet: number; // Total bet in this hand
   cards: string[];
-  status: string;
+  status: PlayerStatus;
+  position: number; // Seat index (0-based)
   ready: boolean;
   isButton: boolean;
   isSmallBlind: boolean;
   isBigBlind: boolean;
+  hasActed: boolean;
 }
 
 export interface HandResultEntry {

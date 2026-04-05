@@ -24,6 +24,7 @@ describe('TableManagerService', () => {
     setBalances: jest.Mock;
     freezeBalance: jest.Mock;
     unfreezeBalance: jest.Mock;
+    resetBalanceAndUnfreeze: jest.Mock;
   };
   let prisma: {
     table: {
@@ -52,6 +53,7 @@ describe('TableManagerService', () => {
       setBalances: jest.fn(),
       freezeBalance: jest.fn().mockResolvedValue(undefined),
       unfreezeBalance: jest.fn().mockResolvedValue(undefined),
+      resetBalanceAndUnfreeze: jest.fn().mockResolvedValue(undefined),
     };
     prisma = {
       table: {
@@ -213,8 +215,7 @@ describe('TableManagerService', () => {
 
     await service.onModuleInit();
 
-    expect(walletService.setBalance).toHaveBeenCalledWith('user-1', 888);
-    expect(walletService.unfreezeBalance).toHaveBeenCalledWith('user-1');
+    expect(walletService.resetBalanceAndUnfreeze).toHaveBeenCalledWith('user-1', 888);
     expect(redis.del).toHaveBeenCalledWith('table:room-1');
     expect(prisma.table.updateMany).toHaveBeenCalledWith({
       where: { id: room.id },
