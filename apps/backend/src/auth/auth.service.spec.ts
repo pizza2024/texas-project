@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailService } from '../email/email.service';
+import { TableManagerService } from '../table-engine/table-manager.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -38,6 +39,12 @@ describe('AuthService', () => {
           useValue: {
             generateOtp: jest.fn().mockReturnValue('123456'),
             sendEmail: jest.fn(),
+          },
+        },
+        {
+          provide: TableManagerService,
+          useValue: {
+            leaveCurrentRoom: jest.fn(),
           },
         },
       ],

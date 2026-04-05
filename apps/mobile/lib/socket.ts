@@ -3,4 +3,4 @@ export { disconnectSocket, setForceLogoutHandler, setRejoinAvailableHandler, set
 
 const SERVER_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-export const getSocket = (token: string) => _getSocket(SERVER_URL, token);
+export const getSocket = (token: string) => _getSocket(`${SERVER_URL}/ws`, token);

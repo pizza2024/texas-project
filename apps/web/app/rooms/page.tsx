@@ -552,6 +552,12 @@ interface RoomStatus {
   isFull: boolean;
 }
 
+interface CurrentRoomResponse {
+  roomId: string | null;
+  isMatchmaking: boolean;
+  isInActiveGame: boolean;
+}
+
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomStatusMap, setRoomStatusMap] = useState<
@@ -591,7 +597,7 @@ export default function RoomsPage() {
 
       try {
         const [currentRoomRes, roomsRes, profileRes] = await Promise.all([
-          api.get("/tables/me/current-room"),
+          api.get<CurrentRoomResponse>("/tables/me/current-room"),
           api.get("/rooms"),
           api.get("/auth/profile"),
         ]);
@@ -599,13 +605,8 @@ export default function RoomsPage() {
         if (cancelled) return;
 
         if (currentRoomRes.data?.roomId) {
-          if (currentRoomRes.data?.isMatchmaking) {
-            // Silently leave stale matchmaking rooms so the user returns to the lobby cleanly.
-            await api.post("/tables/me/leave-room").catch(() => {});
-          } else {
-            router.replace(`/room/${currentRoomRes.data.roomId}`);
-            return;
-          }
+          // Always leave any current room when returning to the lobby.
+          await api.post("/tables/me/leave-room").catch(() => {});
         }
 
         // Support both paginated {data,total} and flat array responses
@@ -648,7 +649,12 @@ export default function RoomsPage() {
         );
 
         if (!cancelled) {
-          setRoomStatusMap(Object.fromEntries(statusEntries));
+          // Merge API results with any real-time WS updates that arrived during
+          // the fetch — WS updates win for rooms already updated in-flight.
+          setRoomStatusMap((prev) => ({
+            ...Object.fromEntries(statusEntries),
+            ...prev,
+          }));
         }
       } catch {
         if (!cancelled) {

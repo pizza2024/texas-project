@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Table, TableSnapshot } from './table';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { GameStage, Table, TableSnapshot } from './table';
 import { RoomService } from '../room/room.service';
 import {
   ROOM_DISSOLVED_EVENT,
@@ -15,7 +15,7 @@ const TABLE_KEY = (roomId: string) => `table:${roomId}`;
 const TABLE_TTL = 86400;
 
 @Injectable()
-export class TableManagerService {
+export class TableManagerService implements OnModuleInit {
   private readonly logger = new Logger(TableManagerService.name);
   private tables: Map<string, Table> = new Map();
   // Deduplicate concurrent getTable calls for the same roomId to prevent
@@ -28,6 +28,72 @@ export class TableManagerService {
     private prisma: PrismaService,
     private redis: RedisService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.cleanupOfflineResidueOnStartup();
+  }
+
+  /**
+   * Startup guardrail: if a previous process exited without emitting leave/disconnect,
+   * WAITING tables may still contain seated players in persisted snapshots.
+   *
+   * We clear those seats and release frozen chips to avoid ghost occupancy after restart.
+   * Active hands are intentionally untouched so in-hand recovery remains possible.
+   */
+  private async cleanupOfflineResidueOnStartup(): Promise<void> {
+    const persistedTables = await this.prisma.table.findMany({
+      where: { stateSnapshot: { not: null } },
+      select: {
+        id: true,
+        stateSnapshot: true,
+      },
+    });
+
+    let cleanedTables = 0;
+    let releasedSeats = 0;
+
+    for (const persistedTable of persistedTables) {
+      const snapshot = this.parseSnapshot(persistedTable.stateSnapshot);
+      if (!snapshot || snapshot.currentStage !== GameStage.WAITING) {
+        continue;
+      }
+
+      const seatedPlayers = snapshot.players.filter(
+        (player): player is NonNullable<typeof player> => player !== null,
+      );
+      if (seatedPlayers.length === 0) {
+        continue;
+      }
+
+      for (const player of seatedPlayers) {
+        await this.walletService.setBalance(
+          player.id,
+          Math.max(0, Number(player.stack) || 0),
+        );
+        await this.walletService.unfreezeBalance(player.id);
+      }
+
+      this.tables.delete(persistedTable.id);
+      await this.redis.del(TABLE_KEY(persistedTable.id));
+      await this.prisma.table.updateMany({
+        where: { id: persistedTable.id },
+        data: {
+          state: GameStage.WAITING,
+          stateSnapshot: null,
+          snapshotUpdatedAt: new Date(),
+        },
+      });
+
+      cleanedTables += 1;
+      releasedSeats += seatedPlayers.length;
+    }
+
+    if (cleanedTables > 0) {
+      this.logger.warn(
+        `Startup cleanup cleared ${releasedSeats} stale seat(s) across ${cleanedTables} waiting table(s).`,
+      );
+    }
+  }
 
   async getTable(roomId: string): Promise<Table | undefined> {
     if (this.tables.has(roomId)) {
@@ -242,11 +308,19 @@ export class TableManagerService {
 
   async getUserCurrentRoom(
     userId: string,
-  ): Promise<{ roomId: string; isMatchmaking: boolean } | null> {
+  ): Promise<{
+    roomId: string;
+    isMatchmaking: boolean;
+    isInActiveGame: boolean;
+  } | null> {
     for (const [roomId, table] of this.tables.entries()) {
       if (table.hasPlayer(userId)) {
         const room = await this.roomService.findOne(roomId);
-        return { roomId, isMatchmaking: room?.isMatchmaking ?? false };
+        return {
+          roomId,
+          isMatchmaking: room?.isMatchmaking ?? false,
+          isInActiveGame: table.currentStage !== GameStage.WAITING,
+        };
       }
     }
 
@@ -265,6 +339,7 @@ export class TableManagerService {
         return {
           roomId: persistedTable.id,
           isMatchmaking: room?.isMatchmaking ?? false,
+          isInActiveGame: snapshot.currentStage !== GameStage.WAITING,
         };
       }
     }

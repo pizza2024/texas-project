@@ -30,6 +30,7 @@ export class TableEngineController {
     return {
       roomId: room?.roomId ?? null,
       isMatchmaking: room?.isMatchmaking ?? false,
+      isInActiveGame: room?.isInActiveGame ?? false,
     };
   }
 

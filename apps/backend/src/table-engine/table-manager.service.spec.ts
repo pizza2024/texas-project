@@ -31,6 +31,7 @@ describe('TableManagerService', () => {
       upsert: jest.Mock;
       deleteMany: jest.Mock;
       findMany: jest.Mock;
+      updateMany: jest.Mock;
     };
     hand: { create: jest.Mock };
     settlement: { createMany: jest.Mock };
@@ -58,6 +59,7 @@ describe('TableManagerService', () => {
         upsert: jest.fn(),
         deleteMany: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       hand: { create: jest.fn().mockResolvedValue({ id: 'hand-1' }) },
       settlement: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
@@ -160,5 +162,67 @@ describe('TableManagerService', () => {
     expect(table?.players[0]?.stack).toBe(900);
     expect(table?.currentStage).toBe('FLOP');
     expect(table?.actionEndsAt).toBe(123456);
+  });
+
+  it('clears stale WAITING seats on startup and releases frozen chips', async () => {
+    prisma.table.findMany.mockResolvedValue([
+      {
+        id: room.id,
+        stateSnapshot: JSON.stringify({
+          id: room.id,
+          roomId: room.id,
+          players: [
+            {
+              id: 'user-1',
+              nickname: 'alice',
+              avatar: '',
+              stack: 888,
+              bet: 0,
+              totalBet: 0,
+              status: 'ACTIVE',
+              cards: [],
+              position: 0,
+              isButton: false,
+              isSmallBlind: false,
+              isBigBlind: false,
+              hasActed: false,
+              ready: false,
+            },
+            null,
+          ],
+          deck: [],
+          communityCards: [],
+          pot: 0,
+          currentBet: 0,
+          currentStage: 'WAITING',
+          activePlayerIndex: -1,
+          dealerIndex: 0,
+          minBet: 20,
+          lastHandResult: null,
+          settlementEndsAt: null,
+          readyCountdownEndsAt: null,
+          actionEndsAt: null,
+          isFoldWin: false,
+          foldWinnerRevealed: false,
+          straddle: null,
+          calledAllIn: null,
+          sittingOutTimeout: 30000,
+        }),
+      },
+    ]);
+
+    await service.onModuleInit();
+
+    expect(walletService.setBalance).toHaveBeenCalledWith('user-1', 888);
+    expect(walletService.unfreezeBalance).toHaveBeenCalledWith('user-1');
+    expect(redis.del).toHaveBeenCalledWith('table:room-1');
+    expect(prisma.table.updateMany).toHaveBeenCalledWith({
+      where: { id: room.id },
+      data: {
+        state: 'WAITING',
+        stateSnapshot: null,
+        snapshotUpdatedAt: expect.any(Date),
+      },
+    });
   });
 });

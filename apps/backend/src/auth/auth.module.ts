@@ -8,11 +8,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { WalletModule } from '../wallet/wallet.module';
 import { EmailModule } from '../email/email.module';
 import { RateLimitGuard } from './rate-limit.guard';
+import { TableEngineModule } from '../table-engine/table-engine.module';
 
 @Module({
   imports: [
     UserModule,
     WalletModule,
+    TableEngineModule,
     PassportModule,
     EmailModule,
     JwtModule.register({

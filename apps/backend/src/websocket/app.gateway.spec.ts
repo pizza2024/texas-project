@@ -299,6 +299,70 @@ describe('AppGateway', () => {
     });
   });
 
+  it('prevents the same user from joining multiple rooms concurrently', async () => {
+    const client = {
+      data: { user: { sub: 'user-1', username: 'alice' } },
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+    };
+    const roomOneTable = {
+      smallBlind: 10,
+      bigBlind: 20,
+      minBuyIn: 20,
+      hasPlayer: jest.fn().mockReturnValue(false),
+      addPlayer: jest.fn().mockReturnValue(true),
+      getMaskedView: jest.fn().mockReturnValue({ roomId: 'room-1' }),
+    };
+    const roomSocket = {
+      data: { user: { sub: 'user-1' } },
+      emit: jest.fn(),
+    };
+
+    let roomLookupCount = 0;
+    tableManager.getUserCurrentRoomId.mockImplementation(async () => {
+      roomLookupCount += 1;
+      if (roomLookupCount <= 2) {
+        return null;
+      }
+      return 'room-1';
+    });
+    tableManager.getTable.mockImplementation(async (roomId: string) => {
+      if (roomId === 'room-1') {
+        return roomOneTable;
+      }
+      return undefined;
+    });
+    (gateway.server.in as jest.Mock).mockReturnValue({
+      fetchSockets: jest.fn().mockResolvedValue([roomSocket]),
+    });
+
+    const joinOne = gateway.handleJoinRoom(client as any, { roomId: 'room-1' });
+    const joinTwo = gateway.handleJoinRoom(client as any, { roomId: 'room-2' });
+
+    const [resultOne, resultTwo] = await Promise.all([joinOne, joinTwo]);
+
+    expect(resultOne).toEqual({
+      event: 'joined',
+      data: { roomId: 'room-1' },
+    });
+    expect(resultTwo).toEqual({
+      event: 'already_in_room',
+      data: {
+        roomId: 'room-1',
+        targetRoomId: 'room-2',
+        canSwitch: true,
+      },
+    });
+    expect(client.emit).toHaveBeenCalledWith('already_in_room', {
+      roomId: 'room-1',
+      targetRoomId: 'room-2',
+      canSwitch: true,
+    });
+    expect(tableManager.getTable).toHaveBeenCalledTimes(1);
+    expect(tableManager.getTable).toHaveBeenCalledWith('room-1');
+  });
+
   it('rebuilds an in-progress settlement timer from restored state', async () => {
     jest.useFakeTimers();
     const roomSocket = {

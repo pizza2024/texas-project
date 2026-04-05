@@ -65,6 +65,11 @@ export class AppGateway
    * socket events for the same room are serialized (Tick Loop lite).
    */
   private roomLocks = new Map<string, Promise<void>>();
+  /**
+   * Per-user processing lock: prevents the same account from executing
+   * overlapping join/leave flows that can lead to multi-room membership.
+   */
+  private userLocks = new Map<string, Promise<void>>();
   private soloBotTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
@@ -119,6 +124,26 @@ export class AppGateway
     const next = prev.then(() => fn()).then(resolve, reject);
     this.roomLocks.set(
       roomId,
+      next.then(
+        () => {},
+        () => {},
+      ),
+    );
+    return outer;
+  }
+
+  private withUserLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const outer = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+
+    const prev = this.userLocks.get(userId) ?? Promise.resolve();
+    const next = prev.then(() => fn()).then(resolve, reject);
+    this.userLocks.set(
+      userId,
       next.then(
         () => {},
         () => {},
@@ -710,81 +735,106 @@ export class AppGateway
     const { roomId, password } = data;
     const userId = client.data.user?.sub as string;
 
-    const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
-    if (currentRoomId && currentRoomId !== roomId) {
-      client.emit('already_in_room', { roomId: currentRoomId });
-      return {
-        event: 'already_in_room',
-        data: { roomId: currentRoomId },
-      };
-    }
-
-    const table = await this.tableManager.getTable(roomId);
-    if (!table) {
-      return { event: 'error', data: 'Room not found' };
-    }
-
-    // Password check for private rooms (skip if already seated — reconnect)
-    const isAlreadySeated = table.hasPlayer(userId);
-    if (!isAlreadySeated && table.roomPassword) {
-      const passwordMatch = await bcrypt.compare(
-        password ?? '',
-        table.roomPassword,
-      );
-      if (!passwordMatch) {
-        client.emit('wrong_password', { roomId });
-        return { event: 'wrong_password', data: { roomId } };
+    return this.withUserLock(userId, async () => {
+      const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
+      if (currentRoomId && currentRoomId !== roomId) {
+        client.emit('already_in_room', {
+          roomId: currentRoomId,
+          targetRoomId: roomId,
+          canSwitch: true,
+        });
+        return {
+          event: 'already_in_room',
+          data: { roomId: currentRoomId, targetRoomId: roomId, canSwitch: true },
+        };
       }
-    }
 
-    await this.ensureRecoveredRoundFlow(roomId, table);
-    const balance = isAlreadySeated
-      ? null
-      : await this.tableManager.getUserAvailableBalance(userId);
-    const minimumRequiredBalance = table.minBuyIn;
-    if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
-      client.emit('insufficient_balance', {
-        roomId,
-        balance: balance ?? 0,
-        minimumRequiredBalance,
+      return this.withRoomLock(roomId, async () => {
+        const verifiedCurrentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
+        if (verifiedCurrentRoomId && verifiedCurrentRoomId !== roomId) {
+          client.emit('already_in_room', {
+            roomId: verifiedCurrentRoomId,
+            targetRoomId: roomId,
+            canSwitch: true,
+          });
+          return {
+            event: 'already_in_room',
+            data: {
+              roomId: verifiedCurrentRoomId,
+              targetRoomId: roomId,
+              canSwitch: true,
+            },
+          };
+        }
+
+        const table = await this.tableManager.getTable(roomId);
+        if (!table) {
+          return { event: 'error', data: 'Room not found' };
+        }
+
+        // Password check for private rooms (skip if already seated — reconnect)
+        const isAlreadySeated = table.hasPlayer(userId);
+        if (!isAlreadySeated && table.roomPassword) {
+          const passwordMatch = await bcrypt.compare(
+            password ?? '',
+            table.roomPassword,
+          );
+          if (!passwordMatch) {
+            client.emit('wrong_password', { roomId });
+            return { event: 'wrong_password', data: { roomId } };
+          }
+        }
+
+        await this.ensureRecoveredRoundFlow(roomId, table);
+        const balance = isAlreadySeated
+          ? null
+          : await this.tableManager.getUserAvailableBalance(userId);
+        const minimumRequiredBalance = table.minBuyIn;
+        if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
+          client.emit('insufficient_balance', {
+            roomId,
+            balance: balance ?? 0,
+            minimumRequiredBalance,
+          });
+          return {
+            event: 'insufficient_balance',
+            data: {
+              roomId,
+              balance: balance ?? 0,
+              minimumRequiredBalance,
+            },
+          };
+        }
+
+        // Avoid duplicate seat in same room; reject if room is full
+        // Fetch latest avatar from DB so it's always up-to-date
+        const avatar = await this.userService.getUserAvatar(userId);
+        const playerData = { ...client.data.user, avatar: avatar ?? '' };
+
+        const joined = table.addPlayer(playerData, balance ?? 0);
+        if (!joined) {
+          client.emit('room_full', { roomId });
+          return {
+            event: 'room_full',
+            data: { roomId },
+          };
+        }
+
+        // Freeze entire balance while player is seated
+        if (!isAlreadySeated && balance !== null) {
+          await this.tableManager.freezePlayerBalance(userId, balance);
+        }
+
+        client.join(roomId);
+        await this.tableManager.persistTableState(roomId);
+        await this.broadcastTableState(roomId, table);
+        await this.tableManager.broadcastRoomStatus(roomId);
+        return {
+          event: 'joined',
+          data: table.getMaskedView(client.data.user?.sub),
+        };
       });
-      return {
-        event: 'insufficient_balance',
-        data: {
-          roomId,
-          balance: balance ?? 0,
-          minimumRequiredBalance,
-        },
-      };
-    }
-
-    // Avoid duplicate seat in same room; reject if room is full
-    // Fetch latest avatar from DB so it's always up-to-date
-    const avatar = await this.userService.getUserAvatar(userId);
-    const playerData = { ...client.data.user, avatar: avatar ?? '' };
-
-    const joined = table.addPlayer(playerData, balance ?? 0);
-    if (!joined) {
-      client.emit('room_full', { roomId });
-      return {
-        event: 'room_full',
-        data: { roomId },
-      };
-    }
-
-    // Freeze entire balance while player is seated
-    if (!isAlreadySeated && balance !== null) {
-      await this.tableManager.freezePlayerBalance(userId, balance);
-    }
-
-    client.join(roomId);
-    await this.tableManager.persistTableState(roomId);
-    await this.broadcastTableState(roomId, table);
-    await this.tableManager.broadcastRoomStatus(roomId);
-    return {
-      event: 'joined',
-      data: table.getMaskedView(client.data.user?.sub),
-    };
+    });
   }
 
   @SubscribeMessage('player_ready')
@@ -884,50 +934,52 @@ export class AppGateway
     const userId = client.data.user?.sub as string;
     this.clearPendingDisconnect(userId);
 
-    const roomId = await this.tableManager.getUserCurrentRoomId(userId);
-    if (!roomId) {
-      return { event: 'error', data: 'Not in any room' };
-    }
-
-    return this.withRoomLock(roomId, async () => {
-      const result = await this.tableManager.leaveCurrentRoom(userId);
-      if (!result) {
+    return this.withUserLock(userId, async () => {
+      const roomId = await this.tableManager.getUserCurrentRoomId(userId);
+      if (!roomId) {
         return { event: 'error', data: 'Not in any room' };
       }
 
-      this.matchmakingService.recordPlayerLeft(roomId, userId);
-      client.leave(roomId);
-
-      // Cancel solo-mode bot fill if player leaves before bot was added
-      const soloTimer = this.soloBotTimers.get(roomId);
-      if (soloTimer) {
-        clearTimeout(soloTimer);
-        this.soloBotTimers.delete(roomId);
-      }
-
-      if (result.dissolved) {
-        this.clearRoundTimers(roomId);
-      } else if (result.reachedSettlement) {
-        const table = await this.tableManager.getTable(roomId);
-        if (table) {
-          await this.schedulePostHandFlow(roomId, table);
-          await this.broadcastTableState(roomId, table);
+      return this.withRoomLock(roomId, async () => {
+        const result = await this.tableManager.leaveCurrentRoom(userId);
+        if (!result) {
+          return { event: 'error', data: 'Not in any room' };
         }
-      } else {
-        const table = await this.tableManager.getTable(roomId);
-        if (table) {
-          if (this.isActionStage(table.currentStage)) {
-            await this.scheduleActionTimeout(roomId, table);
+
+        this.matchmakingService.recordPlayerLeft(roomId, userId);
+        client.leave(roomId);
+
+        // Cancel solo-mode bot fill if player leaves before bot was added
+        const soloTimer = this.soloBotTimers.get(roomId);
+        if (soloTimer) {
+          clearTimeout(soloTimer);
+          this.soloBotTimers.delete(roomId);
+        }
+
+        if (result.dissolved) {
+          this.clearRoundTimers(roomId);
+        } else if (result.reachedSettlement) {
+          const table = await this.tableManager.getTable(roomId);
+          if (table) {
+            await this.schedulePostHandFlow(roomId, table);
+            await this.broadcastTableState(roomId, table);
           }
-          await this.broadcastTableState(roomId, table);
+        } else {
+          const table = await this.tableManager.getTable(roomId);
+          if (table) {
+            if (this.isActionStage(table.currentStage)) {
+              await this.scheduleActionTimeout(roomId, table);
+            }
+            await this.broadcastTableState(roomId, table);
+          }
         }
-      }
 
-      client.emit('left_room', { roomId, dissolved: result.dissolved });
-      return {
-        event: 'left_room',
-        data: { roomId, dissolved: result.dissolved },
-      };
+        client.emit('left_room', { roomId, dissolved: result.dissolved });
+        return {
+          event: 'left_room',
+          data: { roomId, dissolved: result.dissolved },
+        };
+      });
     });
   }
 

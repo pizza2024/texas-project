@@ -16,7 +16,7 @@ const USERS = [
   { id: 'e017e8de-869d-4239-a1c9-f0a01e950ad3', username: 'test2', nickname: 'orange', role: 'PLAYER', chips: 10090, passwordHash: '$2b$10$MeQWsicmXPb0hwVTLctsoe/C3yk3P2dPBPTmIFS2hGFwp74JzLEBG', avatar: null },
   { id: 'adb99a68-fa83-4ac0-8806-509d8a08e2e9', username: 'test3', nickname: 'banana', role: 'PLAYER', chips: 10160, passwordHash: '$2b$10$9KyvVVZlXGoeqyu4/LbzEug0.6131Nc0Cd7WstoXdrt4nvTPReQzm', avatar: null },
   { id: '63a070ab-b6e0-44fa-b5ca-4f6469708f66', username: 'tj',    nickname: '臭宝',   role: 'PLAYER', chips: 9790,  passwordHash: '$2b$10$txqIRY4l4BxXUYG/xEO1NeKzhsAtVOSBr5ORJ2OvLethHrCjz5sQK', avatar: null },
-  { id: '22a7c13a-2e44-4861-bcca-e189d468801a', username: 'admin', nickname: '管理员', role: 'ADMIN',  chips: 10000, passwordHash: '$2b$10$ierDPHFOMdC2Jor/R0jdpezdxTn04cCjbQ06fMyGI7kzWDscf46Oi', avatar: null },
+  { id: '22a7c13a-2e44-4861-bcca-e189d468801a', username: 'admin', nickname: '管理员', role: 'ADMIN',  chips: 10000, passwordHash: '$2b$10$kFL88GAtdeITFYi33iOUF.39yqCd/F/z8rcpPFAgGyI.fQc77cA/S', avatar: null },
 ];
 
 async function main() {

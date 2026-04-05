@@ -18,7 +18,7 @@ import {
 import confetti from 'canvas-confetti';
 import { normalizeSoundVolume } from '@/lib/sound-settings';
 import { useSoundSettings } from '@/lib/use-sound-settings';
-import { showSystemMessage } from '@/lib/system-message';
+import { showSystemMessage, showConfirmMessage } from '@/lib/system-message';
 import { UserAvatar } from '@/components/user-avatar';
 
 interface Player {
@@ -201,7 +201,19 @@ export default function RoomPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastCountdownToneRef = useRef<string | null>(null);
 
-  const handleBackToLobby = () => setShowLeaveConfirm(true);
+  const ACTIVE_BETTING_STAGES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
+  const handleBackToLobby = () => {
+    const myPlayer = table?.players?.find((p) => p?.id === myUserId);
+    const isActiveInHand =
+      table != null &&
+      ACTIVE_BETTING_STAGES.includes(table.currentStage) &&
+      myPlayer?.status === 'ACTIVE';
+    if (isActiveInHand) {
+      setShowLeaveConfirm(true);
+    } else {
+      void handleConfirmLeave();
+    }
+  };
   const roomPath = `/room/${id}`;
 
   const redirectToLogin = () => {
@@ -480,6 +492,12 @@ export default function RoomPage() {
         return;
       }
 
+      // Prevent immediate auto-return checks from pulling the user back.
+      sessionStorage.setItem(
+        'rooms:skip-auto-return-until',
+        String(Date.now() + 10000),
+      );
+
       setLeaving(false);
       setShowLeaveConfirm(false);
       disconnectSocket();
@@ -514,11 +532,11 @@ export default function RoomPage() {
     }
 
     const socket = getSocket(token);
+    const passwordKey = `room-password:${id as string}`;
+    const roomPassword = sessionStorage.getItem(passwordKey) ?? undefined;
 
     socket.on('connect', () => {
       console.log('Connected to socket');
-      const passwordKey = `room-password:${id as string}`;
-      const roomPassword = sessionStorage.getItem(passwordKey) ?? undefined;
       sessionStorage.removeItem(passwordKey);
       socket.emit('join_room', { roomId: id as string, password: roomPassword });
     });
@@ -528,8 +546,45 @@ export default function RoomPage() {
       setTable(data);
     });
 
-    socket.on('already_in_room', (data: { roomId: string }) => {
-      if (data?.roomId) router.replace(`/room/${data.roomId}`);
+    socket.on('already_in_room', async (data: {
+      roomId: string;
+      targetRoomId?: string;
+      canSwitch?: boolean;
+    }) => {
+      if (!data?.roomId) {
+        return;
+      }
+
+      if (data.roomId === id) {
+        router.replace(`/room/${data.roomId}`);
+        return;
+      }
+
+      const shouldSwitch = await showConfirmMessage({
+        title: t('room.switchRoomTitle'),
+        message: t('room.switchRoomMsg'),
+        confirmText: t('room.switchRoomBtn'),
+        cancelText: t('room.stayInRoom'),
+      });
+
+      if (!shouldSwitch) {
+        router.replace(`/room/${data.roomId}`);
+        return;
+      }
+
+      try {
+        await api.post('/tables/me/leave-room');
+        socket.emit('join_room', {
+          roomId: id as string,
+          password: roomPassword,
+        });
+      } catch {
+        await showSystemMessage({
+          title: t('common.confirm'),
+          message: '切换房间失败，请稍后重试。',
+        });
+        router.replace(`/room/${data.roomId}`);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -936,7 +991,16 @@ export default function RoomPage() {
             {t('room.exitRoom')}
             </h3>
             <p className="text-sm mb-6" style={{ color: 'rgba(156,163,175,0.9)' }}>
-            {t('room.exitConfirm')}
+              {(() => {
+                const myPlayer = table?.players?.find((p) => p?.id === myUserId);
+                const isActiveInHand =
+                  table != null &&
+                  ACTIVE_BETTING_STAGES.includes(table.currentStage) &&
+                  myPlayer?.status === 'ACTIVE';
+                return isActiveInHand
+                  ? t('room.exitInGameWarn')
+                  : t('room.exitConfirm');
+              })()}
             </p>
             <div className="flex gap-3">
               <Button

@@ -17,6 +17,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailService } from '../email/email.service';
 import { RegisterWithEmailDto } from './dto/register-with-email.dto';
+import { TableManagerService } from '../table-engine/table-manager.service';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +34,7 @@ export class AuthService {
     private walletService: WalletService,
     private redisService: RedisService,
     private emailService: EmailService,
+    private tableManagerService: TableManagerService,
   ) {}
 
   async validateUser(
@@ -265,6 +267,8 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
+    // Explicit logout should always release table seat/frozen chips.
+    await this.tableManagerService.leaveCurrentRoom(userId).catch(() => null);
     await this.redisService.del(`${AuthService.SESSION_KEY_PREFIX}${userId}`);
   }
 

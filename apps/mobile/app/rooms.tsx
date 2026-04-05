@@ -98,7 +98,33 @@ export default function RoomsScreen() {
       Alert.alert(t('common.confirm'), t('lobby.roomFull'));
     });
     socket.once('already_in_room', (data) => {
-      router.push(`/room/${data.roomId}`);
+      Alert.alert(
+        t('common.confirm'),
+        '你已在其他房间。是否退出原房间并进入当前房间？',
+        [
+          {
+            text: t('common.cancel'),
+            style: 'cancel',
+            onPress: () => {
+              router.push(`/room/${data.roomId}`);
+            },
+          },
+          {
+            text: t('common.confirm'),
+            onPress: async () => {
+              try {
+                await api.post('/tables/me/leave-room');
+                socket.emit('join_room', {
+                  roomId: joinModal.roomId,
+                  password: joinModal.needsPassword ? password : undefined,
+                });
+              } catch {
+                Alert.alert(t('common.confirm'), '切换房间失败，请稍后重试。');
+              }
+            },
+          },
+        ],
+      );
     });
     // 进入房间由 room_update 触发
     socket.once('room_update', () => {
