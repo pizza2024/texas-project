@@ -91,6 +91,7 @@ export interface TableState {
   isFoldWin?: boolean;
   foldWinnerRevealed?: boolean;
   straddle?: StraddleInfo | null;
+  sittingOutTimeout?: number;
 }
 
 // ── 充值 ────────────────────────────────────────────────────────────────────

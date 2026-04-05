@@ -193,6 +193,20 @@ export class WalletService {
       throw new BadRequestException('Amount must be positive');
     }
 
+    // Validate withdraw address format: accept TRC20 (34 chars, starts with T),
+    // ERC20 (42 chars, starts with 0x), or generic non-empty string (future chains).
+    const trimmed = (withdrawAddress ?? '').trim();
+    if (!trimmed) {
+      throw new BadRequestException('Withdraw address is required');
+    }
+    const isTrc20 = /^T[A-HJ-NP-Za-km-z1-9]{33}$/.test(trimmed);
+    const isErc20 = /^0x[A-Fa-f0-9]{40}$/.test(trimmed);
+    if (!isTrc20 && !isErc20) {
+      throw new BadRequestException(
+        'Invalid withdraw address: expected TRC20 (34 chars, T...) or ERC20 (42 chars, 0x...)',
+      );
+    }
+
     const availableChips = await this.getAvailableBalance(userId);
     if (chipsAmount > availableChips) {
       throw new BadRequestException('Insufficient available chips');
@@ -232,7 +246,7 @@ export class WalletService {
           userId,
           amountChips: chipsAmount,
           amountUsdt: usdtAmount,
-          toAddress: withdrawAddress,
+          toAddress: trimmed,
           status: 'PENDING',
         },
       });

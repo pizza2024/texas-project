@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Player, PlayerStatus } from '../table-engine/player';
 
 const BOT_ID_PREFIX = 'bot_';
@@ -69,7 +70,7 @@ export class BotService {
    * @param stack Initial chip stack (default 1000)
    */
   createBot(stack = 1000): BotPlayerData {
-    const id = `${BOT_ID_PREFIX}${Date.now()}_${++this.botCounter}`;
+    const id = `${BOT_ID_PREFIX}${randomUUID()}`;
     const nickname = pickBotName();
 
     return {

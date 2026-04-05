@@ -1252,6 +1252,7 @@ export class Table {
       foldWinnerRevealed: this.foldWinnerRevealed,
       straddle: this.straddle,
       calledAllIn: this.calledAllIn,
+      sittingOutTimeout: this.sittingOutTimeout,
     };
   }
 }
