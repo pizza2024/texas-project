@@ -35,6 +35,7 @@ import { WebSocketManager } from './websocket-manager';
 import { FriendService } from '../friend/friend.service';
 
 @WebSocketGateway({
+  namespace: '/ws',
   cors: {
     origin: '*',
   },
