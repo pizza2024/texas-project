@@ -10,6 +10,7 @@ import { ethers, HDNodeWallet, Mnemonic } from 'ethers';
 import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { WithdrawRequest, Prisma } from '@prisma/client';
 
@@ -19,6 +20,7 @@ const USDT_DECIMALS = 6;
 const USDT_DECIMALS_BN = new BigNumber(10).pow(USDT_DECIMALS);
 const USDT_TO_CHIPS_RATE = 100;
 const WITHDRAW_COOLDOWN_MS = 60_000; // 60 seconds
+const WITHDRAW_COOLDOWN_KEY = (userId: string) => `withdraw_cooldown:${userId}`;
 const MIN_WITHDRAW_CHIPS = 1000;
 
 const TRANSFER_ABI = [
@@ -37,11 +39,12 @@ export interface PaginatedResult<T> {
 @Injectable()
 export class WithdrawService {
   private readonly logger = new Logger(WithdrawService.name);
-  private readonly cooldowns = new Map<string, number>(); // userId -> last withdraw timestamp
+  private readonly cooldowns = new Map<string, number>(); // userId -> last withdraw timestamp (in-memory fallback)
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
+    private readonly redisService: RedisService,
   ) {}
 
   private get usdtContractAddress(): string {
@@ -69,8 +72,24 @@ export class WithdrawService {
     return new BigNumber(chips).dividedBy(USDT_TO_CHIPS_RATE).toNumber();
   }
 
-  /** Check and consume cooldown, throws if still in cooldown */
-  private checkAndConsumeCooldown(userId: string): void {
+  /**
+   * Check and consume cooldown. Uses Redis TTL when available; falls back to
+   * in-memory Map (for single-instance dev/test environments).
+   */
+  private async checkAndConsumeCooldown(userId: string): Promise<void> {
+    try {
+      const ttl = await this.redisService.ttl(WITHDRAW_COOLDOWN_KEY(userId));
+      if (ttl > 0) {
+        throw new BadRequestException(
+          `请等待 ${Math.ceil(ttl)} 秒后再试`,
+        );
+      }
+      // Key absent / expired in Redis — clear any stale in-memory entry
+      this.cooldowns.delete(userId);
+      return;
+    } catch {
+      // Redis unavailable — use in-memory fallback
+    }
     const lastUsed = this.cooldowns.get(userId) ?? 0;
     const remaining = WITHDRAW_COOLDOWN_MS - (Date.now() - lastUsed);
     if (remaining > 0) {
@@ -81,15 +100,34 @@ export class WithdrawService {
   }
 
   /** Set cooldown timestamp after successful withdraw creation */
-  private setCooldown(userId: string): void {
+  private async setCooldown(userId: string): Promise<void> {
+    try {
+      await this.redisService.set(
+        WITHDRAW_COOLDOWN_KEY(userId),
+        String(Date.now()),
+        Math.ceil(WITHDRAW_COOLDOWN_MS / 1000),
+      );
+    } catch {
+      // Redis unavailable — in-memory fallback only
+    }
+    // Always update in-memory fallback
     this.cooldowns.set(userId, Date.now());
   }
 
   /** Get remaining cooldown for a user */
-  getCooldownRemaining(userId: string): {
+  async getCooldownRemaining(userId: string): Promise<{
     remainingMs: number;
     canWithdraw: boolean;
-  } {
+  }> {
+    try {
+      const ttlSeconds = await this.redisService.ttl(WITHDRAW_COOLDOWN_KEY(userId));
+      if (ttlSeconds > 0) {
+        return { remainingMs: ttlSeconds * 1000, canWithdraw: false };
+      }
+      return { remainingMs: 0, canWithdraw: true };
+    } catch {
+      // Redis unavailable — use in-memory fallback
+    }
     const lastUsed = this.cooldowns.get(userId) ?? 0;
     const remaining = Math.max(
       0,
@@ -120,7 +158,7 @@ export class WithdrawService {
     dto: CreateWithdrawDto,
   ): Promise<WithdrawRequest> {
     // 1. Cooldown check
-    this.checkAndConsumeCooldown(userId);
+    await this.checkAndConsumeCooldown(userId);
 
     // 2. Balance check
     const available = await this.walletService.getAvailableBalance(userId);
@@ -170,7 +208,7 @@ export class WithdrawService {
     });
 
     // Set cooldown
-    this.setCooldown(userId);
+    await this.setCooldown(userId);
 
     // Log transaction
     await this.prisma.transaction.create({
