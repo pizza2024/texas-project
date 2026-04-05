@@ -127,14 +127,26 @@ export class AppGateway
   }
 
   private handleRoomCreated = (room: RoomCreatedPayload) => {
+    if (!this.server) {
+      this.logger.warn('room_created skipped: websocket server not ready');
+      return;
+    }
     this.server.emit('room_created', room);
   };
 
   private handleRoomDissolved = (payload: RoomDissolvedPayload) => {
+    if (!this.server) {
+      this.logger.warn('room_dissolved skipped: websocket server not ready');
+      return;
+    }
     this.server.emit('room_dissolved', { id: payload.id });
   };
 
   private handleRoomStatusUpdated = (payload: RoomStatusUpdatedPayload) => {
+    if (!this.server) {
+      this.logger.warn('room_status_updated skipped: websocket server not ready');
+      return;
+    }
     this.server.emit('room_status_updated', payload);
   };
 

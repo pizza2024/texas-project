@@ -9,6 +9,8 @@ dotenv.config({
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
+import * as classValidator from 'class-validator';
+import * as classTransformer from 'class-transformer';
 import { join } from 'path';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -42,6 +44,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      validatorPackage: classValidator,
+      transformerPackage: classTransformer,
     }),
   );
 
