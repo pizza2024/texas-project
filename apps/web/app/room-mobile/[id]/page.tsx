@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { getStoredToken, getTokenPayload, isTokenExpired } from '@/lib/auth';
+import confetti from 'canvas-confetti';
 import type { TableState, Player } from '@texas/shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -16,6 +17,31 @@ interface HandResultEntry {
   winAmount: number;
   bestCards?: string[];
 }
+
+interface ChipFlight {
+  id: string;
+  amount: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  delay: number;
+  active: boolean;
+}
+
+interface PayoutFlight {
+  id: string;
+  amount: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  delay: number;
+  active: boolean;
+}
+
+const CHIP_FLIGHT_MS = 620;
+const CHIP_FLIGHT_STAGGER_MS = 70;
 
 // ── Card display ─────────────────────────────────────────────────────────────
 
@@ -86,6 +112,15 @@ function fmt(n: number) {
   return n.toLocaleString();
 }
 
+function getElementCenter(el: HTMLElement | null) {
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 const pageBg = { background: 'linear-gradient(180deg, #050d08 0%, #020405 100%)' };
@@ -97,7 +132,19 @@ export default function MobileRoomPage() {
   const [myUserId] = useState<string>(getMyUserId);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [raiseAmount, setRaiseAmount] = useState(0);
+  const [chipFlights, setChipFlights] = useState<ChipFlight[]>([]);
+  const [payoutFlights, setPayoutFlights] = useState<PayoutFlight[]>([]);
+  const [winnerHighlights, setWinnerHighlights] = useState<string[]>([]);
+  const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
   const autoActRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousTableRef = useRef<TableState | null>(null);
+  const chipCleanupRef = useRef<number | null>(null);
+  const chipActivationRef = useRef<number | null>(null);
+  const payoutCleanupRef = useRef<number | null>(null);
+  const payoutActivationRef = useRef<number | null>(null);
+  const winnerHighlightCleanupRef = useRef<number | null>(null);
+  const playerNodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const potRef = useRef<HTMLDivElement | null>(null);
 
   // ── Socket ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -150,6 +197,154 @@ export default function MobileRoomPage() {
     socket.emit('player_action', { roomId: id as string, action });
   }
 
+  const queueChipFlights = (flights: Omit<ChipFlight, 'active'>[]) => {
+    if (flights.length === 0) return;
+
+    if (chipActivationRef.current !== null) window.cancelAnimationFrame(chipActivationRef.current);
+    if (chipCleanupRef.current !== null) window.clearTimeout(chipCleanupRef.current);
+
+    setChipFlights(flights.map((flight) => ({ ...flight, active: false })));
+    chipActivationRef.current = window.requestAnimationFrame(() => {
+      setChipFlights((prev) => prev.map((flight) => ({ ...flight, active: true })));
+      chipActivationRef.current = null;
+    });
+
+    const maxDelay = Math.max(...flights.map((flight) => flight.delay), 0);
+    chipCleanupRef.current = window.setTimeout(() => {
+      setChipFlights([]);
+      chipCleanupRef.current = null;
+    }, CHIP_FLIGHT_MS + maxDelay + 180);
+  };
+
+  const queuePayoutFlights = (flights: Omit<PayoutFlight, 'active'>[]) => {
+    if (flights.length === 0) return;
+
+    if (payoutActivationRef.current !== null) window.cancelAnimationFrame(payoutActivationRef.current);
+    if (payoutCleanupRef.current !== null) window.clearTimeout(payoutCleanupRef.current);
+
+    setPayoutFlights(flights.map((flight) => ({ ...flight, active: false })));
+    payoutActivationRef.current = window.requestAnimationFrame(() => {
+      setPayoutFlights((prev) => prev.map((flight) => ({ ...flight, active: true })));
+      payoutActivationRef.current = null;
+    });
+
+    const maxDelay = Math.max(...flights.map((flight) => flight.delay), 0);
+    payoutCleanupRef.current = window.setTimeout(() => {
+      setPayoutFlights([]);
+      payoutCleanupRef.current = null;
+    }, CHIP_FLIGHT_MS + maxDelay + 220);
+  };
+
+  const queueWinnerHighlights = (playerIds: string[]) => {
+    if (winnerHighlightCleanupRef.current !== null) {
+      window.clearTimeout(winnerHighlightCleanupRef.current);
+      winnerHighlightCleanupRef.current = null;
+    }
+
+    setWinnerHighlights(playerIds);
+    if (playerIds.length > 0) {
+      winnerHighlightCleanupRef.current = window.setTimeout(() => {
+        setWinnerHighlights([]);
+        winnerHighlightCleanupRef.current = null;
+      }, 3200);
+    }
+  };
+
+  useEffect(() => {
+    if (!table) return;
+
+    const previousTable = previousTableRef.current;
+    if (previousTable) {
+      const nextChipFlights: Omit<ChipFlight, 'active'>[] = [];
+      const nextPayoutFlights: Omit<PayoutFlight, 'active'>[] = [];
+      const nextWinnerHighlights: string[] = [];
+      let chipIndex = 0;
+      let payoutIndex = 0;
+
+      table.players.forEach((player, idx) => {
+        if (!player || table.currentStage === 'WAITING') return;
+        const previousBet = previousTable.players[idx]?.bet ?? 0;
+        if (player.bet <= previousBet) return;
+
+        const potCenter = getElementCenter(potRef.current);
+        const playerCenter = getElementCenter(playerNodeRefs.current[player.id] ?? null);
+        if (!potCenter || !playerCenter) return;
+
+        nextChipFlights.push({
+          id: `chip-flight-${Date.now()}-${player.id}-${chipIndex}`,
+          amount: player.bet - previousBet,
+          startX: playerCenter.x,
+          startY: playerCenter.y,
+          endX: potCenter.x,
+          endY: potCenter.y,
+          delay: chipIndex * CHIP_FLIGHT_STAGGER_MS,
+        });
+        chipIndex += 1;
+      });
+
+      if (
+        previousTable.currentStage !== 'SETTLEMENT' &&
+        table.currentStage === 'SETTLEMENT' &&
+        table.lastHandResult
+      ) {
+        setFoldWinChoiceMade(false);
+        const winners = table.lastHandResult.filter((entry: HandResultEntry) => entry.winAmount > 0);
+        const myResult = table.lastHandResult.find((entry: HandResultEntry) => entry.playerId === myUserId);
+        const didIFold = myResult?.handName === '弃牌';
+
+        winners.forEach((entry: HandResultEntry) => {
+          const playerIndex = table.players.findIndex((player) => player?.id === entry.playerId);
+          if (playerIndex < 0) return;
+
+          const potCenter = getElementCenter(potRef.current);
+          const playerCenter = getElementCenter(playerNodeRefs.current[entry.playerId] ?? null);
+          if (!potCenter || !playerCenter) return;
+
+          nextPayoutFlights.push({
+            id: `payout-flight-${Date.now()}-${entry.playerId}-${payoutIndex}`,
+            amount: entry.winAmount,
+            startX: potCenter.x,
+            startY: potCenter.y,
+            endX: playerCenter.x,
+            endY: playerCenter.y,
+            delay: payoutIndex * CHIP_FLIGHT_STAGGER_MS,
+          });
+          payoutIndex += 1;
+          nextWinnerHighlights.push(entry.playerId);
+
+          if (entry.playerId === myUserId && !didIFold) {
+            const burst = (originX: number) =>
+              confetti({
+                particleCount: 85,
+                spread: 70,
+                startVelocity: 42,
+                origin: { x: originX, y: 0.62 },
+                colors: ['#facc15', '#86efac', '#60a5fa', '#f472b6', '#fb923c'],
+              });
+            burst(0.35);
+            burst(0.65);
+          }
+        });
+      }
+
+      queueChipFlights(nextChipFlights);
+      queuePayoutFlights(nextPayoutFlights);
+      queueWinnerHighlights(nextWinnerHighlights);
+    }
+
+    previousTableRef.current = table;
+  }, [table, myUserId]);
+
+  useEffect(() => {
+    return () => {
+      if (chipCleanupRef.current !== null) window.clearTimeout(chipCleanupRef.current);
+      if (chipActivationRef.current !== null) window.cancelAnimationFrame(chipActivationRef.current);
+      if (payoutCleanupRef.current !== null) window.clearTimeout(payoutCleanupRef.current);
+      if (payoutActivationRef.current !== null) window.cancelAnimationFrame(payoutActivationRef.current);
+      if (winnerHighlightCleanupRef.current !== null) window.clearTimeout(winnerHighlightCleanupRef.current);
+    };
+  }, []);
+
   // ── Derived state ───────────────────────────────────────────────────────
   if (!table) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={pageBg}>
@@ -177,6 +372,10 @@ export default function MobileRoomPage() {
 
   // Winner info for settlement overlay
   const winners = (table.lastHandResult ?? []).filter((e: HandResultEntry) => e.winAmount > 0);
+  const winnerHighlightSet = new Set(winnerHighlights);
+  const isFoldWinSettlement = isSettlement && !!table.isFoldWin;
+  const isFoldWinWinner = isFoldWinSettlement && winners.some((w: HandResultEntry) => w.playerId === myUserId);
+  const showFoldWinChoice = isFoldWinWinner && !foldWinChoiceMade;
 
   // ── Actions ────────────────────────────────────────────────────────────
   const emit = (action: string, amount?: number) => {
@@ -187,11 +386,20 @@ export default function MobileRoomPage() {
     const token = getStoredToken(); if (!token) return;
     getSocket(token).emit('player_ready', { roomId: id as string });
   };
+  const handleShowCards = () => {
+    const token = getStoredToken();
+    if (!token) return;
+    getSocket(token).emit('show_cards', { roomId: id as string });
+    setFoldWinChoiceMade(true);
+  };
+  const handleMuckCards = () => {
+    setFoldWinChoiceMade(true);
+  };
 
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen text-white relative flex flex-col" style={pageBg}>
+    <div className="min-h-screen text-white relative flex flex-col pb-52" style={pageBg}>
 
       {/* ── Header ── */}
       <div
@@ -235,14 +443,31 @@ export default function MobileRoomPage() {
           {players.map((p) => {
             const active = table.activePlayerIndex >= 0 && table.players[table.activePlayerIndex]?.id === p.id;
             const folded = p.status === 'FOLD';
+            const winner = winnerHighlightSet.has(p.id);
             return (
-              <div key={p.id} className="flex flex-col items-center gap-0.5 shrink-0">
+              <div
+                key={p.id}
+                className="flex flex-col items-center gap-0.5 shrink-0"
+                ref={(el) => {
+                  playerNodeRefs.current[p.id] = el;
+                }}
+              >
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold"
                   style={{
                     background: folded ? 'rgba(80,80,80,0.5)' : 'linear-gradient(135deg, #1a3a2a, #0d2015)',
-                    border: active ? '2.5px solid #facc15' : p.id === myUserId ? '2.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
-                    boxShadow: active ? '0 0 12px rgba(250,204,21,0.5)' : 'none',
+                    border: winner
+                      ? '2.5px solid rgba(250,204,21,0.95)'
+                      : active
+                        ? '2.5px solid #facc15'
+                        : p.id === myUserId
+                          ? '2.5px solid #38bdf8'
+                          : '1px solid rgba(255,255,255,0.12)',
+                    boxShadow: winner
+                      ? '0 0 14px rgba(250,204,21,0.45), 0 0 24px rgba(74,222,128,0.2)'
+                      : active
+                        ? '0 0 12px rgba(250,204,21,0.5)'
+                        : 'none',
                     color: 'rgba(255,255,255,0.9)',
                     fontSize: '10px',
                   }}
@@ -258,6 +483,7 @@ export default function MobileRoomPage() {
                 {p.isButton && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#fcd34d', color: '#000' }}>D</span>}
                 {p.isBigBlind && <span className="text-[9px] font-black px-1.5 rounded-full leading-none" style={{ background: '#ef4444', color: '#fff' }}>BB</span>}
                 {p.isSmallBlind && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#3b82f6', color: '#fff' }}>SB</span>}
+                {winner && <span className="text-[7px] font-black px-1 rounded-full" style={{ background: '#facc15', color: '#000' }}>WIN</span>}
                 {folded && <span className="text-[7px] text-gray-500">FOLD</span>}
               </div>
             );
@@ -269,7 +495,7 @@ export default function MobileRoomPage() {
       </div>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-5 px-4 py-4">
+      <div className="relative flex-1 flex flex-col items-center justify-center gap-5 px-4 py-4">
 
         {/* Community cards */}
         <div className="flex flex-col items-center gap-2">
@@ -284,6 +510,7 @@ export default function MobileRoomPage() {
 
         {/* Pot */}
         <div
+          ref={potRef}
           className="px-6 py-2 rounded-full text-base font-black"
           style={{
             background: 'rgba(0,0,0,0.5)',
@@ -294,6 +521,64 @@ export default function MobileRoomPage() {
         >
           💰 ${fmt(table.pot)}
         </div>
+
+        {/* Flying chips to pot */}
+        {chipFlights.map((flight) => (
+          <div
+            key={flight.id}
+            className="fixed -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+            style={{
+              top: flight.active ? flight.endY : flight.startY,
+              left: flight.active ? flight.endX : flight.startX,
+              opacity: flight.active ? 0 : 1,
+              transform: flight.active
+                ? 'translate(-50%, -50%) scale(0.72)'
+                : 'translate(-50%, -50%) scale(1)',
+              transition: `top ${CHIP_FLIGHT_MS}ms cubic-bezier(0.18,0.9,0.32,1) ${flight.delay}ms, left ${CHIP_FLIGHT_MS}ms cubic-bezier(0.18,0.9,0.32,1) ${flight.delay}ms, transform ${CHIP_FLIGHT_MS}ms cubic-bezier(0.18,0.9,0.32,1) ${flight.delay}ms, opacity 160ms ease ${flight.delay + CHIP_FLIGHT_MS - 120}ms`,
+            }}
+          >
+            <div
+              className="text-[10px] font-black px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(0,0,0,0.72)',
+                border: '1px solid rgba(234,179,8,0.35)',
+                color: '#fcd34d',
+                boxShadow: '0 0 16px rgba(245,158,11,0.28)',
+              }}
+            >
+              +${fmt(flight.amount)}
+            </div>
+          </div>
+        ))}
+
+        {/* Payout chips from pot */}
+        {payoutFlights.map((flight) => (
+          <div
+            key={flight.id}
+            className="fixed -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+            style={{
+              top: flight.active ? flight.endY : flight.startY,
+              left: flight.active ? flight.endX : flight.startX,
+              opacity: flight.active ? 0.08 : 1,
+              transform: flight.active
+                ? 'translate(-50%, -50%) scale(0.84)'
+                : 'translate(-50%, -50%) scale(0.7)',
+              transition: `top ${CHIP_FLIGHT_MS}ms cubic-bezier(0.16,1,0.3,1) ${flight.delay}ms, left ${CHIP_FLIGHT_MS}ms cubic-bezier(0.16,1,0.3,1) ${flight.delay}ms, transform ${CHIP_FLIGHT_MS}ms cubic-bezier(0.16,1,0.3,1) ${flight.delay}ms, opacity 220ms ease ${flight.delay + CHIP_FLIGHT_MS - 110}ms`,
+            }}
+          >
+            <div
+              className="text-[10px] font-black px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(6,78,59,0.82)',
+                border: '1px solid rgba(74,222,128,0.28)',
+                color: '#86efac',
+                boxShadow: '0 0 18px rgba(74,222,128,0.26)',
+              }}
+            >
+              +${fmt(flight.amount)}
+            </div>
+          </div>
+        ))}
 
         {/* My cards */}
         <div className="flex flex-col items-center gap-2.5">
@@ -310,7 +595,7 @@ export default function MobileRoomPage() {
 
       {/* ── Action bar (fixed bottom) ── */}
       <div
-        className="shrink-0 px-4 pb-6 pt-3"
+        className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-3"
         style={{
           background: 'linear-gradient(180deg, rgba(2,4,6,0) 0%, rgba(2,4,6,0.97) 40%, rgba(2,4,6,1) 100%)',
           borderTop: '1px solid rgba(234,179,8,0.1)',
@@ -335,10 +620,34 @@ export default function MobileRoomPage() {
                 </p>
               </div>
             )}
-            <div className="w-full h-12 rounded-xl flex items-center justify-center text-sm font-bold"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(234,179,8,0.15)', color: 'rgba(245,158,11,0.7)' }}>
-              {settleSecs > 0 ? `Settling… ${settleSecs}s` : 'Settling…'}
-            </div>
+            {showFoldWinChoice ? (
+              <div className="w-full flex flex-col items-center gap-2">
+                <span className="text-[11px] font-semibold tracking-[0.2em] uppercase" style={{ color: 'rgba(251,191,36,0.82)' }}>
+                  Show or Muck
+                </span>
+                <div className="w-full flex gap-2">
+                  <Button
+                    onClick={handleShowCards}
+                    className="flex-1 h-12 font-black text-xs uppercase tracking-wider rounded-xl"
+                    style={{ background: 'rgba(20,83,45,0.9)', border: '1px solid rgba(74,222,128,0.45)', color: '#86efac' }}
+                  >
+                    Show Cards
+                  </Button>
+                  <Button
+                    onClick={handleMuckCards}
+                    className="flex-1 h-12 font-black text-xs uppercase tracking-wider rounded-xl"
+                    style={{ background: 'rgba(30,27,75,0.9)', border: '1px solid rgba(167,139,250,0.35)', color: '#c4b5fd' }}
+                  >
+                    Muck
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-12 rounded-xl flex items-center justify-center text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(234,179,8,0.15)', color: 'rgba(245,158,11,0.7)' }}>
+                {settleSecs > 0 ? `Settling… ${settleSecs}s` : 'Settling…'}
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
