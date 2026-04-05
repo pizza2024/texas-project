@@ -25,8 +25,9 @@ COPY apps/admin/package.json ./apps/admin/
 COPY apps/mobile/package.json ./apps/mobile/
 COPY packages/shared/package.json ./packages/shared/
 
-# Resolve dependencies fresh for the selected workspace.
-RUN pnpm install --workspace="$APP_NAME"
+# Resolve all workspace dependencies.
+# pnpm install (no flags) reads pnpm-workspace.yaml and installs all workspaces.
+RUN pnpm install
 
 COPY . .
 
