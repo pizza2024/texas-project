@@ -127,6 +127,8 @@ model HandAction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("hand_actions")
+  @@index([handId])
+  @@index([userId])
 }
 
 model Settlement {
@@ -139,6 +141,8 @@ model Settlement {
   hand      Hand     @relation(fields: [handId], references: [id], onDelete: Cascade)
 
   @@map("settlements")
+  @@index([handId])
+  @@index([userId])
 }
 
 model Transaction {
@@ -151,6 +155,8 @@ model Transaction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
+  @@index([userId, type])
+  @@index([userId, createdAt])
 }
 
 model DepositAddress {
