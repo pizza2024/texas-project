@@ -858,13 +858,40 @@ export class AppGateway
     });
   }
 
+  private static readonly VALID_ACTIONS = new Set([
+    'fold',
+    'check',
+    'call',
+    'raise',
+    'allin',
+    'straddle',
+    'sit-out',
+  ]);
+
   @SubscribeMessage('player_action')
   async handlePlayerAction(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { action: string; amount?: number; roomId: string },
+    @MessageBody() data: { action: unknown; amount?: unknown; roomId?: unknown },
   ) {
     const userId = client.data.user?.sub as string | undefined;
     if (!userId) return;
+
+    // ── Input validation ────────────────────────────────────────────────
+    const action =
+      typeof data?.action === 'string' &&
+      AppGateway.VALID_ACTIONS.has(data.action)
+        ? data.action
+        : null;
+    const amount =
+      typeof data?.amount === 'number' && isFinite(data.amount) && data.amount >= 0
+        ? data.amount
+        : 0;
+    const roomId = typeof data?.roomId === 'string' ? data.roomId : null;
+
+    if (!action || !roomId) {
+      client.emit('error', { message: 'Invalid action or roomId' });
+      return;
+    }
 
     // Rate limit check
     if (!this.checkRateLimit(userId)) {
@@ -872,29 +899,25 @@ export class AppGateway
       return;
     }
 
-    return this.withRoomLock(data.roomId, async () => {
-      const table = await this.tableManager.getTable(data.roomId);
+    return this.withRoomLock(roomId, async () => {
+      const table = await this.tableManager.getTable(roomId);
       if (!table) return;
 
-      await this.ensureRecoveredRoundFlow(data.roomId, table);
-      const processed = table.processAction(
-        client.data.user.sub,
-        data.action,
-        data.amount || 0,
-      );
+      await this.ensureRecoveredRoundFlow(roomId, table);
+      const processed = table.processAction(userId, action, amount);
       if (!processed) {
         return;
       }
 
-      await this.tableManager.persistTableState(data.roomId);
-      await this.tableManager.persistTableBalances(data.roomId);
+      await this.tableManager.persistTableState(roomId);
+      await this.tableManager.persistTableBalances(roomId);
       if (table.currentStage === GameStage.SETTLEMENT) {
-        await this.schedulePostHandFlow(data.roomId, table);
+        await this.schedulePostHandFlow(roomId, table);
       } else if (this.isActionStage(table.currentStage)) {
-        await this.scheduleActionTimeout(data.roomId, table);
+        await this.scheduleActionTimeout(roomId, table);
       }
 
-      await this.broadcastTableState(data.roomId, table);
+      await this.broadcastTableState(roomId, table);
     });
   }
 
