@@ -18,6 +18,8 @@ export interface RateLimitOptions {
   windowSeconds: number;
   /** Redis key prefix */
   keyPrefix: string;
+  /** Which dimension to limit on. Defaults to userOrIp. */
+  keyType?: 'userOrIp' | 'ip' | 'user' | 'emailOrIp';
 }
 
 @Injectable()
@@ -38,16 +40,51 @@ export class RateLimitGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
 
-    const ip =
-      (request.ip as string) ||
-      (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      'unknown';
-
-    // Use userId if available (logged-in users), otherwise fall back to IP
+    const forwardedFor = (request.headers['x-forwarded-for'] as string)
+      ?.split(',')[0]
+      ?.trim();
+    const ip = forwardedFor || (request.ip as string) || 'unknown';
     const userId = request.user?.userId ?? '';
-    const key = userId
-      ? `${options.keyPrefix}:${userId}`
-      : `${options.keyPrefix}:${ip}`;
+    const email =
+      typeof request.body?.email === 'string'
+        ? request.body.email.trim().toLowerCase()
+        : '';
+
+    const keyType = options.keyType ?? 'userOrIp';
+    const isDevEnv =
+      (process.env.NODE_ENV ?? 'development').toLowerCase() !== 'production';
+
+    const shouldBypassIpInDev =
+      isDevEnv &&
+      ((keyType === 'ip' && !userId && !email) ||
+        (keyType === 'userOrIp' && !userId) ||
+        (keyType === 'emailOrIp' && !email) ||
+        (keyType === 'user' && !userId));
+
+    // Local development: do not limit by IP fallback.
+    if (shouldBypassIpInDev) {
+      return true;
+    }
+
+    let keyIdentity: string;
+
+    switch (keyType) {
+      case 'ip':
+        keyIdentity = ip;
+        break;
+      case 'user':
+        keyIdentity = userId || ip;
+        break;
+      case 'emailOrIp':
+        keyIdentity = email || ip;
+        break;
+      case 'userOrIp':
+      default:
+        keyIdentity = userId || ip;
+        break;
+    }
+
+    const key = `${options.keyPrefix}:${keyIdentity}`;
 
     const count = await this.redisService.incr(key, options.windowSeconds);
 

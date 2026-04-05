@@ -49,7 +49,12 @@ export class AuthController {
 
   @Post('request-email-code')
   @UseGuards(RateLimitGuard)
-  @ApplyRateLimit({ limit: 3, windowSeconds: 3600, keyPrefix: 'rl:email-code' })
+  @ApplyRateLimit({
+    limit: 3,
+    windowSeconds: 3600,
+    keyPrefix: 'rl:email-code',
+    keyType: 'emailOrIp',
+  })
   @ApiOperation({
     summary: 'Request email verification code (Step 1 of email registration)',
   })
