@@ -206,7 +206,11 @@ export class WalletService {
     const withdrawRequest = await this.prisma.$transaction(async (tx) => {
       // Read current wallet balance
       const wallet = await tx.wallet.findUnique({ where: { userId } });
-      const currentBalance = wallet?.chips ?? (await tx.user.findUnique({ where: { id: userId }, select: { coinBalance: true } }))?.coinBalance ?? 0;
+      // Fallback chain mirrors WalletService.getBalance(): wallet.chips → user.coinBalance → STARTING_BALANCE
+      const currentBalance =
+        wallet?.chips ??
+        (await tx.user.findUnique({ where: { id: userId }, select: { coinBalance: true } }))?.coinBalance ??
+        WalletService.STARTING_CHIPS;
 
       // Deduct chips
       const newBalance = Math.max(0, currentBalance - chipsAmount);
