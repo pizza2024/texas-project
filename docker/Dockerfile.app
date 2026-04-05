@@ -11,8 +11,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 
-# Enable corepack (Node 20 ships with npm 10.x by default; use corepack to ensure consistent version)
-RUN corepack enable && corepack prepare npm@10 --activate
+# Enable corepack and activate pnpm (project uses pnpm workspaces)
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 # Copy only package manifests. Do not copy the root lockfile because it currently
 # mixes Next 15 and Next 16 SWC packages across workspaces and breaks Docker builds.
@@ -25,15 +25,12 @@ COPY apps/mobile/package.json ./apps/mobile/
 COPY packages/shared/package.json ./packages/shared/
 
 # Resolve dependencies fresh for the selected workspace.
-RUN npm install --workspace="$APP_NAME" --include-workspace-root --package-lock=false
+RUN pnpm install --workspace="$APP_NAME"
 
 COPY . .
 
-# Remove packageManager field that trips up Next.js build (uses npm internally)
-RUN sed -i '/"packageManager"/d' package.json
-
 # Backend needs generated Prisma client types before TypeScript compilation.
-RUN if [ "$APP_NAME" = "backend" ]; then npm run db:generate --workspace="$APP_NAME"; fi
-RUN npm run build --workspace="$APP_NAME"
+RUN if [ "$APP_NAME" = "backend" ]; then pnpm --filter "$APP_NAME" run db:generate; fi
+RUN pnpm --filter "$APP_NAME" run build
 
 EXPOSE 3000 3001 4000
