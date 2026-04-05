@@ -38,8 +38,9 @@ export class CreateRoomDto {
   @Min(0)
   minBuyIn?: number;
 
-  @ApiPropertyOptional({ description: 'Room password (creates private room)' })
+  @ApiPropertyOptional({ description: 'Room password (creates private room)', maxLength: 64 })
   @IsOptional()
   @IsString()
+  @MaxLength(64, { message: '房间密码最多64个字符' })
   password?: string;
 }

@@ -634,6 +634,9 @@ export class AppGateway
       // Push friend_status_update (online=true) to all accepted friends
       void this.notifyFriendsOfStatusChange(payload.sub, true);
     } catch (e) {
+      this.logger.warn(
+        `Connection rejected: invalid token from ${client.handshake.address}: ${(e as Error).message}`,
+      );
       client.disconnect();
     }
   }
