@@ -4,6 +4,7 @@ import "./globals.css";
 import { SystemMessageProvider } from "@/components/system-message-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SocketSessionProvider } from "@/components/socket-session-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAProvider } from "@/components/PWAProvider";
 
 const geistSans = Geist({
@@ -60,7 +61,9 @@ export default function RootLayout({
         <I18nProvider>
           <SystemMessageProvider>
             <SocketSessionProvider>
+              <ErrorBoundary>
               {children}
+              </ErrorBoundary>
               <PWAProvider />
             </SocketSessionProvider>
           </SystemMessageProvider>

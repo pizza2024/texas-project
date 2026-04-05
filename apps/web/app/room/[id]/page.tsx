@@ -15,7 +15,12 @@ import {
   handleExpiredSession,
   isTokenExpired,
 } from '@/lib/auth';
-import confetti from 'canvas-confetti';
+import confettiLib from 'canvas-confetti';
+
+// Guard: confetti may not be available in all environments (SSR, ad-blockers, etc.)
+const confetti = typeof window !== 'undefined' && typeof (window as any).confetti === 'function'
+  ? confettiLib
+  : null;
 import { normalizeSoundVolume } from '@/lib/sound-settings';
 import { useSoundSettings } from '@/lib/use-sound-settings';
 import { showSystemMessage, showConfirmMessage } from '@/lib/system-message';
@@ -790,7 +795,7 @@ export default function RoomPage() {
 
             // Fire confetti when the current user wins and hasn't folded.
             const isMyWin = entry.playerId === myUserId;
-            if (isMyWin && !didIFold) {
+            if (isMyWin && !didIFold && confetti) {
               const burst = (originX: number) =>
                 confetti({
                   particleCount: 90,

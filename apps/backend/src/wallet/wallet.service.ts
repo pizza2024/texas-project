@@ -200,25 +200,49 @@ export class WalletService {
 
     const usdtAmount = chipsAmount / CHIPS_TO_USDT_RATE;
 
-    const withdrawRequest = await this.prisma.withdrawRequest.create({
-      data: {
-        userId,
-        amountChips: chipsAmount,
-        amountUsdt: usdtAmount,
-        toAddress: withdrawAddress,
-        status: 'PENDING',
-      },
-    });
+    // Atomic: deduct chips and create withdraw request in a single transaction.
+    // This prevents the race condition where chips are deducted but no request
+    // is created (or vice versa), which could lead to lost or duplicated funds.
+    const withdrawRequest = await this.prisma.$transaction(async (tx) => {
+      // Read current wallet balance
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      const currentBalance = wallet?.chips ?? (await tx.user.findUnique({ where: { id: userId }, select: { coinBalance: true } }))?.coinBalance ?? 0;
 
-    const currentBalance = await this.getBalance(userId);
-    await this.setBalance(userId, currentBalance - chipsAmount);
+      // Deduct chips
+      const newBalance = Math.max(0, currentBalance - chipsAmount);
+      await tx.wallet.upsert({
+        where: { userId },
+        update: { chips: newBalance },
+        create: { userId, chips: newBalance },
+      });
 
-    await this.prisma.transaction.create({
-      data: {
-        userId,
-        amount: -chipsAmount,
-        type: 'WITHDRAW_REQUEST',
-      },
+      // Sync User.coinBalance
+      await tx.user.update({
+        where: { id: userId },
+        data: { coinBalance: newBalance },
+      });
+
+      // Create withdraw request
+      const request = await tx.withdrawRequest.create({
+        data: {
+          userId,
+          amountChips: chipsAmount,
+          amountUsdt: usdtAmount,
+          toAddress: withdrawAddress,
+          status: 'PENDING',
+        },
+      });
+
+      // Log transaction
+      await tx.transaction.create({
+        data: {
+          userId,
+          amount: -chipsAmount,
+          type: 'WITHDRAW_REQUEST',
+        },
+      });
+
+      return request;
     });
 
     return {
