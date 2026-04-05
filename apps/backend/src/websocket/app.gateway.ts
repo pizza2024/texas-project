@@ -373,7 +373,10 @@ export class AppGateway
     await this.tableManager.persistTableBalances(roomId);
     if (nextStage === GameStage.SETTLEMENT) {
       await this.schedulePostHandFlow(roomId, currentTable);
-    } else if (this.isActionStage(nextStage)) {
+      await this.broadcastTableState(roomId, currentTable);
+      return;
+    }
+    if (this.isActionStage(nextStage)) {
       await this.scheduleActionTimeout(roomId, currentTable);
     }
 
