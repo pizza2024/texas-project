@@ -18,6 +18,7 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 # mixes Next 15 and Next 16 SWC packages across workspaces and breaks Docker builds.
 COPY package.json ./
 COPY turbo.json ./
+COPY pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
