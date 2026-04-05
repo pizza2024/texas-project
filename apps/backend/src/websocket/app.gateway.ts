@@ -130,6 +130,9 @@ export class AppGateway
 
     const prev = this.roomLocks.get(roomId) ?? Promise.resolve();
     const next = prev.then(() => fn()).then(resolve, reject);
+    // Chain a no-op promise and clean up the Map entry when the lock resolves.
+    // Without this, stale roomId keys accumulate in the Map indefinitely.
+    next.finally(() => this.roomLocks.delete(roomId));
     this.roomLocks.set(
       roomId,
       next.then(
@@ -150,6 +153,9 @@ export class AppGateway
 
     const prev = this.userLocks.get(userId) ?? Promise.resolve();
     const next = prev.then(() => fn()).then(resolve, reject);
+    // Clean up the Map entry when the lock resolves to prevent memory leaks
+    // from permanently disconnected users.
+    next.finally(() => this.userLocks.delete(userId));
     this.userLocks.set(
       userId,
       next.then(
