@@ -7,6 +7,7 @@ import {
 import { WithdrawService } from './withdraw.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { RedisService } from '../redis/redis.service';
 
 describe('WithdrawService', () => {
   let service: WithdrawService;
@@ -20,6 +21,9 @@ describe('WithdrawService', () => {
   const mockWallet = { userId: mockUserId, chips: 50000, frozenChips: 0 };
 
   beforeEach(async () => {
+    // Clear any Jest module cache to ensure fresh DI container per test
+    jest.resetModules();
+
     const mockPrisma = {
       withdrawRequest: {
         create: jest.fn(),
@@ -51,17 +55,34 @@ describe('WithdrawService', () => {
       setBalance: jest.fn(),
     };
 
+    // RedisService mock: all methods throw to simulate unavailable Redis,
+    // forcing the code to use the in-memory cooldown fallback.
+    const mockRedisService = {
+      isAvailable: true, // unused — code now uses try/catch
+      get: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      set: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      del: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      ttl: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      incr: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      ping: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WithdrawService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: WalletService, useValue: mockWalletService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
     service = module.get<WithdrawService>(WithdrawService);
     prisma = module.get(PrismaService);
     walletService = module.get(WalletService);
+
+    // Clear in-memory cooldown state between tests for isolation
+    // (Access via prototype to bypass private field restriction in tests)
+    (service as any).cooldowns.clear();
   });
 
   describe('getCooldownRemaining', () => {
