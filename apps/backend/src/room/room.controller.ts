@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -113,6 +114,15 @@ export class RoomController {
     if (!room) return null;
     const { password, ...rest } = room;
     return { ...rest, isPrivate: !!password };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a room by ID' })
+  async delete(@Param('id') id: string) {
+    await this.roomService.deleteRoom(id);
+    return { id };
   }
 
   @Post(':id/verify-password')
