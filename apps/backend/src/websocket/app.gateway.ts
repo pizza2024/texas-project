@@ -37,7 +37,11 @@ import { FriendService } from '../friend/friend.service';
 @WebSocketGateway({
   namespace: '/ws',
   cors: {
-    origin: '*',
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? (process.env.WS_ALLOWED_ORIGINS?.split(',') ?? false)
+        : '*',
+    credentials: true,
   },
 })
 export class AppGateway
@@ -70,7 +74,7 @@ export class AppGateway
    * overlapping join/leave flows that can lead to multi-room membership.
    */
   private userLocks = new Map<string, Promise<void>>();
-  private soloBotTimers = new Map<string, NodeJS.Timeout>();
+
 
   constructor(
     private tableManager: TableManagerService,
@@ -202,10 +206,6 @@ export class AppGateway
       clearTimeout(timeout);
     }
     this.actionTimers.clear();
-    for (const timeout of this.soloBotTimers.values()) {
-      clearTimeout(timeout);
-    }
-    this.soloBotTimers.clear();
   }
 
   /** Broadcast masked table state to every socket in the room individually. */
@@ -271,12 +271,6 @@ export class AppGateway
     if (autoStartTimer) {
       clearTimeout(autoStartTimer);
       this.autoStartTimers.delete(roomId);
-    }
-
-    const soloBotTimer = this.soloBotTimers.get(roomId);
-    if (soloBotTimer) {
-      clearTimeout(soloBotTimer);
-      this.soloBotTimers.delete(roomId);
     }
   }
 
@@ -427,66 +421,6 @@ export class AppGateway
     this.autoStartTimers.set(roomId, timer);
   }
 
-  /**
-   * Solo-mode: after SOLO_READY_COUNTDOWN_MS, if only 1 player is seated and ready,
-   * fill the room with a bot to start the game.
-   */
-  private async startSoloModeBotFillTimer(roomId: string) {
-    // Bot fill disabled — only real human players from now on
-    return;
-    // Cancel any existing solo timer for this room
-    const existing = this.soloBotTimers.get(roomId);
-    if (existing) {
-      clearTimeout(existing);
-    }
-
-    const timer = setTimeout(async () => {
-      this.soloBotTimers.delete(roomId);
-
-      const table = await this.tableManager.getTable(roomId);
-      if (!table || table.currentStage !== GameStage.WAITING) {
-        return;
-      }
-
-      const playable = table.players.filter((p) => p && p.stack > 0);
-      // Only fill if still exactly 1 player and they're ready
-      if (playable.length !== 1 || !playable[0]!.ready) {
-        return;
-      }
-
-      // Create and add bot
-      const botData = this.botService.createBot(table.minBuyIn);
-      const joined = table.addPlayer(botData, botData.stack);
-      if (!joined) {
-        this.logger.warn(`Solo bot fill failed: could not add bot to room ${roomId}`);
-        return;
-      }
-
-      // Bot auto-ready
-      table.setPlayerReady(botData.id);
-      await this.tableManager.persistTableState(roomId);
-      await this.broadcastTableState(roomId, table);
-
-      this.logger.log(`Solo bot ${botData.nickname} added to room ${roomId}`);
-
-      // Now that bot is ready, start the hand if all ready
-      // Note: do NOT call persistTableBalances here — balances will be persisted
-      // at SETTLEMENT time. Calling it here causes Prisma errors when bots (which
-      // have no User record) are included in the batch upsert.
-      if (table.areAllSeatedPlayersReady()) {
-        table.startHandIfReady();
-        if (this.isActionStage(table.currentStage)) {
-          await this.scheduleActionTimeout(roomId, table);
-        } else {
-          await this.tableManager.persistTableState(roomId);
-        }
-        await this.broadcastTableState(roomId, table);
-      }
-    }, AppGateway.SOLO_READY_COUNTDOWN_MS);
-
-    this.soloBotTimers.set(roomId, timer);
-  }
-
   private async finalizeSettlement(roomId: string) {
     this.settlementTimers.delete(roomId);
     const currentTable = await this.tableManager.getTable(roomId);
@@ -502,9 +436,11 @@ export class AppGateway
     // Persist settlement records BEFORE resetToWaiting clears lastHandResult
     await this.tableManager.persistSettlementRecords(roomId);
 
-    // Update ELO ratings for all participants (non-blocking, fire-and-forget on error)
+    // Update ELO ratings for all participants
     if (handResult.length > 0) {
-      void this.matchmakingService.updateElo(handResult);
+      this.matchmakingService.updateElo(handResult).catch((err) => {
+        this.logger.error(`ELO update failed for room ${roomId}`, err);
+      });
     }
 
     currentTable.resetToWaiting();
@@ -855,14 +791,6 @@ export class AppGateway
 
       const allReady = table.setPlayerReady(userId);
 
-      // Solo mode: 1 player ready, not all ready, no countdown → fill with bots
-      if (!allReady && !table.readyCountdownEndsAt) {
-        this.logger.log(
-          `[SoloMode] TRIGGER CHECK: allReady=${allReady}, countdown=${table.readyCountdownEndsAt}, playerCount=${table.getPlayerCount()}`,
-        );
-        // [BotFill DISABLED in production] await this.executeSoloModeBotFill(roomId, table);
-      }
-
       if (table.readyCountdownEndsAt) {
         await this.tableManager.persistTableState(roomId);
         await this.broadcastTableState(roomId, table);
@@ -870,25 +798,16 @@ export class AppGateway
       }
 
       if (allReady) {
-        // Cancel any solo-mode bot fill timer since we now have enough players
-        const soloTimer = this.soloBotTimers.get(roomId);
-        if (soloTimer) {
-          clearTimeout(soloTimer);
-          this.soloBotTimers.delete(roomId);
-        }
-
         table.startHandIfReady();
         await this.tableManager.persistTableBalances(roomId);
         if (this.isActionStage(table.currentStage)) {
           await this.scheduleActionTimeout(roomId, table);
         }
       } else {
-        // Not all ready yet — check for solo mode (1 player, just became ready)
+        // Not all ready yet — start auto-start countdown
         const playable = table.players.filter((p) => p && p.stack > 0);
         if (playable.length === 1 && playable[0]!.ready && playable[0]!.id === userId) {
-          // Solo mode: start 10-second countdown, then fill with bot
           await this.scheduleAutoStart(roomId, table, AppGateway.SOLO_READY_COUNTDOWN_MS);
-          // [BotFill DISABLED in production] await this.startSoloModeBotFillTimer(roomId);
         }
       }
 
@@ -948,13 +867,6 @@ export class AppGateway
 
         this.matchmakingService.recordPlayerLeft(roomId, userId);
         client.leave(roomId);
-
-        // Cancel solo-mode bot fill if player leaves before bot was added
-        const soloTimer = this.soloBotTimers.get(roomId);
-        if (soloTimer) {
-          clearTimeout(soloTimer);
-          this.soloBotTimers.delete(roomId);
-        }
 
         if (result.dissolved) {
           this.clearRoundTimers(roomId);
@@ -1079,49 +991,4 @@ export class AppGateway
    * Solo mode bot fill: add bots to reach at least 2 playable players.
    * Bots are added with ready=true so the table can start the hand.
    */
-  /**
-   * Solo mode bot fill (immediate execution): add bots to reach at least 2 playable players.
-   * Bots are added with ready=true so the table can start the hand.
-   */
-  private async executeSoloModeBotFill(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-  ): Promise<void> {
-    // Bot fill disabled — only real human players from now on
-    return;
-    const MIN_PLAYERS = 2;
-    const botsToAdd = MIN_PLAYERS - table.getPlayerCount();
-    this.logger.log(
-      `[SoloMode] EXECUTING: botsToAdd=${botsToAdd}, playerCount=${table.getPlayerCount()}`,
-    );
-    if (botsToAdd <= 0) return;
-
-    for (let i = 0; i < botsToAdd; i++) {
-      const bot = this.botService.createBot();
-      table.addPlayer(
-        {
-          sub: bot.id,
-          nickname: bot.nickname,
-          avatar: bot.avatar,
-          ready: true,
-        },
-        bot.stack,
-      );
-    }
-
-    // After bots are added, check if we can start the hand
-    if (table.areAllSeatedPlayersReady()) {
-      this.logger.log(
-        `[SoloMode] All players ready after bot fill, starting hand for room ${roomId}`,
-      );
-      table.startHandIfReady();
-      await this.tableManager.persistTableBalances(roomId);
-      if (table.currentStage !== 'WAITING') {
-        await this.broadcastTableState(roomId, table);
-      }
-    }
-
-    await this.tableManager.persistTableState(roomId);
-    await this.broadcastTableState(roomId, table);
-  }
 }
