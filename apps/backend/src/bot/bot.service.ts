@@ -8,8 +8,9 @@ const BOT_AVATAR = '';
 const IS_TEST = process.env.NODE_ENV !== 'production';
 
 /**
- * Bot names pool — names are picked randomly and tracked to avoid duplicates
- * within a session. Production bots disguise as real users; test bots get [Bot] prefix.
+ * Bot names pool — names are picked with a uniqueness suffix to avoid
+ * duplicates within a session. Production bots disguise as real users;
+ * test bots get [Bot] prefix.
  */
 const BOT_NAMES = [
   'AlexChen', 'JamieWong', 'ChrisLiu', 'TaylorM', 'JordanK',
@@ -22,18 +23,6 @@ const BOT_NAMES_TEST = [
   '[Bot]虾虾', '[Bot]皮皮', '[Bot]小德', '[Bot]德哥', '[Bot]虾客',
   '[Bot]LuckyFish', '[Bot]RiverRat', '[Bot]CardShark', '[Bot]BluffMaster', '[Bot]PotKing',
 ];
-
-const usedBotNames = new Set<string>();
-
-function pickBotName(): string {
-  const pool = IS_TEST ? BOT_NAMES_TEST : BOT_NAMES;
-  const available = pool.filter((n) => !usedBotNames.has(n));
-  const name = available.length > 0
-    ? available[Math.floor(Math.random() * available.length)]
-    : pool[Math.floor(Math.random() * pool.length)];
-  usedBotNames.add(name);
-  return name;
-}
 
 export interface BotPlayerData {
   id: string;
@@ -65,13 +54,21 @@ export interface GameStateForBot {
 export class BotService {
   private botCounter = 0;
 
+  private pickBotName(): string {
+    const pool = IS_TEST ? BOT_NAMES_TEST : BOT_NAMES;
+    const base = pool[this.botCounter % pool.length];
+    const uniqueSuffix = Math.floor(this.botCounter / pool.length);
+    this.botCounter++;
+    return uniqueSuffix > 0 ? `${base}#${uniqueSuffix}` : base;
+  }
+
   /**
    * Create a bot player object.
    * @param stack Initial chip stack (default 1000)
    */
   createBot(stack = 1000): BotPlayerData {
     const id = `${BOT_ID_PREFIX}${randomUUID()}`;
-    const nickname = pickBotName();
+    const nickname = this.pickBotName();
 
     return {
       id,

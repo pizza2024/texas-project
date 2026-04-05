@@ -19,9 +19,113 @@ export interface HandHistoryEntry {
   winnerId: string | null;
 }
 
+interface ParsedPlayer {
+  id: string;
+  nickname: string;
+  holeCards: string[];
+  finalHand: string;
+  winAmount: number;
+  netProfit: number;
+}
+
+interface HandForParsing {
+  id: string;
+  createdAt: Date;
+  potSize: number;
+  winnerId: string | null;
+  actions: Array<{
+    userId: string;
+    action: string;
+    amount: number;
+    user?: { nickname: string | null; username: string | null };
+  }>;
+  settlements: Array<{ userId: string; amount: number }>;
+  table: {
+    stateSnapshot: string | null;
+    room?: { name: string } | null;
+  };
+}
+
 @Injectable()
 export class HandHistoryService {
   constructor(private prisma: PrismaService) {}
+
+  private parseHandToHistoryEntry(hand: HandForParsing): HandHistoryEntry {
+    // Build player action summary from actions
+    const playerActions = new Map<string, { bet: number; fold: boolean; allIn: boolean }>();
+    for (const action of hand.actions) {
+      if (!playerActions.has(action.userId)) {
+        playerActions.set(action.userId, { bet: 0, fold: false, allIn: false });
+      }
+      const pa = playerActions.get(action.userId)!;
+      if (action.action === 'FOLD') {
+        pa.fold = true;
+      } else if (action.action === 'ALLIN') {
+        pa.allIn = true;
+        pa.bet += action.amount;
+      } else {
+        pa.bet += action.amount;
+      }
+    }
+
+    const players: ParsedPlayer[] = [...playerActions.entries()].map(([pid, pa]) => {
+      const actionUser = hand.actions.find((a) => a.userId === pid)?.user;
+      const settlement = hand.settlements.find((s) => s.userId === pid);
+      const netProfit = (settlement?.amount ?? 0) - pa.bet;
+
+      let holeCards: string[] = [];
+      let finalHand = '弃牌';
+      let winAmount = 0;
+
+      if (!pa.fold && hand.table.stateSnapshot) {
+        try {
+          const snapshot = JSON.parse(hand.table.stateSnapshot);
+          const playerData = snapshot.players?.find((p: any) => p?.id === pid);
+          if (playerData) {
+            holeCards = playerData.cards || [];
+            if (snapshot.communityCards?.length >= 3) {
+              const score = bestHandFrom(holeCards, snapshot.communityCards);
+              finalHand = score.name;
+            }
+          }
+          if (settlement) {
+            winAmount = settlement.amount;
+          }
+        } catch {
+          holeCards = ['??', '??'];
+        }
+      }
+
+      return {
+        id: pid,
+        nickname: actionUser?.nickname ?? actionUser?.username ?? 'Unknown',
+        holeCards,
+        finalHand,
+        winAmount,
+        netProfit,
+      };
+    });
+
+    let communityCards: string[] = [];
+    if (hand.table.stateSnapshot) {
+      try {
+        const snapshot = JSON.parse(hand.table.stateSnapshot);
+        communityCards = snapshot.communityCards || [];
+      } catch {
+        communityCards = [];
+      }
+    }
+
+    return {
+      handId: hand.id,
+      roomName: hand.table.room?.name ?? 'Unknown Room',
+      date: hand.createdAt.toISOString(),
+      players,
+      communityCards,
+      pot: hand.potSize,
+      winnerId: hand.winnerId,
+    };
+  }
 
   async getPlayerHandHistory(
     userId: string,
@@ -42,6 +146,7 @@ export class HandHistoryService {
         },
         settlements: true,
         actions: {
+          include: { user: true },
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -50,108 +155,7 @@ export class HandHistoryService {
       skip: offset,
     });
 
-    return Promise.all(
-      hands.map(async (hand) => {
-        const handActions = await this.prisma.handAction.findMany({
-          where: { handId: hand.id },
-          include: { user: true },
-          orderBy: { createdAt: 'asc' },
-        });
-
-        const settlements = await this.prisma.settlement.findMany({
-          where: { handId: hand.id },
-        });
-
-        const playerActions = new Map<
-          string,
-          { bet: number; fold: boolean; allIn: boolean }
-        >();
-        for (const action of handActions) {
-          if (!playerActions.has(action.userId)) {
-            playerActions.set(action.userId, {
-              bet: 0,
-              fold: false,
-              allIn: false,
-            });
-          }
-          const pa = playerActions.get(action.userId)!;
-          if (action.action === 'FOLD') {
-            pa.fold = true;
-          } else if (action.action === 'ALLIN') {
-            pa.allIn = true;
-            pa.bet += action.amount;
-          } else {
-            pa.bet += action.amount;
-          }
-        }
-
-        const playerEntries = playerActions.entries();
-        const players = await Promise.all(
-          [...playerEntries].map(async ([pid, pa]) => {
-            const user = handActions.find((a) => a.userId === pid)?.user;
-            const settlement = settlements.find((s) => s.userId === pid);
-            const netProfit = (settlement?.amount ?? 0) - pa.bet;
-
-            let holeCards: string[] = [];
-            let finalHand = '弃牌';
-            let winAmount = 0;
-
-            if (!pa.fold && hand.table.stateSnapshot) {
-              try {
-                const snapshot = JSON.parse(hand.table.stateSnapshot);
-                const playerData = snapshot.players?.find(
-                  (p: any) => p?.id === pid,
-                );
-                if (playerData) {
-                  holeCards = playerData.cards || [];
-                  if (snapshot.communityCards?.length >= 3) {
-                    const score = bestHandFrom(
-                      holeCards,
-                      snapshot.communityCards,
-                    );
-                    finalHand = score.name;
-                  }
-                }
-                if (settlement) {
-                  winAmount = settlement.amount;
-                }
-              } catch {
-                holeCards = ['??', '??'];
-              }
-            }
-
-            return {
-              id: pid,
-              nickname: user?.nickname ?? user?.username ?? 'Unknown',
-              holeCards,
-              finalHand,
-              winAmount,
-              netProfit,
-            };
-          }),
-        );
-
-        let communityCards: string[] = [];
-        if (hand.table.stateSnapshot) {
-          try {
-            const snapshot = JSON.parse(hand.table.stateSnapshot);
-            communityCards = snapshot.communityCards || [];
-          } catch {
-            communityCards = [];
-          }
-        }
-
-        return {
-          handId: hand.id,
-          roomName: hand.table.room?.name ?? 'Unknown Room',
-          date: hand.createdAt.toISOString(),
-          players,
-          communityCards,
-          pot: hand.potSize,
-          winnerId: hand.winnerId,
-        };
-      }),
-    );
+    return hands.map((hand) => this.parseHandToHistoryEntry(hand));
   }
 
   async getHandDetail(handId: string): Promise<HandHistoryEntry | null> {
@@ -175,84 +179,7 @@ export class HandHistoryService {
       return null;
     }
 
-    const playerActions = new Map<string, { bet: number; fold: boolean }>();
-    for (const action of hand.actions) {
-      if (!playerActions.has(action.userId)) {
-        playerActions.set(action.userId, { bet: 0, fold: false });
-      }
-      const pa = playerActions.get(action.userId)!;
-      if (action.action === 'FOLD') {
-        pa.fold = true;
-      } else {
-        pa.bet += action.amount;
-      }
-    }
-
-    const settlements = await this.prisma.settlement.findMany({
-      where: { handId: hand.id },
-    });
-
-    const players = await Promise.all(
-      [...playerActions.entries()].map(async ([pid, pa]) => {
-        const user = hand.actions.find((a) => a.userId === pid)?.user;
-        const settlement = settlements.find((s) => s.userId === pid);
-        const netProfit = (settlement?.amount ?? 0) - pa.bet;
-
-        let holeCards: string[] = [];
-        let finalHand = '弃牌';
-        let winAmount = 0;
-
-        if (!pa.fold && hand.table.stateSnapshot) {
-          try {
-            const snapshot = JSON.parse(hand.table.stateSnapshot);
-            const playerData = snapshot.players?.find(
-              (p: any) => p?.id === pid,
-            );
-            if (playerData) {
-              holeCards = playerData.cards || [];
-              if (snapshot.communityCards?.length >= 3) {
-                const score = bestHandFrom(holeCards, snapshot.communityCards);
-                finalHand = score.name;
-              }
-            }
-            if (settlement) {
-              winAmount = settlement.amount;
-            }
-          } catch {
-            holeCards = ['??', '??'];
-          }
-        }
-
-        return {
-          id: pid,
-          nickname: user?.nickname ?? user?.username ?? 'Unknown',
-          holeCards,
-          finalHand,
-          winAmount,
-          netProfit,
-        };
-      }),
-    );
-
-    let communityCards: string[] = [];
-    if (hand.table.stateSnapshot) {
-      try {
-        const snapshot = JSON.parse(hand.table.stateSnapshot);
-        communityCards = snapshot.communityCards || [];
-      } catch {
-        communityCards = [];
-      }
-    }
-
-    return {
-      handId: hand.id,
-      roomName: hand.table.room?.name ?? 'Unknown Room',
-      date: hand.createdAt.toISOString(),
-      players,
-      communityCards,
-      pot: hand.potSize,
-      winnerId: hand.winnerId,
-    };
+    return this.parseHandToHistoryEntry(hand);
   }
 
   exportToText(history: HandHistoryEntry[]): string {
