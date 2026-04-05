@@ -34,8 +34,8 @@ services:
     volumes:
       - backend_uploads:/repo/apps/backend/uploads
     networks:
-      - texas-network
-          ipv4_address: 172.28.0.11
+      texas-network:
+        ipv4_address: 172.28.0.11
 
   web:
     build:
@@ -61,8 +61,8 @@ services:
       retries: 8
       start_period: 40s
     networks:
-      - texas-network
-          ipv4_address: 172.28.0.10
+      texas-network:
+        ipv4_address: 172.28.0.10
 
   admin:
     build:
@@ -88,8 +88,8 @@ services:
       retries: 8
       start_period: 40s
     networks:
-      - texas-network
-          ipv4_address: 172.28.0.12
+      texas-network:
+        ipv4_address: 172.28.0.12
 
   postgres:
     image: postgres:16-alpine
@@ -110,8 +110,8 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - texas-network
-          ipv4_address: 172.28.0.13
+      texas-network:
+        ipv4_address: 172.28.0.13
 
   redis:
     image: redis:7-alpine
@@ -127,8 +127,8 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - texas-network
-          ipv4_address: 172.28.0.14
+      texas-network:
+        ipv4_address: 172.28.0.14
 
   nginx:
     image: nginx:alpine

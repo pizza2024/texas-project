@@ -74,7 +74,7 @@
     "@nestjs/testing": "^11.0.1",
     "@nomicfoundation/hardhat-ethers": "^4.0.6",
     "@nomicfoundation/hardhat-toolbox": "^7.0.0",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@prisma/client": "^5.10.2",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",

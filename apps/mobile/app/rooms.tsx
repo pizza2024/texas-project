@@ -161,6 +161,12 @@ export default function RoomsScreen() {
           <TouchableOpacity style={styles.depositBtn} onPress={() => router.push('/deposit')}>
             <Text style={styles.depositBtnText}>{t('common.deposit')}</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.withdrawBtn} onPress={() => router.push('/withdraw')}>
+            <Text style={styles.withdrawBtnText}>↙ {t('common.withdraw')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.historyBtn} onPress={() => router.push('/hands')}>
+            <Text style={styles.historyBtnText}>🃏</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push('/settings')}>
             <Text style={styles.settingsBtnText}>⚙️</Text>
           </TouchableOpacity>
@@ -264,10 +270,26 @@ const styles = StyleSheet.create({
   depositBtn: {
     backgroundColor: '#16a34a',
     borderRadius: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
   },
   depositBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  withdrawBtn: {
+    backgroundColor: 'rgba(239,68,68,0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.4)',
+  },
+  withdrawBtnText: { color: '#ef4444', fontWeight: 'bold', fontSize: 12 },
+  historyBtn: {
+    backgroundColor: 'rgba(74,222,128,0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  historyBtnText: { fontSize: 16 },
   settingsBtn: {
     backgroundColor: '#1f2937',
     borderRadius: 8,
