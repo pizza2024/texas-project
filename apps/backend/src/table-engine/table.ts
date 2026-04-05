@@ -171,7 +171,7 @@ export class Table {
     table.isFoldWin = snapshot.isFoldWin ?? false;
     table.foldWinnerRevealed = snapshot.foldWinnerRevealed ?? false;
     table.straddle = snapshot.straddle ?? null;
-    table.calledAllIn = (snapshot as any).calledAllIn ?? null;
+    table.calledAllIn = snapshot.calledAllIn ?? null;
     table.sittingOutTimeout = config?.sittingOutTimeout ?? 30000;
     table.lastSitoutAutoFold = null;
     return table;
