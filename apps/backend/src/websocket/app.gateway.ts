@@ -237,18 +237,30 @@ export class AppGateway
     this.actionTimers.clear();
   }
 
-  /** Broadcast masked table state to every socket in the room individually. */
+  /** Broadcast masked table state to every socket in the room individually.
+   * Optimized: group sockets by userId so getMaskedView() is only called once per user.
+   * This matters when one user has multiple open sockets (multi-device).
+   */
   private async broadcastTableState(
     roomId: string,
     table: import('../table-engine/table').Table,
   ) {
     const sockets = await this.server.in(roomId).fetchSockets();
+
+    // Group sockets by userId so we compute masked view once per user
+    const socketsByUser = new Map<string | undefined, typeof sockets>();
     for (const socket of sockets) {
       const userId = socket.data.user?.sub as string | undefined;
-      socket.emit(
-        'room_update',
-        userId ? table.getMaskedView(userId) : table.getMaskedView(''),
-      );
+      const list = socketsByUser.get(userId) ?? [];
+      list.push(socket);
+      socketsByUser.set(userId, list);
+    }
+
+    for (const [userId, userSockets] of socketsByUser) {
+      const view = userId ? table.getMaskedView(userId) : table.getMaskedView('');
+      for (const socket of userSockets) {
+        socket.emit('room_update', view);
+      }
     }
   }
 
