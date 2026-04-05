@@ -57,6 +57,8 @@ export class AppGateway
   private static readonly READY_COUNTDOWN_MS = 5000;
   private static readonly ACTION_DURATION_MS = 20000;
   private static readonly SOLO_READY_COUNTDOWN_MS = 10000;
+  private static readonly RATE_LIMIT_WINDOW_MS = 1000; // 1-second sliding window
+  private static readonly RATE_LIMIT_MAX_ACTIONS = 10; // max 10 messages per window per user
 
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('AppGateway');
@@ -74,6 +76,8 @@ export class AppGateway
    * overlapping join/leave flows that can lead to multi-room membership.
    */
   private userLocks = new Map<string, Promise<void>>();
+  /** Sliding-window rate limiter: userId -> { count, windowStart } */
+  private rateLimits = new Map<string, { count: number; windowStart: number }>();
 
 
   constructor(
@@ -154,6 +158,31 @@ export class AppGateway
       ),
     );
     return outer;
+  }
+
+  /**
+   * Sliding-window rate limit check for WebSocket message throughput.
+   * Returns true if the user is within the rate limit; emits a rate_limited
+   * event and returns false if exceeded.
+   */
+  private checkRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const entry = this.rateLimits.get(userId);
+    const windowStart = entry?.windowStart ?? now;
+    const count = entry?.count ?? 0;
+
+    // Reset window if expired (>1s elapsed)
+    if (now - windowStart > AppGateway.RATE_LIMIT_WINDOW_MS) {
+      this.rateLimits.set(userId, { count: 1, windowStart: now });
+      return true;
+    }
+
+    if (count >= AppGateway.RATE_LIMIT_MAX_ACTIONS) {
+      return false;
+    }
+
+    this.rateLimits.set(userId, { count: count + 1, windowStart });
+    return true;
   }
 
   private handleRoomCreated = (room: RoomCreatedPayload) => {
@@ -674,6 +703,12 @@ export class AppGateway
     const { roomId, password } = data;
     const userId = client.data.user?.sub as string;
 
+    // Rate limit join attempts to prevent room enumeration
+    if (!this.checkRateLimit(userId)) {
+      client.emit('rate_limited', { message: 'Too many join attempts, please slow down' });
+      return;
+    }
+
     return this.withUserLock(userId, async () => {
       const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
       if (currentRoomId && currentRoomId !== roomId) {
@@ -825,6 +860,15 @@ export class AppGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { action: string; amount?: number; roomId: string },
   ) {
+    const userId = client.data.user?.sub as string | undefined;
+    if (!userId) return;
+
+    // Rate limit check
+    if (!this.checkRateLimit(userId)) {
+      client.emit('rate_limited', { message: 'Too many actions, please slow down' });
+      return;
+    }
+
     return this.withRoomLock(data.roomId, async () => {
       const table = await this.tableManager.getTable(data.roomId);
       if (!table) return;
