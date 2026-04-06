@@ -20,8 +20,18 @@ export interface HandScore {
   bestCards: string[];
 }
 
+/** Valid card format: rank (2-9,T,J,Q,K,A) + suit (s,h,d,c), e.g. "AS", "TH", "2C" */
+const VALID_SUITS = new Set(['s', 'h', 'd', 'c']);
+
+function isValidCard(card: string): boolean {
+  if (typeof card !== 'string' || card.length < 2 || card.length > 3) return false;
+  const suit = card.slice(-1).toLowerCase();
+  const rank = card.slice(0, -1).toUpperCase();
+  return VALID_SUITS.has(suit) && rank in RANK_VALUES;
+}
+
 function parseRank(card: string): number {
-  return RANK_VALUES[card.slice(0, -1)];
+  return RANK_VALUES[card.slice(0, -1).toUpperCase()];
 }
 
 function parseSuit(card: string): string {
@@ -29,6 +39,14 @@ function parseSuit(card: string): string {
 }
 
 export function evaluate5(cards: string[]): HandScore {
+  if (cards.length !== 5) {
+    throw new Error(`evaluate5 requires exactly 5 cards, got ${cards.length}`);
+  }
+  for (const card of cards) {
+    if (!isValidCard(card)) {
+      throw new Error(`Invalid card: "${card}"`);
+    }
+  }
   const ranks = cards.map(parseRank).sort((a, b) => b - a);
   const suits = cards.map(parseSuit);
 
@@ -157,6 +175,11 @@ function combinations(cards: string[], k: number): string[][] {
 export function evaluateHand(cards: string[]): HandScore {
   if (cards.length < 5 || cards.length > 7) {
     throw new Error(`evaluateHand requires 5–7 cards, got ${cards.length}`);
+  }
+  for (const card of cards) {
+    if (!isValidCard(card)) {
+      throw new Error(`Invalid card format: "${card}". Expected rank (2-9,T,J,Q,K,A) + suit (s,h,d,c), e.g. "AS"`);
+    }
   }
   if (cards.length === 5) return evaluate5(cards);
   // For 6–7 cards, pick the best 5-card combination
