@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
+import { randomInt } from 'crypto';
 
 export interface SendEmailOptions {
   to: string;
@@ -82,7 +83,7 @@ export class EmailService {
   }
 
   generateOtp(): string {
-    // 6-digit OTP
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    // 6-digit OTP using cryptographically secure random
+    return randomInt(100000, 999999).toString();
   }
 }
