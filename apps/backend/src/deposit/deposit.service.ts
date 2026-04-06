@@ -10,6 +10,7 @@ import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
+import { getHdWalletMnemonic } from '../config/jwt.config';
 
 // 不使用科学计数法，精度足够大
 BigNumber.config({ EXPONENTIAL_AT: 1e9, DECIMAL_PLACES: 18 });
@@ -56,7 +57,7 @@ export class DepositService {
     // index=0 保留给 owner 钱包（合约部署账户），用户地址从 1 开始
     const nextIndex = Math.max(1, (aggregate._max.index ?? 0) + 1);
 
-    const mnemonic = Mnemonic.fromPhrase(process.env.HD_WALLET_MNEMONIC!);
+    const mnemonic = Mnemonic.fromPhrase(getHdWalletMnemonic());
     const wallet = HDNodeWallet.fromMnemonic(
       mnemonic,
       `m/44'/60'/0'/0/${nextIndex}`,
@@ -94,9 +95,8 @@ export class DepositService {
       throw new ForbiddenException('Faucet is disabled');
     }
 
-    const mnemonicPhrase = process.env.HD_WALLET_MNEMONIC;
     const rpcUrl = process.env.ETH_RPC_URL;
-    if (!mnemonicPhrase || !rpcUrl) {
+    if (!rpcUrl) {
       throw new ForbiddenException('Faucet not configured');
     }
 
@@ -128,7 +128,7 @@ export class DepositService {
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     // 用助记词 index=0 派生 owner 钱包（即部署合约时使用的账户）
-    const mnemonic = Mnemonic.fromPhrase(mnemonicPhrase);
+    const mnemonic = Mnemonic.fromPhrase(getHdWalletMnemonic());
     const ownerWallet = HDNodeWallet.fromMnemonic(
       mnemonic,
       `m/44'/60'/0'/0/0`,

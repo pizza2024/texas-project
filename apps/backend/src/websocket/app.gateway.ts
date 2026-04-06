@@ -39,14 +39,12 @@ import { RedisService } from '../redis/redis.service';
 import { BotService } from '../bot/bot.service';
 import { WebSocketManager } from './websocket-manager';
 import { FriendService } from '../friend/friend.service';
+import { getAllowedOrigins } from '../config/jwt.config';
 
 @WebSocketGateway({
   namespace: '/ws',
   cors: {
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? (process.env.WS_ALLOWED_ORIGINS?.split(',') ?? false)
-        : '*',
+    origin: getAllowedOrigins(),
     credentials: true,
   },
   // Socket.IO application-level heartbeat

@@ -8,6 +8,7 @@ import { UserModule } from '../user/user.module';
 import { MatchmakingModule } from '../matchmaking/matchmaking.module';
 import { BotModule } from '../bot/bot.module';
 import { FriendModule } from '../friend/friend.module';
+import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { FriendModule } from '../friend/friend.module';
     BotModule,
     forwardRef(() => FriendModule),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secret',
+      secret: getJwtSecret(),
     }),
   ],
   providers: [AppGateway, WebSocketManager],

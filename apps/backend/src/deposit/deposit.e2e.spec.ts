@@ -112,10 +112,10 @@ describe('DepositService E2E', () => {
       );
     });
 
-    it('throws ForbiddenException when HD_WALLET_MNEMONIC is missing', async () => {
+    it('throws Error when HD_WALLET_MNEMONIC is missing', async () => {
       await setupModule({ HD_WALLET_MNEMONIC: '' });
       await expect(service.faucet('user-1')).rejects.toThrow(
-        ForbiddenException,
+        /HD_WALLET_MNEMONIC.*not set/i,
       );
     });
 

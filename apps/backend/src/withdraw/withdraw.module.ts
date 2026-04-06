@@ -10,6 +10,7 @@ import {
   AdminWithdrawController,
 } from './withdraw.controller';
 import { WithdrawService } from './withdraw.service';
+import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { WithdrawService } from './withdraw.service';
     NotificationModule,
     QueueModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'texas-holdem-secret',
+      secret: getJwtSecret(),
       signOptions: { expiresIn: '7d' },
     }),
   ],

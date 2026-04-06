@@ -11,11 +11,12 @@ import { AdminFinanceController } from './admin-finance.controller';
 import { AdminAnalyticsController } from './admin-analytics.controller';
 import { AdminSystemController } from './admin-system.controller';
 import { WebsocketModule } from '../websocket/websocket.module';
+import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'texas-holdem-secret',
+      secret: getJwtSecret(),
       signOptions: { expiresIn: '7d' },
     }),
     WebsocketModule,

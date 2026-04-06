@@ -9,6 +9,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { EmailModule } from '../email/email.module';
 import { RateLimitGuard } from './rate-limit.guard';
 import { TableEngineModule } from '../table-engine/table-engine.module';
+import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { TableEngineModule } from '../table-engine/table-engine.module';
     PassportModule,
     EmailModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secret',
+      secret: getJwtSecret(),
       signOptions: { expiresIn: '60m' },
     }),
   ],
