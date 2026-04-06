@@ -13,25 +13,14 @@ import { BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
 import { GameStage } from '../table-engine/table';
 import { AppGateway } from './app.gateway';
 
-// ---------------------------------------------------------------------------
-// Constants (moved from AppGateway)
-// ---------------------------------------------------------------------------
-
-const SOLO_READY_COUNTDOWN_MS = 10_000;
-const RATE_LIMIT_WINDOW_MS = 1_000;
-const RATE_LIMIT_MAX_ACTIONS = 10;
-const VALID_ACTIONS = new Set([
-  'fold',
-  'check',
-  'call',
-  'raise',
-  'allin',
-  'straddle',
-  'sit-out',
-]);
-
-/** Maximum sane chip amount per action — prevents floating-point abuse and integer overflow. */
-const MAX_CHIP_AMOUNT = 1_000_000_000; // 10亿，和 AdminService 保持一致
+import {
+  SOLO_READY_COUNTDOWN_MS,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_ACTIONS,
+  MAX_CHIP_AMOUNT,
+  VALID_ACTIONS_SET,
+  PlayerAction,
+} from './constants';
 
 // ---------------------------------------------------------------------------
 // Helper — rate-limit check (used by multiple handlers)
@@ -247,7 +236,7 @@ export async function handlePlayerAction(
   if (!userId) return;
 
   const action =
-    typeof data?.action === 'string' && VALID_ACTIONS.has(data.action)
+    typeof data?.action === 'string' && VALID_ACTIONS_SET.has(data.action as PlayerAction)
       ? data.action
       : null;
   const amount =

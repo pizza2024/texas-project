@@ -64,13 +64,14 @@ export class AppGateway
     OnModuleDestroy
 {
   // ── Constants ────────────────────────────────────────────────────────────
+  // Gateway-only constants
   static readonly DISCONNECT_GRACE_PERIOD_MS = 15_000;
   static readonly SETTLEMENT_DURATION_MS = 5_000;
   static readonly READY_COUNTDOWN_MS = 5_000;
   static readonly ACTION_DURATION_MS = 20_000;
-  static readonly SOLO_READY_COUNTDOWN_MS = 10_000;
-  static readonly RATE_LIMIT_WINDOW_MS = 1_000;
-  static readonly RATE_LIMIT_MAX_ACTIONS = 10;
+  // NOTE: SOLO_READY_COUNTDOWN_MS, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_ACTIONS
+  // are defined in ./constants.ts and imported directly by game.handler.ts.
+  // They are NOT exposed as AppGateway static properties (no external usage found).
 
   // ── WebSocket server ────────────────────────────────────────────────────
   @WebSocketServer() server: Server;
