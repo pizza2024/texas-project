@@ -483,10 +483,10 @@ export class WithdrawService {
       throw new Error(`Transfer failed: ${(err as Error).message}`);
     }
 
-    // Save txHash immediately
+    // Save txHash and fromAddress immediately for audit trail
     await this.prisma.withdrawRequest.update({
       where: { id: requestId },
-      data: { txHash: tx.hash },
+      data: { txHash: tx.hash, fromAddress: ownerWallet.address },
     });
 
     // Wait for 1 confirmation

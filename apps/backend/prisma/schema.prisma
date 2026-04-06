@@ -204,7 +204,7 @@ model WithdrawRequest {
   amountChips   Float
   amountUsdt    Float
   toAddress     String    // ETH address to receive USDT
-  fromAddress   String?   // System owner wallet used for transfer
+  fromAddress   String?   // System owner wallet used for transfer (set when tx is executed)
   status        String    @default("PENDING") // PENDING | PROCESSING | CONFIRMED | FAILED
   txHash        String?
   failureReason String?
