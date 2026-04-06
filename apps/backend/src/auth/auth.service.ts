@@ -76,7 +76,7 @@ export class AuthService {
       username: user.username,
       nickname: user.nickname,
       sub: user.id,
-      role: (user as any).role ?? 'PLAYER',
+      role: user.role ?? 'PLAYER',
       sessionId,
     };
     return {
