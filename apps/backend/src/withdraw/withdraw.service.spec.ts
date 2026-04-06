@@ -8,6 +8,8 @@ import { WithdrawService } from './withdraw.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
+import { NotificationService } from '../notification/notification.service';
+import { WithdrawQueueService } from '../queue/withdraw-queue.service';
 
 describe('WithdrawService', () => {
   let service: WithdrawService;
@@ -67,12 +69,27 @@ describe('WithdrawService', () => {
       ping: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
     };
 
+    // NotificationService mock: all methods are no-ops for testing
+    const mockNotificationService = {
+      sendAdminAlert: jest.fn().mockResolvedValue(undefined),
+      sendMessage: jest.fn().mockResolvedValue(undefined),
+    };
+
+    // WithdrawQueueService mock: enqueueWithdraw throws to force fallback to direct execution
+    const mockWithdrawQueue = {
+      enqueueWithdraw: jest.fn().mockRejectedValue(new Error('Queue unavailable')),
+      isInQueue: jest.fn().mockResolvedValue(false),
+      getStats: jest.fn().mockResolvedValue({ waiting: 0, active: 0, failed: 0 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WithdrawService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: WalletService, useValue: mockWalletService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: WithdrawQueueService, useValue: mockWithdrawQueue },
       ],
     }).compile();
 

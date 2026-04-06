@@ -11,6 +11,8 @@ import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
+import { NotificationService } from '../notification/notification.service';
+import { WithdrawQueueService, WITHDRAW_QUEUE_NAME } from '../queue/withdraw-queue.service';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { WithdrawRequest, Prisma } from '@prisma/client';
 
@@ -22,6 +24,10 @@ const USDT_TO_CHIPS_RATE = 100;
 const WITHDRAW_COOLDOWN_MS = 60_000; // 60 seconds
 const WITHDRAW_COOLDOWN_KEY = (userId: string) => `withdraw_cooldown:${userId}`;
 const MIN_WITHDRAW_CHIPS = 1000;
+
+// BullMQ retry configuration
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 30_000; // 30 seconds between retries
 
 const TRANSFER_ABI = [
   'function transfer(address to, uint256 amount) external returns (bool)',
@@ -45,6 +51,8 @@ export class WithdrawService {
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly redisService: RedisService,
+    private readonly notificationService: NotificationService,
+    private readonly withdrawQueue: WithdrawQueueService,
   ) {}
 
   private get usdtContractAddress(): string {
@@ -372,11 +380,18 @@ export class WithdrawService {
       },
     });
 
-    // Execute chain transfer asynchronously (fire-and-forget)
-    void this.executeChainWithdraw(id).catch((err: Error) => {
-      this.logger.error(`Chain withdraw failed for ${id}: ${err.message}`);
-      void this.handleWithdrawFailure(id, err.message);
-    });
+    // Add to BullMQ retry queue for chain transfer
+    // BullMQ will handle retries automatically; on final failure it calls handleWithdrawFailure
+    try {
+      await this.withdrawQueue.enqueueWithdraw(id);
+      this.logger.log(`Withdraw ${id} enqueued for chain transfer`);
+    } catch (err) {
+      // Queue unavailable — fall back to direct execution
+      this.logger.warn(`Queue unavailable, falling back to direct execution: ${(err as Error).message}`);
+      void this.executeChainWithdrawWithRetry(id, 1).catch((e: Error) => {
+        void this.handleWithdrawFailure(id, e.message);
+      });
+    }
 
     this.logger.log(`Withdraw approved and processing: id=${id}`);
     return updated;
@@ -510,6 +525,63 @@ export class WithdrawService {
     );
   }
 
+  /**
+   * Execute chain withdraw with retry tracking.
+   * Called by queue worker or as fallback when queue is unavailable.
+   * Throws on failure so BullMQ can handle retry logic.
+   */
+  async executeChainWithdrawWithRetry(
+    requestId: string,
+    attemptNumber: number,
+  ): Promise<string> {
+    try {
+      return await this.executeChainWithdraw(requestId);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.warn(
+        `Chain withdraw attempt ${attemptNumber}/${MAX_RETRY_ATTEMPTS} failed for ${requestId}: ${error.message}`,
+      );
+
+      if (attemptNumber >= MAX_RETRY_ATTEMPTS) {
+        // All retries exhausted — this will trigger handleWithdrawFailure via queue failure handler
+        throw error;
+      }
+
+      // Wait before retry (BullMQ handles this via backoff, but we also wait for direct calls)
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      return this.executeChainWithdrawWithRetry(requestId, attemptNumber + 1);
+    }
+  }
+
+  /**
+   * Handle withdraw failure after all retries are exhausted.
+   * Sends Telegram alert to admin, then refunds chips.
+   */
+  async handleWithdrawFailureAfterRetries(
+    requestId: string,
+    reason: string,
+  ): Promise<void> {
+    const request = await this.prisma.withdrawRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!request) return;
+    if (request.status === 'CONFIRMED' || request.status === 'FAILED') return;
+
+    // Send Telegram alert to admin
+    await this.notificationService.sendAdminAlert(
+      `⚠️ *提现链上转账失败（所有重试耗尽）*\n\n` +
+        `• Request ID: \`${requestId}\`\n` +
+        `• User: \`${request.userId}\`\n` +
+        `• Amount: \`${request.amountUsdt} USDT\` (\`${request.amountChips} chips\`)\n` +
+        `• To Address: \`${request.toAddress}\`\n` +
+        `• 失败原因: ${reason}\n\n` +
+        `💰 已自动退还用户chips。`,
+    );
+
+    await this.handleWithdrawFailure(requestId, reason);
+  }
+
   /** Periodic check for stale PROCESSING requests (should not happen normally) */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkStaleProcessing(): Promise<void> {
@@ -521,13 +593,19 @@ export class WithdrawService {
 
     for (const request of stale) {
       if (!request.txHash) {
-        // No tx hash means transfer never started — retry
+        // No tx hash means transfer never started — re-enqueue for retry
         this.logger.warn(
-          `Stale PROCESSING request without txHash: ${request.id}, retrying...`,
+          `Stale PROCESSING request without txHash: ${request.id}, re-enqueuing...`,
         );
-        void this.executeChainWithdraw(request.id).catch((err: Error) => {
-          void this.handleWithdrawFailure(request.id, err.message);
-        });
+        try {
+          await this.withdrawQueue.enqueueWithdraw(request.id);
+        } catch (err) {
+          // Queue unavailable — fall back to direct retry
+          this.logger.warn(`Queue unavailable for stale request: ${(err as Error).message}`);
+          void this.executeChainWithdrawWithRetry(request.id, 1).catch((e: Error) => {
+            void this.handleWithdrawFailure(request.id, e.message);
+          });
+        }
       }
     }
   }
