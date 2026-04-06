@@ -753,10 +753,6 @@ export class Table {
       activePlayer.status = PlayerStatus.ALLIN;
     }
 
-    if (activePlayer.stack === 0) {
-      activePlayer.status = PlayerStatus.ALLIN;
-    }
-
     this.straddle = {
       playerId: activePlayer.id,
       amount: straddleAmount,
