@@ -219,7 +219,7 @@ export default function RoomPage() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, styles.allInBtn]}
-              onPress={() => sendAction('all-in')}
+              onPress={() => sendAction('allin')}
             >
               <Text style={styles.actionText}>全下</Text>
             </TouchableOpacity>
