@@ -293,13 +293,20 @@ export class MatchmakingService implements OnModuleInit {
     if (userHandIds.length === 0) return false;
     const handIds = userHandIds.map((h) => h.handId);
 
-    for (const otherId of otherUserIds) {
-      const sharedCount = await this.prisma.handAction.count({
-        where: { userId: otherId, handId: { in: handIds } },
-      });
-      if (sharedCount > COLLUSION_HAND_THRESHOLD) {
+    // N+1 fix: replace per-user loop with a single groupBy query
+    const counts = await this.prisma.handAction.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: otherUserIds },
+        handId: { in: handIds },
+      },
+      _count: { handId: true },
+    });
+
+    for (const row of counts) {
+      if (row._count.handId > COLLUSION_HAND_THRESHOLD) {
         this.logger.warn(
-          `Collusion risk: ${userId} & ${otherId} shared ${sharedCount} hands in 24h`,
+          `Collusion risk: ${userId} & ${row.userId} shared ${row._count.handId} hands in 24h`,
         );
         return true;
       }

@@ -688,6 +688,7 @@ export class AppGateway
         `Connection rejected: invalid token from ${client.handshake.address}: ${(e as Error).message}`,
       );
       client.disconnect();
+      return;
     }
   }
 
