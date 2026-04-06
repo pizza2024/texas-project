@@ -12,6 +12,12 @@ import * as bcrypt from 'bcrypt';
 import { BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
 import { GameStage } from '../table-engine/table';
 import { AppGateway } from './app.gateway';
+import { validate } from './validate';
+import {
+  JoinRoomSchema,
+  PlayerActionSchema,
+  QuickMatchSchema,
+} from '@texas/shared/validation';
 
 import {
   SOLO_READY_COUNTDOWN_MS,
@@ -54,7 +60,11 @@ export async function handleJoinRoom(
   client: Socket,
   data: { roomId: string; password?: string },
 ) {
-  const { roomId, password } = data;
+  const validated = validate(JoinRoomSchema, data, client, 'join_room');
+  if (!validated) {
+    return { event: 'error', data: 'Invalid request' };
+  }
+  const { roomId, password } = validated;
   const userId = client.data.user?.sub as string;
 
   if (!checkRateLimit(gateway, userId)) {
@@ -232,22 +242,21 @@ export async function handlePlayerAction(
   client: Socket,
   data: { action: unknown; amount?: unknown; roomId?: unknown },
 ) {
+  const validated = validate(PlayerActionSchema, data, client, 'player_action');
+  if (!validated) {
+    return { event: 'error', data: 'Invalid request' };
+  }
+
   const userId = client.data.user?.sub as string | undefined;
   if (!userId) return;
 
-  const action =
-    typeof data?.action === 'string' && VALID_ACTIONS_SET.has(data.action as PlayerAction)
-      ? data.action
-      : null;
-  const amount =
-    typeof data?.amount === 'number' &&
-    isFinite(data.amount) &&
-    data.amount >= 0 &&
-    Number.isInteger(data.amount) &&
-    data.amount <= MAX_CHIP_AMOUNT
-      ? (Object.is(data.amount, -0) ? 0 : data.amount)
-      : 0;
-  const roomId = typeof data?.roomId === 'string' ? data.roomId : null;
+  const action = validated.action;
+  const amount = validated.amount ?? 0;
+  // roomId is optional in schema - derive from user's current room if not provided
+  let roomId: string | null = validated.roomId ?? null;
+  if (!roomId) {
+    roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+  }
 
   if (!action || !roomId) {
     client.emit('error', { message: 'Invalid action or roomId' });
@@ -342,10 +351,15 @@ export async function handleQuickMatch(
   client: Socket,
   data: { tier: BlindTier },
 ) {
+  const validated = validate(QuickMatchSchema, data, client, 'quick_match');
+  if (!validated) {
+    return { event: 'error', data: 'Invalid request' };
+  }
+
   const userId = client.data.user?.sub as string;
   if (!userId) return { event: 'error', data: 'Unauthorized' };
 
-  const tier = data?.tier;
+  const tier = validated.tier;
   if (!tier || !BLIND_TIERS[tier]) {
     client.emit('match_error', { message: 'Invalid tier' });
     return;
