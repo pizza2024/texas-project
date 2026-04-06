@@ -43,6 +43,10 @@ import {
   handleQuickMatch,
   handleShowCards,
 } from './game.handler';
+import {
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_ACTIONS,
+} from './constants';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -99,6 +103,41 @@ export class AppGateway
 
   // ── Rate limiter (public so handlers can check it) ────────────────────
   rateLimits = new Map<string, { count: number; windowStart: number }>();
+
+  /**
+   * Redis-backed rate limit check with in-memory Map fallback.
+   * Redis key: ws_rate:{userId} — TTL = RATE_LIMIT_WINDOW_MS in seconds
+   * Falls back to in-memory Map if Redis is unavailable.
+   */
+  async checkRateLimit(userId: string): Promise<boolean> {
+    const windowSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);
+    const count = await this.redisService.incr(
+      `ws_rate:${userId}`,
+      windowSec,
+    );
+
+    if (count !== null) {
+      return count <= RATE_LIMIT_MAX_ACTIONS;
+    }
+
+    // Redis unavailable — fall back to in-memory Map (original behaviour)
+    const now = Date.now();
+    const entry = this.rateLimits.get(userId);
+    const windowStart = entry?.windowStart ?? now;
+    const cnt = entry?.count ?? 0;
+
+    if (now - windowStart > RATE_LIMIT_WINDOW_MS) {
+      this.rateLimits.set(userId, { count: 1, windowStart: now });
+      return true;
+    }
+
+    if (cnt >= RATE_LIMIT_MAX_ACTIONS) {
+      return false;
+    }
+
+    this.rateLimits.set(userId, { count: cnt + 1, windowStart });
+    return true;
+  }
 
   // ── Injected services ───────────────────────────────────────────────────
   constructor(

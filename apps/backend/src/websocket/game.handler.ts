@@ -21,35 +21,12 @@ import {
 
 import {
   SOLO_READY_COUNTDOWN_MS,
-  RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_ACTIONS,
   MAX_CHIP_AMOUNT,
   VALID_ACTIONS_SET,
   PlayerAction,
 } from './constants';
 
-// ---------------------------------------------------------------------------
-// Helper — rate-limit check (used by multiple handlers)
-// ---------------------------------------------------------------------------
 
-function checkRateLimit(gateway: AppGateway, userId: string): boolean {
-  const now = Date.now();
-  const entry = gateway.rateLimits.get(userId);
-  const windowStart = entry?.windowStart ?? now;
-  const count = entry?.count ?? 0;
-
-  if (now - windowStart > RATE_LIMIT_WINDOW_MS) {
-    gateway.rateLimits.set(userId, { count: 1, windowStart: now });
-    return true;
-  }
-
-  if (count >= RATE_LIMIT_MAX_ACTIONS) {
-    return false;
-  }
-
-  gateway.rateLimits.set(userId, { count: count + 1, windowStart });
-  return true;
-}
 
 // ---------------------------------------------------------------------------
 // Handler: join_room
@@ -67,7 +44,7 @@ export async function handleJoinRoom(
   const { roomId, password } = validated;
   const userId = client.data.user?.sub as string;
 
-  if (!checkRateLimit(gateway, userId)) {
+  if (!await gateway.checkRateLimit(userId)) {
     client.emit('rate_limited', {
       message: 'Too many join attempts, please slow down',
     });
@@ -263,7 +240,7 @@ export async function handlePlayerAction(
     return;
   }
 
-  if (!checkRateLimit(gateway, userId)) {
+  if (!await gateway.checkRateLimit(userId)) {
     client.emit('rate_limited', {
       message: 'Too many actions, please slow down',
     });
