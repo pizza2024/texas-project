@@ -21,6 +21,8 @@ export class TableManagerService implements OnModuleInit {
   // Deduplicate concurrent getTable calls for the same roomId to prevent
   // multiple Table instances being created for the same room.
   private pendingGetTable: Map<string, Promise<Table | undefined>> = new Map();
+  // O(1) userId → roomId lookup index, updated on join/leave/recovery.
+  private userRooms = new Map<string, string>();
 
   constructor(
     private roomService: RoomService,
@@ -140,6 +142,11 @@ export class TableManagerService implements OnModuleInit {
                 roomPassword,
               );
           this.tables.set(roomId, table);
+
+          // Populate userRooms index from recovered players (handles server restart).
+          for (const player of table.players) {
+            if (player) this.userRooms.set(player.id, roomId);
+          }
         }
         return this.tables.get(roomId);
       });
@@ -314,6 +321,25 @@ export class TableManagerService implements OnModuleInit {
     isMatchmaking: boolean;
     isInActiveGame: boolean;
   } | null> {
+    // Fast path: O(1) in-memory index
+    const roomId = this.userRooms.get(userId);
+    if (roomId) {
+      const table = this.tables.get(roomId);
+      if (table) {
+        const room = await this.roomService.findOne(roomId);
+        return {
+          roomId,
+          isMatchmaking: room?.isMatchmaking ?? false,
+          isInActiveGame: table.currentStage !== GameStage.WAITING,
+        };
+      }
+      // Indexed roomId but Table not in memory — clean up stale index entry
+      this.userRooms.delete(userId);
+    }
+
+    // Secondary fallback: scan in-memory tables directly
+    // (covers cases where players were added without going through registerPlayerRoom,
+    // e.g. test scenarios or recovery paths)
     for (const [roomId, table] of this.tables.entries()) {
       if (table.hasPlayer(userId)) {
         const room = await this.roomService.findOne(roomId);
@@ -325,6 +351,7 @@ export class TableManagerService implements OnModuleInit {
       }
     }
 
+    // Tertiary fallback: check persisted tables (covers server restart recovery)
     const persistedTables = await this.prisma.table.findMany({
       where: { stateSnapshot: { not: null } },
       select: {
@@ -348,6 +375,11 @@ export class TableManagerService implements OnModuleInit {
     return null;
   }
 
+  /** Register a player as seated in a room (called after successful join). */
+  registerPlayerRoom(userId: string, roomId: string): void {
+    this.userRooms.set(userId, roomId);
+  }
+
   async leaveCurrentRoom(userId: string): Promise<{
     roomId: string;
     dissolved: boolean;
@@ -368,6 +400,7 @@ export class TableManagerService implements OnModuleInit {
 
     const removedPlayer = table.removePlayer(userId);
     if (removedPlayer) {
+      this.userRooms.delete(removedPlayer.id);
       await this.walletService.setBalance(
         removedPlayer.id,
         removedPlayer.stack,

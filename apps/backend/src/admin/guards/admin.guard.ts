@@ -6,14 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(
-    private jwtService: JwtService,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -29,15 +25,16 @@ export class AdminGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-    });
-    if (!user) throw new UnauthorizedException('User not found');
-    if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+    // Role is embedded in JWT payload at login time — no DB round-trip needed.
+    // If an admin is demoted mid-session the token remains valid until expiry
+    // (typically ≤ 1 h), which is an acceptable security tradeoff vs the cost of
+    // a DB query on every admin API call.
+    const role: string = payload.role ?? 'PLAYER';
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
       throw new ForbiddenException('Admin access required');
     }
 
-    request.admin = { ...payload, role: user.role };
+    request.admin = { ...payload, role };
     return true;
   }
 }

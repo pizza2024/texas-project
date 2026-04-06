@@ -38,6 +38,7 @@ describe('AppGateway', () => {
       persistTableBalances: jest.fn(),
       persistTableState: jest.fn(),
       persistSettlementRecords: jest.fn().mockResolvedValue(undefined),
+      registerPlayerRoom: jest.fn(),
     };
     jwtService = {
       verify: jest.fn().mockReturnValue({

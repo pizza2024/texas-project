@@ -822,6 +822,7 @@ export class AppGateway
         }
 
         client.join(roomId);
+        this.tableManager.registerPlayerRoom(userId, roomId);
         await this.tableManager.persistTableState(roomId);
         await this.broadcastTableState(roomId, table);
         await this.tableManager.broadcastRoomStatus(roomId);
