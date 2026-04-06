@@ -385,7 +385,14 @@ export class AdminService {
   }
 
   async getRevenueByPeriod(period: 'day' | 'week' | 'month' = 'day', n = 30) {
-    // Compute start/end of the range
+    // Whitelist: complete SQL strings for each period — no dynamic SQL construction,
+    // eliminating any risk of SQL injection from the period parameter
+    const QUERY_BY_PERIOD: Record<string, string> = {
+      day: `SELECT DATE("createdAt")::text AS date, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS amount FROM transactions WHERE "createdAt" >= $1 AND "createdAt" <= $2 GROUP BY DATE("createdAt") ORDER BY date ASC`,
+      week: `SELECT DATE(DATE_TRUNC('week', "createdAt"))::text AS date, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS amount FROM transactions WHERE "createdAt" >= $1 AND "createdAt" <= $2 GROUP BY DATE(DATE_TRUNC('week', "createdAt")) ORDER BY date ASC`,
+      month: `SELECT TO_CHAR("createdAt", 'YYYY-MM')::text AS date, COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS amount FROM transactions WHERE "createdAt" >= $1 AND "createdAt" <= $2 GROUP BY TO_CHAR("createdAt", 'YYYY-MM') ORDER BY date ASC`,
+    };
+
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
     const startDate = new Date();
@@ -395,31 +402,14 @@ export class AdminService {
     else startDate.setMonth(startDate.getMonth() - (n - 1));
     startDate.setHours(0, 0, 0, 0);
 
-    // Determine the GROUP BY expression and date format based on period
-    let groupByExpr: string;
-    let dateFormat: string;
-    if (period === 'day') {
-      groupByExpr = 'DATE("createdAt")';
-      dateFormat = 'YYYY-MM-DD';
-    } else if (period === 'week') {
-      groupByExpr = 'DATE(DATE_TRUNC(\'week\', "createdAt"))';
-      dateFormat = 'YYYY-MM-DD';
-    } else {
-      groupByExpr = 'TO_CHAR("createdAt", \'YYYY-MM\')';
-      dateFormat = 'YYYY-MM';
-    }
+    const sql = QUERY_BY_PERIOD[period];
+    if (!sql) throw new Error(`Invalid period: ${period}`);
 
-    const rows = await this.prisma.$queryRaw<
-      { date: string; amount: number }[]
-    >`
-      SELECT ${groupByExpr}::text AS date,
-             COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::float AS amount
-      FROM transactions
-      WHERE "createdAt" >= ${startDate}
-        AND "createdAt" <= ${endDate}
-      GROUP BY ${groupByExpr}
-      ORDER BY date ASC
-    `;
+    const rows = await (this.prisma.$queryRawUnsafe as (
+      sql: string,
+      ...args: (string | number | boolean | Date | null)[]
+    ) => Promise<{ date: string; amount: number }[]>)
+    (sql, startDate, endDate);
 
     const amountMap = new Map<string, number>();
     for (const row of rows) {
