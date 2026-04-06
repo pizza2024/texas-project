@@ -7,6 +7,7 @@ import {
   Alert,
   StyleSheet,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getSocket, disconnectSocket } from '../../lib/socket';
@@ -62,8 +63,9 @@ export default function RoomPage() {
   const router = useRouter();
   const [table, setTable] = useState<TableState | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [betAmount, setBetAmount] = useState(0);
+  const [betAmount, setBetAmount] = useState<string>('');
   const tokenRef = useRef<string | null>(null);
+  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
 
   const getAuthorizedSocket = useCallback(() => {
     if (!tokenRef.current) return null;
@@ -86,7 +88,8 @@ export default function RoomPage() {
         } catch { /* ignore */ }
       }
 
-      const socket = getSocket(token);
+      socketRef.current = getSocket(token);
+      const socket = socketRef.current;
 
       socket.on('room_update', (data) => {
         if (mounted) setTable(data);
@@ -101,12 +104,13 @@ export default function RoomPage() {
     connect();
     return () => {
       mounted = false;
-      getAuthorizedSocket()?.emit('leave_room', { roomId: id });
+      socketRef.current?.emit('leave_room', { roomId: id });
+      socketRef.current = null;
     };
   }, [id]);
 
   const sendAction = (action: string, amount?: number) => {
-    const socket = getAuthorizedSocket();
+    const socket = socketRef.current;
     if (!socket) return;
     socket.emit('player_action', { roomId: id, action, amount });
   };
@@ -123,6 +127,7 @@ export default function RoomPage() {
 
   const callAmount = table ? table.currentBet - (myPlayer?.bet ?? 0) : 0;
   const minRaise = table ? table.currentBet + table.bigBlind : 0;
+  const effectiveRaiseAmount = Math.max(Number(betAmount) || minRaise, minRaise);
 
   if (!table) {
     return (
@@ -198,17 +203,46 @@ export default function RoomPage() {
             )}
           </View>
           <View style={styles.actionRow}>
+            <TextInput
+              style={styles.betInput}
+              placeholder={`最小${minRaise}`}
+              placeholderTextColor="#6b7280"
+              keyboardType="numeric"
+              value={betAmount}
+              onChangeText={setBetAmount}
+            />
             <TouchableOpacity
               style={[styles.actionBtn, styles.raiseBtn]}
-              onPress={() => sendAction('raise', Math.max(betAmount, minRaise))}
+              onPress={() => sendAction('raise', effectiveRaiseAmount)}
             >
-              <Text style={styles.actionText}>加注 {Math.max(betAmount, minRaise)}</Text>
+              <Text style={styles.actionText}>加注 {effectiveRaiseAmount}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, styles.allInBtn]}
               onPress={() => sendAction('all-in')}
             >
               <Text style={styles.actionText}>全下</Text>
+            </TouchableOpacity>
+          </View>
+          {/* 快捷金额按钮 */}
+          <View style={styles.quickBetRow}>
+            <TouchableOpacity
+              style={styles.quickBetBtn}
+              onPress={() => setBetAmount(String(minRaise))}
+            >
+              <Text style={styles.quickBetText}>最小加注</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickBetBtn}
+              onPress={() => setBetAmount(String((myPlayer?.stack ?? 0) * 2))}
+            >
+              <Text style={styles.quickBetText}>x2</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickBetBtn}
+              onPress={() => setBetAmount(String(myPlayer?.stack ?? 0))}
+            >
+              <Text style={styles.quickBetText}>全下</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -263,6 +297,27 @@ const styles = StyleSheet.create({
   playerBet: { color: '#fbbf24', fontSize: 12 },
   playerCards: { flexDirection: 'row' },
   actions: { padding: 10, backgroundColor: '#0d1f14', borderTopWidth: 1, borderTopColor: '#1a3a22' },
+  betInput: {
+    flex: 1,
+    backgroundColor: '#1a2e1a',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#e5e7eb',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#374151',
+    marginRight: 8,
+  },
+  quickBetRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  quickBetBtn: {
+    flex: 1,
+    backgroundColor: '#1f2937',
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  quickBetText: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
   actionRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   actionBtn: {
     flex: 1,
