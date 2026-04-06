@@ -357,16 +357,20 @@ export class AppGateway
       reject = rej;
     });
 
-    const prev = this.roomLocks.get(roomId) ?? Promise.resolve();
-    const next = prev.then(() => fn()).then(resolve, reject);
+    const prevLock = this.roomLocks.get(roomId) ?? Promise.resolve();
+
+    // Chain onto prevLock so that subsequent callers wait for this fn to finish.
+    // next resolves/rejects with fn's result; we re-export both outcomes to outer.
+    const next = prevLock.then(() => fn()).then(resolve, reject);
+
+    // Clean up AFTER fn settles — never before.
     next.finally(() => this.roomLocks.delete(roomId));
-    this.roomLocks.set(
-      roomId,
-      next.then(
-        () => {},
-        () => {},
-      ),
-    );
+
+    // Store a promise that absorbs fn's rejection so the Map entry NEVER
+    // stores a rejected promise. This prevents subsequent callers from
+    // seeing a rejected prev and short-circuiting the queue.
+    this.roomLocks.set(roomId, next.then(() => {}).catch(() => {}));
+
     return outer;
   }
 
@@ -378,16 +382,11 @@ export class AppGateway
       reject = rej;
     });
 
-    const prev = this.userLocks.get(userId) ?? Promise.resolve();
-    const next = prev.then(() => fn()).then(resolve, reject);
+    const prevLock = this.userLocks.get(userId) ?? Promise.resolve();
+    const next = prevLock.then(() => fn()).then(resolve, reject);
     next.finally(() => this.userLocks.delete(userId));
-    this.userLocks.set(
-      userId,
-      next.then(
-        () => {},
-        () => {},
-      ),
-    );
+    this.userLocks.set(userId, next.then(() => {}).catch(() => {}));
+
     return outer;
   }
 
@@ -449,37 +448,43 @@ export class AppGateway
     this.clearPendingDisconnect(userId);
 
     const timeout = setTimeout(async () => {
-      this.pendingDisconnects.delete(userId);
+      try {
+        this.pendingDisconnects.delete(userId);
 
-      if (await this.hasOtherActiveSocket(userId, '')) {
-        return;
-      }
-
-      const roomId = await this.tableManager.getUserCurrentRoomId(userId);
-      if (!roomId) return;
-
-      await this.withRoomLock(roomId, async () => {
-        const result = await this.tableManager.leaveCurrentRoom(userId);
-        if (!result) return;
-
-        if (result.dissolved) {
-          this.clearRoundTimers(roomId);
-        } else if (result.reachedSettlement) {
-          const table = await this.tableManager.getTable(roomId);
-          if (table) {
-            await this.schedulePostHandFlow(roomId, table);
-            await this.broadcastTableState(roomId, table);
-          }
-        } else {
-          const table = await this.tableManager.getTable(roomId);
-          if (table) {
-            if (this.isActionStage(table.currentStage)) {
-              await this.scheduleActionTimeout(roomId, table);
-            }
-            await this.broadcastTableState(roomId, table);
-          }
+        if (await this.hasOtherActiveSocket(userId, '')) {
+          return;
         }
-      });
+
+        const roomId = await this.tableManager.getUserCurrentRoomId(userId);
+        if (!roomId) return;
+
+        await this.withRoomLock(roomId, async () => {
+          const result = await this.tableManager.leaveCurrentRoom(userId);
+          if (!result) return;
+
+          if (result.dissolved) {
+            this.clearRoundTimers(roomId);
+          } else if (result.reachedSettlement) {
+            const table = await this.tableManager.getTable(roomId);
+            if (table) {
+              await this.schedulePostHandFlow(roomId, table);
+              await this.broadcastTableState(roomId, table);
+            }
+          } else {
+            const table = await this.tableManager.getTable(roomId);
+            if (table) {
+              if (this.isActionStage(table.currentStage)) {
+                await this.scheduleActionTimeout(roomId, table);
+              }
+              await this.broadcastTableState(roomId, table);
+            }
+          }
+        });
+      } catch (err) {
+        this.logger.error(
+          `scheduleDisconnectCleanup error for user ${userId}: ${(err as Error).message}`,
+        );
+      }
     }, AppGateway.DISCONNECT_GRACE_PERIOD_MS);
 
     this.pendingDisconnects.set(userId, timeout);
@@ -608,8 +613,14 @@ export class AppGateway
       await this.tableManager.persistTableState(roomId);
     }
 
-    const timer = setTimeout(() => {
-      void this.finalizeActionTimeout(roomId);
+    const timer = setTimeout(async () => {
+      try {
+        await this.finalizeActionTimeout(roomId);
+      } catch (err) {
+        this.logger.error(
+          `scheduleActionTimeout finalize error for room ${roomId}: ${(err as Error).message}`,
+        );
+      }
     }, durationMs);
 
     this.actionTimers.set(roomId, timer);
@@ -651,8 +662,14 @@ export class AppGateway
       await this.tableManager.persistTableState(roomId);
     }
 
-    const timer = setTimeout(() => {
-      void this.finalizeReadyCountdown(roomId);
+    const timer = setTimeout(async () => {
+      try {
+        await this.finalizeReadyCountdown(roomId);
+      } catch (err) {
+        this.logger.error(
+          `scheduleAutoStart finalize error for room ${roomId}: ${(err as Error).message}`,
+        );
+      }
     }, durationMs);
 
     this.autoStartTimers.set(roomId, timer);
@@ -698,8 +715,14 @@ export class AppGateway
       await this.tableManager.persistTableState(roomId);
     }
 
-    const timer = setTimeout(() => {
-      void this.finalizeSettlement(roomId);
+    const timer = setTimeout(async () => {
+      try {
+        await this.finalizeSettlement(roomId);
+      } catch (err) {
+        this.logger.error(
+          `schedulePostHandFlow settlement error for room ${roomId}: ${(err as Error).message}`,
+        );
+      }
     }, durationMs);
 
     this.settlementTimers.set(roomId, timer);
