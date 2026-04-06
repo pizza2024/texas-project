@@ -43,6 +43,10 @@ import { FriendService } from '../friend/friend.service';
         : '*',
     credentials: true,
   },
+  // Socket.IO application-level heartbeat
+  // Server sends ping every 25s, client must pong within 10s
+  pingInterval: 25_000,
+  pingTimeout: 10_000,
 })
 export class AppGateway
   implements
