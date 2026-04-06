@@ -102,14 +102,16 @@ export class AppGateway
     try {
       const friends = await this.friendService.getAcceptedFriends(userId);
 
-      for (const friend of friends) {
-        this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
-          friendUserId: userId,
-          friendNickname: friend.nickname,
-          friendAvatar: friend.avatar,
-          online,
-        });
-      }
+      await Promise.all(
+        friends.map((friend) =>
+          this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
+            friendUserId: userId,
+            friendNickname: friend.nickname,
+            friendAvatar: friend.avatar,
+            online,
+          }),
+        ),
+      );
     } catch (err) {
       this.logger.error('notifyFriendsOfStatusChange error', err);
     }
