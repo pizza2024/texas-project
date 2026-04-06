@@ -113,6 +113,9 @@ model Hand {
   settlements Settlement[]
 
   @@map("hands")
+  @@index([tableId])
+  @@index([winnerId, createdAt])
+  @@index([createdAt])
 }
 
 model HandAction {
@@ -127,8 +130,8 @@ model HandAction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("hand_actions")
-  @@index([handId])
-  @@index([userId])
+  @@index([handId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Settlement {
@@ -142,7 +145,7 @@ model Settlement {
 
   @@map("settlements")
   @@index([handId])
-  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model Transaction {
@@ -213,6 +216,7 @@ model WithdrawRequest {
   @@map("withdraw_requests")
   @@index([userId, status])
   @@index([status, createdAt])
+  @@index([fromAddress, createdAt])
 }
 
 model Friend {
