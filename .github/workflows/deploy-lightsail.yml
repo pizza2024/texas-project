@@ -195,6 +195,11 @@ jobs:
               docker system df || true
               $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging pull
             fi
+
+            # Remove any stale nginx container to avoid name conflicts on `up`
+            echo "Removing stale nginx container if any..."
+            docker rm -f texas-nginx || true
+
             $COMPOSE -f docker-compose.remote.yml --env-file docker/.env.staging up -d || {
               echo "Deploy failed, printing recent logs for diagnosis..."
               df -h /
