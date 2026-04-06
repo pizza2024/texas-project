@@ -41,18 +41,20 @@ export class AuthService {
     identifier: string,
     pass: string,
   ): Promise<Omit<User, 'password'> | null> {
-    const user = await this.userService.user({ username: identifier });
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
-    }
-    // Try email if username didn't match
+    // Optimize: identifiers containing '@' are emails, skip username lookup
     if (identifier.includes('@')) {
       const emailUser = await this.userService.findByEmail(identifier);
       if (emailUser && (await bcrypt.compare(pass, emailUser.password))) {
         const { password, ...result } = emailUser;
         return result;
       }
+      return null;
+    }
+
+    const user = await this.userService.user({ username: identifier });
+    if (user && (await bcrypt.compare(pass, user.password))) {
+      const { password, ...result } = user;
+      return result;
     }
     return null;
   }
