@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
 
 const OVERVIEW_CACHE_KEY = 'admin:overview';
@@ -40,7 +41,7 @@ export class AdminService {
   }) {
     const { page, limit, search, status } = query;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (search) {
       where.OR = [
         { username: { contains: search } },
@@ -180,7 +181,7 @@ export class AdminService {
   }) {
     const { page, limit, search, status } = query;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.RoomWhereInput = {};
     if (search) where.name = { contains: search };
     if (status) where.status = status;
 
@@ -207,7 +208,7 @@ export class AdminService {
     return room;
   }
 
-  async updateRoom(id: string, data: any) {
+  async updateRoom(id: string, data: Prisma.RoomUpdateInput) {
     return this.prisma.room.update({ where: { id }, data });
   }
 
@@ -221,7 +222,7 @@ export class AdminService {
     return this.prisma.room.delete({ where: { id } });
   }
 
-  async createRoom(data: any) {
+  async createRoom(data: Prisma.RoomCreateInput) {
     return this.prisma.room.create({ data });
   }
 
@@ -235,7 +236,7 @@ export class AdminService {
   }) {
     const { page, limit, type, userId } = query;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
     if (type) where.type = type;
     if (userId) where.userId = userId;
 

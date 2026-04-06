@@ -196,7 +196,7 @@ describe('AdminService', () => {
 
   describe('createRoom', () => {
     it('should create a room', async () => {
-      const roomData = { name: 'New Room', blindSmall: 5, blindBig: 10 };
+      const roomData = { name: 'New Room', blindSmall: 5, blindBig: 10, maxPlayers: 9, minBuyIn: 0 };
       prisma.room.create.mockResolvedValue({ id: 'r1', ...roomData });
 
       const result = await service.createRoom(roomData);
