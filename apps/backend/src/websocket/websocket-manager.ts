@@ -15,7 +15,7 @@ export class WebSocketManager {
     return this.server;
   }
 
-  sendToAll(event: string, data: any) {
+  sendToAll<T = unknown>(event: string, data: T) {
     if (this.server) {
       this.server.emit(event, data);
     }
@@ -24,7 +24,7 @@ export class WebSocketManager {
   /**
    * 向指定用户的 所有 WebSocket 连接发送事件
    */
-  emitToUser(userId: string, event: string, data: any): void {
+  emitToUser<T = unknown>(userId: string, event: string, data: T): void {
     if (!this.server) return;
     for (const [, socket] of this.server.sockets.sockets) {
       if ((socket.data.user?.sub as string | undefined) === userId) {

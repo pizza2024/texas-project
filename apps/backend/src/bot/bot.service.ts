@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Player, PlayerStatus } from '../table-engine/player';
 
-const BOT_ID_PREFIX = 'bot_';
+export const BOT_ID_PREFIX = 'bot_';
 const BOT_AVATAR = '';
 
 const IS_TEST = process.env.NODE_ENV !== 'production';

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { BOT_ID_PREFIX } from '../bot/bot.service';
 
 @Injectable()
 export class WalletService {
@@ -101,8 +102,8 @@ export class WalletService {
             data: { coinBalance: normalized },
           });
         } catch (error) {
-          // Bot users (id starts with 'bot_') don't have User records — this is expected
-          if (userId.startsWith('bot_')) {
+          // Bot users don't have User records — this is expected
+          if (userId.startsWith(BOT_ID_PREFIX)) {
             this.logger.debug(
               `Skipping coinBalance update for bot user: ${userId}`,
             );
