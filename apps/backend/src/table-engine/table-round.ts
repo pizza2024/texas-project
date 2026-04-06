@@ -161,10 +161,7 @@ export class TableRound {
     }
 
     // --- Rake: deduct before distribution ---
-    const rake = Math.min(
-      Math.floor(this.table.pot * RAKE_RATE),
-      RAKE_CAP,
-    );
+    const rake = Math.min(Math.floor(this.table.pot * RAKE_RATE), RAKE_CAP);
     this.table.pot -= rake;
 
     // --- Build pots (handles Side Pots for All-in players) ---

@@ -435,11 +435,12 @@ export class AdminService {
     const sql = QUERY_BY_PERIOD[period];
     if (!sql) throw new Error(`Invalid period: ${period}`);
 
-    const rows = await (this.prisma.$queryRawUnsafe as (
-      sql: string,
-      ...args: (string | number | boolean | Date | null)[]
-    ) => Promise<{ date: string; amount: number }[]>)
-    (sql, startDate, endDate);
+    const rows = await (
+      this.prisma.$queryRawUnsafe as (
+        sql: string,
+        ...args: (string | number | boolean | Date | null)[]
+      ) => Promise<{ date: string; amount: number }[]>
+    )(sql, startDate, endDate);
 
     const amountMap = new Map<string, number>();
     for (const row of rows) {

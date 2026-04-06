@@ -1,9 +1,4 @@
-import {
-  GameStage,
-  PlayerInput,
-  RAKE_RATE,
-  RAKE_CAP,
-} from './table-state';
+import { GameStage, PlayerInput, RAKE_RATE, RAKE_CAP } from './table-state';
 import { Player, PlayerStatus } from './player';
 import { Table } from './table';
 import { TableRound } from './table-round';
@@ -46,8 +41,7 @@ export class TablePlayerOps {
       stack: Math.max(0, initialStack),
       bet: 0,
       totalBet: 0,
-      status:
-        initialStack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT,
+      status: initialStack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT,
       cards: [],
       position: seatIndex,
       isButton: false,
@@ -63,9 +57,7 @@ export class TablePlayerOps {
   }
 
   removePlayer(playerId: string): Player | null {
-    const index = this.table.players.findIndex(
-      (p) => p && p.id === playerId,
-    );
+    const index = this.table.players.findIndex((p) => p && p.id === playerId);
     if (index !== -1) {
       const removedPlayer = this.table.players[index];
       this.table.players[index] = null;
@@ -156,10 +148,7 @@ export class TablePlayerOps {
     }
 
     const activePlayer = this.table.players[this.table.activePlayerIndex];
-    if (
-      !activePlayer ||
-      activePlayer.status !== PlayerStatus.SITOUT
-    ) {
+    if (!activePlayer || activePlayer.status !== PlayerStatus.SITOUT) {
       return false;
     }
 
@@ -239,11 +228,7 @@ export class TablePlayerOps {
    * Process a player's action (fold/call/raise/allin/check/straddle/sit-out).
    * Returns true if the action was valid and applied.
    */
-  processAction(
-    playerId: string,
-    action: string,
-    amount: number,
-  ): boolean {
+  processAction(playerId: string, action: string, amount: number): boolean {
     // Must be this player's turn
     const activePlayer = this.table.players[this.table.activePlayerIndex];
     if (!activePlayer || activePlayer.id !== playerId) return false;
@@ -290,8 +275,7 @@ export class TablePlayerOps {
         activePlayer.totalBet += callAmount;
         this.table.pot += callAmount;
         activePlayer.hasActed = true;
-        if (activePlayer.stack === 0)
-          activePlayer.status = PlayerStatus.ALLIN;
+        if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
         if (
           this.table.calledAllIn === null &&
           activePlayer.status === PlayerStatus.ALLIN
@@ -311,10 +295,7 @@ export class TablePlayerOps {
         }
         const minRaiseTo = this.table.currentBet + this.table.minBet;
         if (amount < minRaiseTo) return false;
-        const toAdd = Math.min(
-          amount - activePlayer.bet,
-          activePlayer.stack,
-        );
+        const toAdd = Math.min(amount - activePlayer.bet, activePlayer.stack);
         if (toAdd <= 0) return false;
         this.table.minBet = amount - this.table.currentBet;
         activePlayer.stack -= toAdd;
@@ -323,15 +304,10 @@ export class TablePlayerOps {
         this.table.pot += toAdd;
         this.table.currentBet = activePlayer.bet;
         activePlayer.hasActed = true;
-        if (activePlayer.stack === 0)
-          activePlayer.status = PlayerStatus.ALLIN;
+        if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
         this.table.calledAllIn = null;
         this.table.players.forEach((p) => {
-          if (
-            p &&
-            p.id !== playerId &&
-            p.status === PlayerStatus.ACTIVE
-          ) {
+          if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
             p.hasActed = false;
           }
         });
@@ -353,11 +329,7 @@ export class TablePlayerOps {
           this.table.currentBet = activePlayer.bet;
           this.table.calledAllIn = null;
           this.table.players.forEach((p) => {
-            if (
-              p &&
-              p.id !== playerId &&
-              p.status === PlayerStatus.ACTIVE
-            ) {
+            if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
               p.hasActed = false;
             }
           });

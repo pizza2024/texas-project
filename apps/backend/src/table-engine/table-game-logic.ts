@@ -3,21 +3,7 @@ import { Player, PlayerStatus } from './player';
 import { Table } from './table';
 
 /** Card ranks in order from 2 to A. */
-const RANKS = [
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  'T',
-  'J',
-  'Q',
-  'K',
-  'A',
-];
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 /** Card suits. */
 const SUITS = ['s', 'h', 'd', 'c'];
 
@@ -71,9 +57,7 @@ export class TableGameLogic {
    * Visible for integration tests (table-game-logic.spec.ts).
    */
   startHand(): void {
-    const seated = this.table.players.filter((p) =>
-      this.isPlayablePlayer(p),
-    );
+    const seated = this.table.players.filter((p) => this.isPlayablePlayer(p));
 
     // Reset all player state for the new hand
     this.table.players
@@ -86,8 +70,7 @@ export class TableGameLogic {
         p.bet = 0;
         p.totalBet = 0;
         p.hasActed = false;
-        p.status =
-          p.stack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT;
+        p.status = p.stack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT;
         p.ready = false;
       });
 
@@ -183,8 +166,7 @@ export class TableGameLogic {
       p.isSmallBlind = false;
       p.isBigBlind = false;
       p.ready = false;
-      p.status =
-        p.stack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT;
+      p.status = p.stack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT;
     });
 
     this.table.communityCards = [];

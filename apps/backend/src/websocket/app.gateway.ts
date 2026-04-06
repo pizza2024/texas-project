@@ -136,7 +136,9 @@ export class AppGateway
 
       // Enforce single-device login: validate sessionId against Redis
       if (payload.sessionId && this.redisService.isAvailable) {
-        const stored = await this.redisService.get(`user_session:${payload.sub}`);
+        const stored = await this.redisService.get(
+          `user_session:${payload.sub}`,
+        );
         if (stored !== payload.sessionId) {
           client.data.user = null;
           client.emit('force_logout', { reason: 'SESSION_REPLACED' });
@@ -148,7 +150,9 @@ export class AppGateway
       this.clearPendingDisconnect(payload.sub);
 
       // Notify new client if they have an active game to rejoin
-      const currentRoomId = await this.tableManager.getUserCurrentRoomId(payload.sub);
+      const currentRoomId = await this.tableManager.getUserCurrentRoomId(
+        payload.sub,
+      );
       let isInActiveGame = false;
       if (currentRoomId) {
         const table = await this.tableManager.getTable(currentRoomId);
@@ -177,7 +181,9 @@ export class AppGateway
         }
       }
 
-      this.logger.log(`Client connected: ${client.id} User: ${payload.username}`);
+      this.logger.log(
+        `Client connected: ${client.id} User: ${payload.username}`,
+      );
 
       // Push friend_status_update (online=true) to all accepted friends
       void this.notifyFriendsOfStatusChange(payload.sub, true);
@@ -225,7 +231,8 @@ export class AppGateway
     roomEvents.off(ROOM_CREATED_EVENT, this.handleRoomCreated);
     roomEvents.off(ROOM_DISSOLVED_EVENT, this.handleRoomDissolved);
     roomEvents.off(ROOM_STATUS_UPDATED_EVENT, this.handleRoomStatusUpdated);
-    for (const timeout of this.pendingDisconnects.values()) clearTimeout(timeout);
+    for (const timeout of this.pendingDisconnects.values())
+      clearTimeout(timeout);
     this.pendingDisconnects.clear();
     for (const timeout of this.settlementTimers.values()) clearTimeout(timeout);
     this.settlementTimers.clear();
@@ -257,7 +264,9 @@ export class AppGateway
 
   private handleRoomStatusUpdated = (payload: RoomStatusUpdatedPayload) => {
     if (!this.server) {
-      this.logger.warn('room_status_updated skipped: websocket server not ready');
+      this.logger.warn(
+        'room_status_updated skipped: websocket server not ready',
+      );
       return;
     }
     this.server.emit('room_status_updated', payload);
@@ -313,7 +322,10 @@ export class AppGateway
     next.finally(() => this.roomLocks.delete(roomId));
     this.roomLocks.set(
       roomId,
-      next.then(() => {}, () => {}),
+      next.then(
+        () => {},
+        () => {},
+      ),
     );
     return outer;
   }
@@ -331,7 +343,10 @@ export class AppGateway
     next.finally(() => this.userLocks.delete(userId));
     this.userLocks.set(
       userId,
-      next.then(() => {}, () => {}),
+      next.then(
+        () => {},
+        () => {},
+      ),
     );
     return outer;
   }
@@ -361,7 +376,9 @@ export class AppGateway
     }
 
     for (const [userId, userSockets] of socketsByUser) {
-      const view = userId ? table.getMaskedView(userId) : table.getMaskedView('');
+      const view = userId
+        ? table.getMaskedView(userId)
+        : table.getMaskedView('');
       for (const socket of userSockets) {
         socket.emit('room_update', view);
       }
@@ -687,7 +704,10 @@ export class AppGateway
       return;
     }
 
-    if (table.currentStage === GameStage.WAITING && table.readyCountdownEndsAt) {
+    if (
+      table.currentStage === GameStage.WAITING &&
+      table.readyCountdownEndsAt
+    ) {
       const remainingMs = table.readyCountdownEndsAt - Date.now();
       if (remainingMs <= 0) {
         await this.finalizeReadyCountdown(roomId);
@@ -734,7 +754,8 @@ export class AppGateway
   @SubscribeMessage('quick_match')
   async handleQuickMatch(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { tier: import('../matchmaking/matchmaking.service').BlindTier },
+    @MessageBody()
+    data: { tier: import('../matchmaking/matchmaking.service').BlindTier },
   ) {
     return handleQuickMatch(this, client, data);
   }

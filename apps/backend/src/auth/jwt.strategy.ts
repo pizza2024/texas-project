@@ -24,10 +24,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Instead we allow auth but log a HIGH-severity warning for security team to act on.
         this.logger.warn(
           `[SECURITY] Redis unavailable — session validation SKIPPED for user ${payload.sub}. ` +
-          `Single-device login protection is temporarily disabled.`,
+            `Single-device login protection is temporarily disabled.`,
         );
       } else {
-        const stored = await this.redisService.get(`user_session:${payload.sub}`);
+        const stored = await this.redisService.get(
+          `user_session:${payload.sub}`,
+        );
         if (stored !== payload.sessionId) {
           throw new UnauthorizedException('SESSION_REPLACED');
         }

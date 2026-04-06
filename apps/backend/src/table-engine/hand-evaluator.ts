@@ -24,7 +24,8 @@ export interface HandScore {
 const VALID_SUITS = new Set(['s', 'h', 'd', 'c']);
 
 function isValidCard(card: string): boolean {
-  if (typeof card !== 'string' || card.length < 2 || card.length > 3) return false;
+  if (typeof card !== 'string' || card.length < 2 || card.length > 3)
+    return false;
   const suit = card.slice(-1).toLowerCase();
   const rank = card.slice(0, -1).toUpperCase();
   return VALID_SUITS.has(suit) && rank in RANK_VALUES;
@@ -178,7 +179,9 @@ export function evaluateHand(cards: string[]): HandScore {
   }
   for (const card of cards) {
     if (!isValidCard(card)) {
-      throw new Error(`Invalid card format: "${card}". Expected rank (2-9,T,J,Q,K,A) + suit (s,h,d,c), e.g. "AS"`);
+      throw new Error(
+        `Invalid card format: "${card}". Expected rank (2-9,T,J,Q,K,A) + suit (s,h,d,c), e.g. "AS"`,
+      );
     }
   }
   if (cards.length === 5) return evaluate5(cards);

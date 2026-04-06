@@ -218,7 +218,10 @@ export class Table {
 
   // ─── Player operations ────────────────────────────────────────────────────
 
-  addPlayer(player: import('./table-state').PlayerInput, initialStack = 1000): boolean {
+  addPlayer(
+    player: import('./table-state').PlayerInput,
+    initialStack = 1000,
+  ): boolean {
     return this._playerOps.addPlayer(player, initialStack);
   }
 
@@ -395,10 +398,7 @@ export class Table {
         showCards = true;
       } else if (isShowdownSettlement) {
         showCards = true;
-      } else if (
-        this.currentStage === GameStage.SETTLEMENT &&
-        this.isFoldWin
-      ) {
+      } else if (this.currentStage === GameStage.SETTLEMENT && this.isFoldWin) {
         // Show fold-win winner's cards only if they chose to reveal
         const isWinner =
           this.lastHandResult?.some(
