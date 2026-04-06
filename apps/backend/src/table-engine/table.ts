@@ -12,6 +12,23 @@ export interface HandResultEntry {
   bestCards?: string[];
 }
 
+/**
+ * Input type for adding a player to the table.
+ * Accepts either a JWT payload (with `sub`) or a Player object (with `id`).
+ * Internally normalized to always use `playerId`.
+ */
+export interface PlayerInput {
+  /** User ID — JWT subject (`sub`). Present in JWT payloads. */
+  sub?: string;
+  /** User ID — Player.id. Present when re-converting Player objects (tests). */
+  id?: string;
+  nickname?: string;
+  username?: string;
+  avatar?: string;
+  /** Bot players are auto-ready; humans default to false */
+  ready?: boolean;
+}
+
 export interface StraddleInfo {
   playerId: string;
   amount: number;
@@ -229,12 +246,15 @@ export class Table {
     };
   }
 
-  addPlayer(player: any, initialStack = 1000): boolean {
-    if (this.hasPlayer(player.sub)) {
+  addPlayer(player: PlayerInput, initialStack = 1000): boolean {
+    const playerId = player.sub ?? player.id!;
+    if (!playerId) return false;
+
+    if (this.hasPlayer(playerId)) {
       // Refresh display name and avatar from latest data on every connect/reconnect
-      const existing = this.players.find((p) => p?.id === player.sub);
+      const existing = this.players.find((p) => p?.id === playerId);
       if (existing) {
-        existing.nickname = player.nickname ?? player.username;
+        existing.nickname = player.nickname ?? player.username ?? existing.nickname;
         existing.avatar = player.avatar ?? existing.avatar ?? '';
       }
       return true;
@@ -245,8 +265,8 @@ export class Table {
 
     // transform user to player
     const newPlayer: Player = {
-      id: player.sub,
-      nickname: player.nickname ?? player.username,
+      id: playerId,
+      nickname: player.nickname ?? player.username ?? 'Unknown',
       avatar: player.avatar ?? '',
       stack: Math.max(0, initialStack),
       bet: 0,
