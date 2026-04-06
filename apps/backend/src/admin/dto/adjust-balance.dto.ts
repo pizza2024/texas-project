@@ -1,13 +1,13 @@
-import { IsNumber, IsString, IsOptional, IsUUID } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsUUID, MinLength } from 'class-validator';
 
 /** For /admin/users/:id/balance - userId is in URL, not body */
 export class AdjustBalanceDto {
   @IsNumber()
   amount: number;
 
-  @IsOptional()
+  @MinLength(5, { message: 'Reason must be at least 5 characters' })
   @IsString()
-  reason?: string;
+  reason: string;
 }
 
 export class DepositDto {
@@ -17,9 +17,9 @@ export class DepositDto {
   @IsNumber()
   amount: number;
 
-  @IsOptional()
+  @MinLength(5, { message: 'Reason must be at least 5 characters' })
   @IsString()
-  reason?: string;
+  reason: string;
 }
 
 export class WithdrawDto {
@@ -29,7 +29,7 @@ export class WithdrawDto {
   @IsNumber()
   amount: number;
 
-  @IsOptional()
+  @MinLength(5, { message: 'Reason must be at least 5 characters' })
   @IsString()
-  reason?: string;
+  reason: string;
 }

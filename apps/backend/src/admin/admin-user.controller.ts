@@ -10,6 +10,7 @@ import {
   Req,
   ParseIntPipe,
   DefaultValuePipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
@@ -21,6 +22,8 @@ import { AdminUser } from './interfaces/admin-request.interface';
 interface AdminRequest extends Request {
   admin: AdminUser;
 }
+
+const LARGE_ADJUSTMENT_THRESHOLD = 10_000; // chips
 
 @Controller('admin/users')
 @UseGuards(AdminGuard)
@@ -89,10 +92,18 @@ export class AdminUserController {
     @Body() dto: AdjustBalanceDto,
     @Req() req: AdminRequest,
   ) {
+    // Large adjustments require SUPER_ADMIN role for additional oversight
+    const absAmount = Math.abs(dto.amount);
+    if (absAmount > LARGE_ADJUSTMENT_THRESHOLD && req.admin.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        `Large adjustments (>${LARGE_ADJUSTMENT_THRESHOLD} chips) require SUPER_ADMIN confirmation`,
+      );
+    }
+
     return this.adminService.adjustBalance(
       id,
       dto.amount,
-      dto.reason ?? '',
+      dto.reason,
       req.admin.sub,
     );
   }
