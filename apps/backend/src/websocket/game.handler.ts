@@ -30,6 +30,9 @@ const VALID_ACTIONS = new Set([
   'sit-out',
 ]);
 
+/** Maximum sane chip amount per action — prevents floating-point abuse and integer overflow. */
+const MAX_CHIP_AMOUNT = 1_000_000_000; // 10亿，和 AdminService 保持一致
+
 // ---------------------------------------------------------------------------
 // Helper — rate-limit check (used by multiple handlers)
 // ---------------------------------------------------------------------------
@@ -73,7 +76,8 @@ export async function handleJoinRoom(
   }
 
   return gateway.withUserLock(userId, async () => {
-    const currentRoomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+    const currentRoomId =
+      await gateway.tableManager.getUserCurrentRoomId(userId);
     if (currentRoomId && currentRoomId !== roomId) {
       client.emit('already_in_room', {
         roomId: currentRoomId,
@@ -183,10 +187,7 @@ export async function handleJoinRoom(
 // Handler: player_ready
 // ---------------------------------------------------------------------------
 
-export async function handlePlayerReady(
-  gateway: AppGateway,
-  client: Socket,
-) {
+export async function handlePlayerReady(gateway: AppGateway, client: Socket) {
   const userId = client.data.user?.sub as string;
   const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
   if (!roomId) {
@@ -250,8 +251,12 @@ export async function handlePlayerAction(
       ? data.action
       : null;
   const amount =
-    typeof data?.amount === 'number' && isFinite(data.amount) && data.amount >= 0
-      ? data.amount
+    typeof data?.amount === 'number' &&
+    isFinite(data.amount) &&
+    data.amount >= 0 &&
+    Number.isInteger(data.amount) &&
+    data.amount <= MAX_CHIP_AMOUNT
+      ? (Object.is(data.amount, -0) ? 0 : data.amount)
       : 0;
   const roomId = typeof data?.roomId === 'string' ? data.roomId : null;
 
@@ -293,10 +298,7 @@ export async function handlePlayerAction(
 // Handler: leave_room
 // ---------------------------------------------------------------------------
 
-export async function handleLeaveRoom(
-  gateway: AppGateway,
-  client: Socket,
-) {
+export async function handleLeaveRoom(gateway: AppGateway, client: Socket) {
   const userId = client.data.user?.sub as string;
   gateway.clearPendingDisconnect(userId);
 
@@ -373,7 +375,8 @@ export async function handleQuickMatch(
   }
 
   // Validate available chips
-  const availableChips = await gateway.tableManager.getUserAvailableBalance(userId);
+  const availableChips =
+    await gateway.tableManager.getUserAvailableBalance(userId);
   if (availableChips < config.minBuyIn) {
     client.emit('match_error', {
       message: 'insufficient_chips',
@@ -394,7 +397,12 @@ export async function handleQuickMatch(
       ipHash,
     );
 
-    gateway.matchmakingService.recordPlayerJoined(roomId, userId, playerElo, ipHash);
+    gateway.matchmakingService.recordPlayerJoined(
+      roomId,
+      userId,
+      playerElo,
+      ipHash,
+    );
 
     client.emit('match_found', { roomId, tier });
   } catch (err) {
@@ -407,10 +415,7 @@ export async function handleQuickMatch(
 // Handler: show_cards
 // ---------------------------------------------------------------------------
 
-export async function handleShowCards(
-  gateway: AppGateway,
-  client: Socket,
-) {
+export async function handleShowCards(gateway: AppGateway, client: Socket) {
   const userId = client.data.user?.sub as string;
   if (!userId) return;
 
