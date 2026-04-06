@@ -11,6 +11,7 @@ import { RedisService } from '../redis/redis.service';
 
 describe('DepositService E2E', () => {
   let service: DepositService;
+  let module: TestingModule;
   let mockPrisma: any;
   let mockWalletService: any;
   let mockMint: jest.Mock;
@@ -87,7 +88,7 @@ describe('DepositService E2E', () => {
       overrides.USDT_CONTRACT_ADDRESS ??
       '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0';
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         DepositService,
         { provide: PrismaService, useValue: mockPrisma },
@@ -100,8 +101,11 @@ describe('DepositService E2E', () => {
     (service as any).faucetCooldowns.clear();
   };
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.restoreAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   describe('faucet', () => {
