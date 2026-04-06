@@ -52,36 +52,41 @@ export class AdminUserController {
     @Req() req: AdminRequest,
   ) {
     const result = await this.adminService.updateUser(id, dto);
+    const isSelfEdit = id === req.admin.sub;
     await this.adminService.log({
       adminId: req.admin.sub,
       action: 'UPDATE_USER',
       targetType: 'USER',
       targetId: id,
-      detail: dto,
+      detail: { ...dto, ...(isSelfEdit ? { selfEdit: true } : {}) },
     });
     return result;
   }
 
   @Post(':id/ban')
   async banUser(@Param('id') id: string, @Req() req: AdminRequest) {
+    const isSelfBan = id === req.admin.sub;
     const user = await this.adminService.updateUser(id, { status: 'BANNED' });
     await this.adminService.log({
       adminId: req.admin.sub,
       action: 'BAN_USER',
       targetType: 'USER',
       targetId: id,
+      detail: isSelfBan ? { selfBan: true } : undefined,
     });
     return user;
   }
 
   @Post(':id/unban')
   async unbanUser(@Param('id') id: string, @Req() req: AdminRequest) {
+    const isSelfEdit = id === req.admin.sub;
     const user = await this.adminService.updateUser(id, { status: 'OFFLINE' });
     await this.adminService.log({
       adminId: req.admin.sub,
       action: 'UNBAN_USER',
       targetType: 'USER',
       targetId: id,
+      detail: isSelfEdit ? { selfEdit: true } : undefined,
     });
     return user;
   }

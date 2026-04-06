@@ -59,6 +59,7 @@ export interface HandResultEntry {
 
 const ELO_K = 16;
 const ELO_MIN = 100;
+const ELO_MAX = 3000;
 const ELO_MATCH_RANGE = 200;
 const COLLUSION_HAND_THRESHOLD = 20; // shared hands in last 24h before we consider collusion risk
 
@@ -225,11 +226,17 @@ export class MatchmakingService implements OnModuleInit {
         ),
       );
 
-      // Enforce floor
-      await this.prisma.user.updateMany({
-        where: { elo: { lt: ELO_MIN } },
-        data: { elo: ELO_MIN },
-      });
+      // Enforce floor and ceiling
+      await this.prisma.$transaction([
+        this.prisma.user.updateMany({
+          where: { elo: { lt: ELO_MIN } },
+          data: { elo: ELO_MIN },
+        }),
+        this.prisma.user.updateMany({
+          where: { elo: { gt: ELO_MAX } },
+          data: { elo: ELO_MAX },
+        }),
+      ]);
     } catch (err) {
       this.logger.error('Failed to update ELO', err);
     }
