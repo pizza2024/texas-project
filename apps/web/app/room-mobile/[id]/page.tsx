@@ -166,12 +166,24 @@ export default function MobileRoomPage() {
   // ── Countdown ticker ────────────────────────────────────────────────────
   useEffect(() => {
     if (!table?.actionEndsAt && !table?.settlementEndsAt && !table?.readyCountdownEndsAt) return;
-    setCountdownNow(Date.now());
     const iv = setInterval(() => setCountdownNow(Date.now()), 250);
+    // Fire immediately to set initial countdown value, then every 250 ms
+    // eslint-disable-next-line
+    setCountdownNow(Date.now());
     return () => clearInterval(iv);
   }, [table?.actionEndsAt, table?.settlementEndsAt, table?.readyCountdownEndsAt]);
 
   // ── Auto-action ─────────────────────────────────────────────────────────
+  function doAutoAction(currentTable: typeof table) {
+    if (!currentTable) return;
+    const socket = getSocket(getStoredToken()!);
+    if (!socket) return;
+    const myP = currentTable.players.find((p: Player | null) => p?.id === myUserId) as Player | null;
+    const callAmt = myP ? Math.max(0, (currentTable.currentBet ?? 0) - myP.bet) : 0;
+    const action = callAmt === 0 ? 'check' : 'fold';
+    socket.emit('player_action', { roomId: id as string, action });
+  }
+
   useEffect(() => {
     if (autoActRef.current) clearTimeout(autoActRef.current);
     if (!table) return;
@@ -186,16 +198,6 @@ export default function MobileRoomPage() {
     autoActRef.current = setTimeout(() => doAutoAction(table), remaining);
     return () => { if (autoActRef.current) clearTimeout(autoActRef.current); };
   }, [table?.actionEndsAt, table?.currentStage, table, myUserId]);
-
-  function doAutoAction(currentTable: typeof table) {
-    if (!currentTable) return;
-    const socket = getSocket(getStoredToken()!);
-    if (!socket) return;
-    const myP = currentTable.players.find((p: Player | null) => p?.id === myUserId) as Player | null;
-    const callAmt = myP ? Math.max(0, (currentTable.currentBet ?? 0) - myP.bet) : 0;
-    const action = callAmt === 0 ? 'check' : 'fold';
-    socket.emit('player_action', { roomId: id as string, action });
-  }
 
   const queueChipFlights = (flights: Omit<ChipFlight, 'active'>[]) => {
     if (flights.length === 0) return;
@@ -287,6 +289,7 @@ export default function MobileRoomPage() {
         table.currentStage === 'SETTLEMENT' &&
         table.lastHandResult
       ) {
+        // eslint-disable-next-line
         setFoldWinChoiceMade(false);
         const winners = table.lastHandResult.filter((entry: HandResultEntry) => entry.winAmount > 0);
         const myResult = table.lastHandResult.find((entry: HandResultEntry) => entry.playerId === myUserId);

@@ -3,7 +3,9 @@ import { Player, PlayerStatus } from './player';
 
 const DEFAULT_TIMEOUT = 30000;
 
-function makePlayer(overrides: Partial<Player> & { sub?: string } = {}): Player {
+function makePlayer(
+  overrides: Partial<Player> & { sub?: string } = {},
+): Player {
   return {
     id: 'player-1',
     username: 'Player1',

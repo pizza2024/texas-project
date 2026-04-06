@@ -98,7 +98,7 @@ async function loginViaUi(page: any, username: string, password: string) {
 
   // Now use the Next.js router to navigate to rooms - this is client-side and will preserve the token
   await page.evaluate(() => {
-    // @ts-ignore
+    // @ts-expect-error - intentional browser API usage for test navigation
     window.__NEXT_DATA__ = {}; // ensure Next doesn't interfere
     window.location.href = '/rooms';
   });

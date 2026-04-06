@@ -18,9 +18,8 @@ import {
 import confettiLib from 'canvas-confetti';
 
 // Guard: confetti may not be available in all environments (SSR, ad-blockers, etc.)
-const confetti = typeof window !== 'undefined' && typeof (window as any).confetti === 'function'
-  ? confettiLib
-  : null;
+const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
+const confetti = hasConfetti ? confettiLib : null;
 import { normalizeSoundVolume } from '@/lib/sound-settings';
 import { useSoundSettings } from '@/lib/use-sound-settings';
 import { showSystemMessage, showConfirmMessage } from '@/lib/system-message';
