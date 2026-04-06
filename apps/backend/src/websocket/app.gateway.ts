@@ -101,6 +101,10 @@ export class AppGateway
    */
   private userLocks = new Map<string, Promise<void>>();
 
+  // ── User→socket index (O(1) lookup instead of fetchSockets O(n)) ───────
+  /** Maps userId → Set of their active socket IDs */
+  private userSockets = new Map<string, Set<string>>();
+
   // ── Rate limiter (public so handlers can check it) ────────────────────
   rateLimits = new Map<string, { count: number; windowStart: number }>();
 
@@ -218,7 +222,20 @@ export class AppGateway
             roomId: isInActiveGame ? currentRoomId : undefined,
           });
           other.disconnect();
+          // Clean up userSockets index for the evicted socket
+          const otherUserId = other.data.user?.sub as string | undefined;
+          if (otherUserId) {
+            this.userSockets.get(otherUserId)?.delete(other.id);
+          }
         }
+      }
+
+      // Register new socket in userSockets index
+      const existing = this.userSockets.get(payload.sub);
+      if (existing) {
+        existing.add(client.id);
+      } else {
+        this.userSockets.set(payload.sub, new Set([client.id]));
       }
 
       this.logger.log(
@@ -244,8 +261,12 @@ export class AppGateway
       return;
     }
 
+    // Remove socket from userSockets index immediately so
+    // hasOtherActiveSocket reflects the post-disconnect state.
+    this.userSockets.get(userId)?.delete(client.id);
+
     // Only notify friends if this is the user's last active socket
-    if (!(await this.hasOtherActiveSocket(userId, client.id))) {
+    if (!await this.hasOtherActiveSocket(userId, client.id)) {
       void this.notifyFriendsOfStatusChange(userId, false);
     }
 
@@ -403,11 +424,31 @@ export class AppGateway
     roomId: string,
     table: import('../table-engine/table').Table,
   ) {
-    const sockets = await this.server.in(roomId).fetchSockets();
+    // O(1) lookup of room socket IDs via adapter.rooms Map, then direct
+    // socket Map access — avoids O(n) fetchSockets() over all server sockets.
+    // Falls back to in().fetchSockets() for environments where adapter.rooms
+    // is not populated (e.g. some test mocks).
+    const adapterRooms = (this.server.sockets.adapter as any)?.rooms;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let socketList: Socket<any>[];
+
+    if (adapterRooms) {
+      const roomSocketIds = adapterRooms.get(roomId);
+      if (!roomSocketIds || roomSocketIds.size === 0) return;
+      socketList = [];
+      for (const socketId of roomSocketIds) {
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket) socketList.push(socket);
+      }
+    } else {
+      // Fallback: use in().fetchSockets() (works with simple test mocks)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      socketList = (await this.server.in(roomId).fetchSockets()) as unknown as Socket<any>[];
+    }
 
     // Group sockets by userId so we compute masked view once per user
-    const socketsByUser = new Map<string | undefined, typeof sockets>();
-    for (const socket of sockets) {
+    const socketsByUser = new Map<string | undefined, Socket[]>();
+    for (const socket of socketList) {
       const userId = socket.data.user?.sub as string | undefined;
       const list = socketsByUser.get(userId) ?? [];
       list.push(socket);
@@ -428,9 +469,23 @@ export class AppGateway
   // Disconnect handling
   // ════════════════════════════════════════════════════════════════════════
 
-  private async hasOtherActiveSocket(userId: string, socketId: string) {
-    const sockets = await this.server.fetchSockets();
-    return sockets.some(
+  /**
+   * Check if userId has any active socket other than socketId.
+   * Uses the userSockets index (O(1)) when populated; falls back to
+   * fetchSockets() (O(n)) for test environments where the index is empty.
+   */
+  private async hasOtherActiveSocket(userId: string, socketId: string): Promise<boolean> {
+    const sockets = this.userSockets.get(userId);
+    if (sockets && sockets.size > 0) {
+      // Index is populated — O(1) lookup
+      for (const id of sockets) {
+        if (id !== socketId) return true;
+      }
+      return false;
+    }
+    // Fallback: scan all sockets (test mocks, or if index is empty)
+    const allSockets = await this.server.fetchSockets();
+    return allSockets.some(
       (socket) =>
         socket.id !== socketId &&
         (socket.data.user?.sub as string | undefined) === userId,

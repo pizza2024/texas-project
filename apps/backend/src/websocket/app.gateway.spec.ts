@@ -76,11 +76,33 @@ describe('AppGateway', () => {
       { setServer: jest.fn() } as any,
       { getAcceptedFriends: jest.fn().mockResolvedValue([]) } as any,
     );
+    // Stable shared Maps so that in().fetchSockets() mock can be overridden
+    // per-test without losing the adapter.rooms reference.
+    const socketsMap = new Map<string, any>();
+    const roomsMap = new Map<string, Set<string>>();
+
+    const mockIn = jest.fn().mockReturnValue({
+      fetchSockets: jest.fn().mockResolvedValue([]),
+    });
+
     gateway.server = {
-      in: jest.fn(),
+      in: mockIn,
       emit: jest.fn(),
       fetchSockets: jest.fn().mockResolvedValue([]),
+      sockets: {
+        sockets: socketsMap,
+        adapter: { rooms: roomsMap },
+      },
     } as any;
+
+    // Expose to tests so they can populate per-test room membership:
+    //   const sock = { id: 'socket-2', data: { user: { sub: 'user-2' } }, emit: jest.fn() };
+    //   mockSocketsMap.set('socket-2', sock);
+    //   mockRoomsMap.get('room-1').add('socket-2');
+    //   (gateway.server.in as jest.Mock).mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([sock]) });
+    (gateway as any)._testSocketsMap = socketsMap;
+    (gateway as any)._testRoomsMap = roomsMap;
+    (gateway as any)._testMockIn = mockIn;
   });
 
   afterEach(() => {
@@ -91,6 +113,7 @@ describe('AppGateway', () => {
   it('syncs the room state when a seated player disconnects', async () => {
     jest.useFakeTimers();
     const remainingSocket = {
+      id: 'socket-2',
       data: { user: { sub: 'user-2' } },
       emit: jest.fn(),
     };
@@ -98,9 +121,11 @@ describe('AppGateway', () => {
       getMaskedView: jest.fn().mockReturnValue({ roomId: 'room-1' }),
     };
 
-    (gateway.server.in as jest.Mock).mockReturnValue({
-      fetchSockets: jest.fn().mockResolvedValue([remainingSocket]),
-    });
+    // Populate the adapter.rooms map so broadcastTableState finds the socket
+    const roomsMap = (gateway as any)._testRoomsMap;
+    const socketsMap = (gateway as any)._testSocketsMap;
+    roomsMap.set('room-1', new Set(['socket-2']));
+    socketsMap.set('socket-2', remainingSocket);
     tableManager.getUserCurrentRoomId.mockReturnValue('room-1');
     tableManager.leaveCurrentRoom.mockResolvedValue({
       roomId: 'room-1',

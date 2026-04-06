@@ -254,6 +254,11 @@ export async function handlePlayerAction(
     await gateway.ensureRecoveredRoundFlow(roomId, table);
     const processed = table.processAction(userId, action, amount);
     if (!processed) {
+      client.emit('action_rejected', {
+        action,
+        amount,
+        reason: 'Invalid action for current game state',
+      });
       return;
     }
 
