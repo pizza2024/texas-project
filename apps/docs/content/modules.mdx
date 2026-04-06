@@ -1,0 +1,263 @@
+# 功能模块文档
+
+## 1. 项目架构
+
+本项目是基于 **Turborepo** 的 monorepo 结构，包含以下应用：
+
+```
+texas-project/
+├── apps/
+│   ├── backend/        # NestJS API 服务器
+│   ├── web/           # Next.js 玩家 Web 应用
+│   ├── mobile/        # Expo Router 移动端应用
+│   ├── admin/         # Next.js 管理后台
+│   └── docs/          # Nextra 文档站点
+├── packages/
+│   └── shared/        # 共享类型、API 客户端、WebSocket 工具
+├── local-chain/       # Hardhat 区块链测试环境
+└── docker/            # Docker 配置
+```
+
+## 2. 技术栈
+
+| 层级     | 技术                               |
+| -------- | ---------------------------------- |
+| 后端     | NestJS 11 + TypeScript             |
+| 数据库   | PostgreSQL + Prisma ORM            |
+| 实时通信 | Socket.io (WebSocket)              |
+| 认证     | JWT + bcrypt + Passport            |
+| Web 前端 | Next.js 16 + React 19 + TypeScript |
+| 移动端   | Expo Router 55 + React Native 0.83 |
+| 管理后台 | Next.js 16 + Recharts + SWR        |
+| 样式     | Tailwind CSS 4                     |
+| 区块链   | Hardhat + Ethers.js + OpenZeppelin |
+
+## 3. 核心游戏引擎 (`apps/backend/src/table-engine/`)
+
+### 3.1 核心文件
+
+| 文件                       | 功能                                     |
+| -------------------------- | ---------------------------------------- |
+| `table.ts`                 | 核心牌桌类，管理游戏状态、下注轮次、底池 |
+| `hand-evaluator.ts`        | 扑克手牌评估（从高牌到皇家同花顺）       |
+| `table-manager.service.ts` | 牌桌生命周期、玩家座位管理、手牌转换     |
+| `player.ts`                | 玩家状态（筹码、下注、牌、状态）         |
+| `pot-odds.ts`              | 用于 AI 决策的底池赔率计算               |
+| `hand-history.service.ts`  | 记录已完成的手牌到数据库                 |
+
+### 3.2 游戏阶段
+
+```
+WAITING → DEALING → PREFLOP → FLOP → TURN → RIVER → SHOWDOWN → SETTLEMENT
+```
+
+### 3.3 支持功能
+
+- **Straddle 支持** (UTG 2xBB)
+- **全下跟注保护**
+- **离座自动弃牌检测**
+- **多种下注动作**: FOLD, CHECK, CALL, RAISE, ALLIN
+
+## 4. 认证模块 (`apps/backend/src/auth/`)
+
+| 功能         | 描述                            |
+| ------------ | ------------------------------- |
+| 用户注册     | 用户名、昵称、密码              |
+| 登录         | 基于 JWT 的身份认证             |
+| 邮箱验证     | 验证码验证流程                  |
+| 限流         | 暴力破解防护                    |
+| 角色访问控制 | PLAYER, ADMIN, SUPER_ADMIN 角色 |
+
+## 5. 用户管理 (`apps/backend/src/user/`)
+
+- 个人资料管理（昵称、头像）
+- 头像上传/删除
+- 用户状态追踪（OFFLINE, ONLINE, PLAYING）
+- ELO 评分用于匹配
+
+## 6. 房间管理 (`apps/backend/src/room/`)
+
+- 创建公开/私人房间（密码保护）
+- 配置盲注级别、最大玩家数、最小买入
+- 房间等级：MICRO, LOW, MEDIUM, HIGH, PREMIUM
+- 房间维护模式
+- 实时玩家数量更新
+
+## 7. 匹配系统 (`apps/backend/src/matchmaking/`)
+
+- 按等级快速匹配（盲注级别）
+- 基于 ELO 的玩家匹配
+- 自动创建匹配房间
+
+## 8. 钱包系统 (`apps/backend/src/wallet/`)
+
+- 双余额系统：真实货币余额 + 游戏筹码
+- 在牌桌时冻结筹码（防止双花）
+- 筹码交易追踪
+
+## 9. 充值系统 (`apps/backend/src/deposit/`)
+
+| 功能        | 描述                                 |
+| ----------- | ------------------------------------ |
+| HD 钱包地址 | 每个用户一个充值地址（从助记词派生） |
+| USDT 充值   | 通过 RPC 监控链上 USDT               |
+| 水龙头      | 测试网 USDT 水龙头（60秒冷却）       |
+| 自动转换    | USDT → 筹码 100:1 汇率               |
+| 定时轮询    | 定时扫描区块                         |
+
+**关键汇率：**
+
+- USDT_DECIMALS: 6
+- USDT_TO_CHIPS_RATE: 100 筹码每 USDT
+
+## 10. 提现系统 (`apps/backend/src/withdraw/`)
+
+- 请求提现（筹码 → USDT）
+- 处理流程：PENDING → PROCESSING → CONFIRMED/FAILED
+- 通过 HD 钱包进行链上 USDT 转账
+- 冷却时间：60 秒
+- 最低提现：1000 筹码
+
+## 11. 好友系统 (`apps/backend/src/friend/`)
+
+| 功能           | 描述                                              |
+| -------------- | ------------------------------------------------- |
+| 好友请求       | 通过用户名/邮箱发送                               |
+| 状态追踪       | PENDING, ACCEPTED, REJECTED, BLOCKED              |
+| 在线状态       | 实时好友在线/离线通知                             |
+| WebSocket 事件 | `friend_status_update`, `friend_request_received` |
+
+## 12. 机器人/AI 系统 (`apps/backend/src/bot/`)
+
+- 单人模式与 AI 对手
+- 空牌桌自动安排机器人
+- 使用底池赔率进行机器人决策
+
+## 13. 邮件服务 (`apps/backend/src/email/`)
+
+- 邮箱验证码
+- 集成 Resend 发送交易邮件
+
+## 14. Redis/缓存 (`apps/backend/src/redis/`)
+
+- Session 管理
+- 实时状态缓存
+- Socket 连接追踪
+
+## 15. WebSocket 网关 (`apps/backend/src/websocket/`)
+
+通过 Socket.io 处理所有实时游戏事件 (`/ws` 命名空间)：
+
+### 客户端 → 服务端事件
+
+- `join_room` / `leave_room`
+- `player_ready`
+- `player_action` (fold, check, call, raise, allin)
+- `quick_match`
+- `show_cards`
+
+### 服务端 → 客户端事件
+
+- `room_update` (牌桌状态广播)
+- `force_logout`
+- `match_found` / `match_error`
+- `deposit_confirmed`
+- `friend_status_update`
+- `friend_request_received`
+
+## 16. 管理后台模块 (`apps/backend/src/admin/`)
+
+| 控制器                          | 端点                                |
+| ------------------------------- | ----------------------------------- |
+| `admin-user.controller.ts`      | 用户列表、详情、封禁/解封、余额调整 |
+| `admin-room.controller.ts`      | 房间 CRUD、维护、踢出用户           |
+| `admin-finance.controller.ts`   | 所有交易、手动充值/提现             |
+| `admin-analytics.controller.ts` | 概览、用户趋势、收入、房间热度      |
+| `admin-system.controller.ts`    | 系统状态、广播、维护模式            |
+
+## 17. 管理后台前端 (`apps/admin/`)
+
+Next.js 16 管理仪表板：
+
+- `/login` - 管理员登录
+- `/dashboard` - 数据分析概览（Recharts）
+- `/users` - 用户管理（TanStack Table）
+- `/rooms` - 房间管理
+- `/finance` - 财务交易
+- `/analytics` - 数据可视化
+- `/system` - 系统状态和广播
+- `/withdraw` - 提现请求
+
+## 18. 玩家 Web 应用 (`apps/web/`)
+
+Next.js 16 玩家面向的 Web 应用：
+
+**功能：**
+
+- PWA 支持（可安装）
+- 登录/注册流程
+- 房间大厅（列表、创建、加入）
+- 游戏房间（实时牌桌）
+- 充值（USDT 地址生成、二维码）
+- 提现请求
+- 手牌历史
+- 用户设置和头像
+- 国际化支持（中文为主）
+
+## 19. 移动端应用 (`apps/mobile/`)
+
+Expo Router 55 移动应用：
+
+**页面：**
+
+- `/login.tsx` - 登录
+- `/register.tsx` - 注册
+- `/rooms.tsx` - 房间大厅
+- `/room/[id].tsx` - 游戏房间
+- `/deposit.tsx` - 充值 USDT
+- `/withdraw.tsx` - 提现筹码
+- `/hands.tsx` - 手牌历史
+- `/stats.tsx` - 玩家统计
+- `/settings.tsx` - 应用设置
+
+**移动端特定库：**
+
+- `expo-secure-store` - 安全令牌存储
+- `expo-image-picker` - 头像上传
+- `react-native-qrcode-svg` - 充值二维码
+- `socket.io-client` - 实时更新
+
+## 20. 共享包 (`packages/shared/`)
+
+```typescript
+// 类型
+export * from "./types/game"; // UserProfile, Room, TableState, Player 等
+export * from "./types/friend"; // FriendStatus, 好友事件载荷
+
+// 工具
+export * from "./api"; // createApiClient() 带 JWT 拦截器
+export * from "./socket"; // 带事件类型的 Socket.io 客户端
+export * from "./auth"; // 令牌存储适配器、JWT 解析
+```
+
+## 21. 区块链集成 (`local-chain/`)
+
+- Hardhat 开发链
+- `TestUSDT.sol` - 测试用 ERC20 代币
+- USDT 部署脚本
+- 与充值/提现集成进行链上交易
+
+## 22. 功能总览
+
+| 类别       | 功能                                                       |
+| ---------- | ---------------------------------------------------------- |
+| **认证**   | 注册、登录、JWT、邮箱验证、角色访问控制                    |
+| **游戏**   | 德州扑克、多下注阶段、Straddle、全下保护、手牌历史         |
+| **房间**   | 创建/加入、公开/私人、等级分级（MICRO→PREMIUM）、维护模式  |
+| **匹配**   | 按等级快速匹配、基于 ELO 匹配                              |
+| **经济**   | 双钱包（USD + 筹码）、充值（USDT→筹码）、提现（筹码→USDT） |
+| **社交**   | 好友系统、在线状态、实时通知                               |
+| **管理**   | 用户管理、房间管理、财务监督、数据分析、系统广播           |
+| **平台**   | Web (PWA)、移动端 (iOS/Android via Expo)、管理后台         |
+| **区块链** | HD 钱包地址、链上 USDT 充值、提现处理                      |
+| **国际化** | 中文语言支持                                               |
