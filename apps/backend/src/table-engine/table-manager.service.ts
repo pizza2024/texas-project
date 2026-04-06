@@ -104,7 +104,6 @@ export class TableManagerService implements OnModuleInit {
     }
     if (!this.pendingGetTable.has(roomId)) {
       const promise = this.roomService.findOne(roomId).then(async (room) => {
-        this.pendingGetTable.delete(roomId);
         if (room && !this.tables.has(roomId)) {
           // Priority: Redis (fast) → SQLite (durable) → fresh table
           let snapshot = await this.loadSnapshotFromRedis(roomId);
@@ -149,6 +148,10 @@ export class TableManagerService implements OnModuleInit {
           }
         }
         return this.tables.get(roomId);
+      }).finally(() => {
+        // Always clean up pending entry, regardless of resolve or reject,
+        // to prevent memory leaks when roomService.findOne() rejects.
+        this.pendingGetTable.delete(roomId);
       });
       this.pendingGetTable.set(roomId, promise);
     }
