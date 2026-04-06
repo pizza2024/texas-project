@@ -1172,6 +1172,22 @@ export default function RoomsPage() {
               💸 {t("common.withdraw")}
             </Button>
 
+            {/* Friends button — sm+ only */}
+            <Button
+              onClick={() => router.push("/friends")}
+              className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+              style={{
+                background:
+                  "linear-gradient(135deg, #0c2d3d 0%, #0e3d52 40%, #38bdf8 100%)",
+                color: "#e0f2fe",
+                border: "none",
+                boxShadow:
+                  "0 0 20px rgba(56,189,248,0.15), 0 4px 10px rgba(0,0,0,0.4)",
+              }}
+            >
+              👥 {t("friends.title")}
+            </Button>
+
             {/* Avatar + click dropdown */}
             <div className="relative">
               {/* Click-outside overlay */}
@@ -1289,6 +1305,17 @@ export default function RoomsPage() {
                     >
                       <span>📊</span>
                       {t("common.stats")}
+                    </button>
+                    <button
+                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
+                      style={{ color: "rgba(245,158,11,0.85)" }}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push("/friends");
+                      }}
+                    >
+                      <span>👥</span>
+                      {t("friends.title")}
                     </button>
                     <button
                       className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"

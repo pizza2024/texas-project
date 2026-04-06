@@ -1,5 +1,4 @@
 import { io, type Socket } from 'socket.io-client';
-import type { FriendStatus } from './types/friend';
 import type {
   ForceLogoutPayload,
   MatchFoundPayload,
@@ -57,7 +56,9 @@ type Handler<T> = ((data: T) => void) | null;
 
 let forceLogoutHandler: Handler<ForceLogoutPayload> = null;
 let rejoinAvailableHandler: Handler<{ roomId: string }> = null;
-let depositConfirmedHandler: Handler<DepositConfirmedPayload> = null;
+let depositConfirmedHandler: Handler<DepositConfirmedPayload> | null = null;
+let friendStatusUpdateHandler: Handler<FriendStatusUpdatePayload> | null = null;
+let friendRequestReceivedHandler: Handler<FriendRequestReceivedPayload> | null = null;
 let visibilityChangeHandler: (() => void) | null = null;
 
 export function setForceLogoutHandler(h: (data: ForceLogoutPayload) => void) {
@@ -70,6 +71,14 @@ export function setRejoinAvailableHandler(h: (data: { roomId: string }) => void)
 
 export function setDepositConfirmedHandler(h: (data: DepositConfirmedPayload) => void) {
   depositConfirmedHandler = h;
+}
+
+export function setFriendStatusUpdateHandler(h: (data: FriendStatusUpdatePayload) => void) {
+  friendStatusUpdateHandler = h;
+}
+
+export function setFriendRequestReceivedHandler(h: (data: FriendRequestReceivedPayload) => void) {
+  friendRequestReceivedHandler = h;
 }
 
 export function getSocket(
@@ -93,6 +102,8 @@ export function getSocket(
     socket.on('force_logout', (data) => forceLogoutHandler?.(data));
     socket.on('rejoin_available', (data) => rejoinAvailableHandler?.(data));
     socket.on('deposit_confirmed', (data) => depositConfirmedHandler?.(data));
+    socket.on('friend_status_update', (data) => friendStatusUpdateHandler?.(data));
+    socket.on('friend_request_received', (data) => friendRequestReceivedHandler?.(data));
   } else if (socket && !socket.connected) {
     // Zombie socket: token unchanged but socket disconnected (e.g. mobile OS closed WS).
     // Force immediate reconnect without waiting for socket.io backoff.

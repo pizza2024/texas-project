@@ -6,6 +6,8 @@ export {
   setForceLogoutHandler,
   setRejoinAvailableHandler,
   setDepositConfirmedHandler,
+  setFriendStatusUpdateHandler,
+  setFriendRequestReceivedHandler,
   disconnectSocket,
 } from '@texas/shared';
 import { getSocket as _getSocket } from '@texas/shared';
