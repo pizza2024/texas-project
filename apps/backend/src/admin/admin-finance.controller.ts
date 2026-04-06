@@ -5,13 +5,19 @@ import {
   Query,
   Body,
   UseGuards,
-  Request,
+  Req,
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
 import { DepositDto, WithdrawDto } from './dto/adjust-balance.dto';
+import { AdminUser } from './interfaces/admin-request.interface';
+
+interface AdminRequest extends Request {
+  admin: AdminUser;
+}
 
 @Controller('admin/finance')
 @UseGuards(AdminGuard)
@@ -34,7 +40,7 @@ export class AdminFinanceController {
   }
 
   @Post('deposit')
-  deposit(@Body() dto: DepositDto, @Request() req: any) {
+  deposit(@Body() dto: DepositDto, @Req() req: AdminRequest) {
     return this.adminService.adjustBalance(
       dto.userId,
       Math.abs(dto.amount),
@@ -44,7 +50,7 @@ export class AdminFinanceController {
   }
 
   @Post('withdraw')
-  withdraw(@Body() dto: WithdrawDto, @Request() req: any) {
+  withdraw(@Body() dto: WithdrawDto, @Req() req: AdminRequest) {
     return this.adminService.adjustBalance(
       dto.userId,
       -Math.abs(dto.amount),

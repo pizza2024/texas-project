@@ -7,14 +7,20 @@ import {
   Query,
   Body,
   UseGuards,
-  Request,
+  Req,
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdjustBalanceDto } from './dto/adjust-balance.dto';
+import { AdminUser } from './interfaces/admin-request.interface';
+
+interface AdminRequest extends Request {
+  admin: AdminUser;
+}
 
 @Controller('admin/users')
 @UseGuards(AdminGuard)
@@ -40,7 +46,7 @@ export class AdminUserController {
   async updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-    @Request() req: any,
+    @Req() req: AdminRequest,
   ) {
     const result = await this.adminService.updateUser(id, dto);
     await this.adminService.log({
@@ -54,7 +60,7 @@ export class AdminUserController {
   }
 
   @Post(':id/ban')
-  async banUser(@Param('id') id: string, @Request() req: any) {
+  async banUser(@Param('id') id: string, @Req() req: AdminRequest) {
     const user = await this.adminService.updateUser(id, { status: 'BANNED' });
     await this.adminService.log({
       adminId: req.admin.sub,
@@ -66,7 +72,7 @@ export class AdminUserController {
   }
 
   @Post(':id/unban')
-  async unbanUser(@Param('id') id: string, @Request() req: any) {
+  async unbanUser(@Param('id') id: string, @Req() req: AdminRequest) {
     const user = await this.adminService.updateUser(id, { status: 'OFFLINE' });
     await this.adminService.log({
       adminId: req.admin.sub,
@@ -81,7 +87,7 @@ export class AdminUserController {
   adjustBalance(
     @Param('id') id: string,
     @Body() dto: AdjustBalanceDto,
-    @Request() req: any,
+    @Req() req: AdminRequest,
   ) {
     return this.adminService.adjustBalance(
       id,

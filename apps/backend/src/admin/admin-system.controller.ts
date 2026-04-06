@@ -4,15 +4,21 @@ import {
   Post,
   Body,
   UseGuards,
-  Request,
+  Req,
   ParseIntPipe,
   DefaultValuePipe,
   Query,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
 import { BroadcastService } from './broadcast.service';
 import { SystemStateService } from './system-state.service';
+import { AdminUser } from './interfaces/admin-request.interface';
+
+interface AdminRequest extends Request {
+  admin: AdminUser;
+}
 
 @Controller('admin/system')
 @UseGuards(AdminGuard)
@@ -38,7 +44,7 @@ export class AdminSystemController {
 
   @Post('maintenance')
   async toggleMaintenance(
-    @Request() req: any,
+    @Req() req: AdminRequest,
     @Body() body: { enable?: boolean },
   ) {
     const current = this.systemState.isMaintenanceMode();
@@ -63,7 +69,7 @@ export class AdminSystemController {
 
   @Post('broadcast')
   async broadcast(
-    @Request() req: any,
+    @Req() req: AdminRequest,
     @Body() body: { message: string; type?: 'info' | 'warning' | 'error' },
   ) {
     this.broadcastService.sendSystemMessage(body.message, body.type || 'info');

@@ -8,14 +8,20 @@ import {
   Query,
   Body,
   UseGuards,
-  Request,
+  Req,
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
 import { AdminService } from './admin.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { AdminUser } from './interfaces/admin-request.interface';
+
+interface AdminRequest extends Request {
+  admin: AdminUser;
+}
 
 @Controller('admin/rooms')
 @UseGuards(AdminGuard)
@@ -38,7 +44,7 @@ export class AdminRoomController {
   }
 
   @Post()
-  async createRoom(@Body() dto: CreateRoomDto, @Request() req: any) {
+  async createRoom(@Body() dto: CreateRoomDto, @Req() req: AdminRequest) {
     const room = await this.adminService.createRoom(dto);
     await this.adminService.log({
       adminId: req.admin.sub,
@@ -54,7 +60,7 @@ export class AdminRoomController {
   async updateRoom(
     @Param('id') id: string,
     @Body() dto: UpdateRoomDto,
-    @Request() req: any,
+    @Req() req: AdminRequest,
   ) {
     const result = await this.adminService.updateRoom(id, dto);
     await this.adminService.log({
@@ -68,12 +74,12 @@ export class AdminRoomController {
   }
 
   @Delete(':id')
-  deleteRoom(@Param('id') id: string, @Request() req: any) {
+  deleteRoom(@Param('id') id: string, @Req() req: AdminRequest) {
     return this.adminService.deleteRoom(id, req.admin.sub);
   }
 
   @Post(':id/maintenance')
-  async toggleMaintenance(@Param('id') id: string, @Request() req: any) {
+  async toggleMaintenance(@Param('id') id: string, @Req() req: AdminRequest) {
     const room = await this.adminService.getRoomById(id);
     const newStatus = room.status === 'MAINTENANCE' ? 'ACTIVE' : 'MAINTENANCE';
     const updated = await this.adminService.updateRoom(id, {
@@ -98,7 +104,7 @@ export class AdminRoomController {
   async kickUser(
     @Param('id') id: string,
     @Param('userId') userId: string,
-    @Request() req: any,
+    @Req() req: AdminRequest,
   ) {
     await this.adminService.log({
       adminId: req.admin.sub,
