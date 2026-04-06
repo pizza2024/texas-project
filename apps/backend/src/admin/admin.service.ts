@@ -6,15 +6,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
+import { NotificationService } from '../notification/notification.service';
 
 const OVERVIEW_CACHE_KEY = 'admin:overview';
 const OVERVIEW_CACHE_TTL_SECONDS = 60;
+const MAX_CHIPS = 1_000_000_000; // 10亿 chips 上限
+const LARGE_ADJUSTMENT_THRESHOLD = 10_000; // chips，大额操作通知阈值（与 AdminUserController 保持一致）
 
 @Injectable()
 export class AdminService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
+    private notificationService: NotificationService,
   ) {}
 
   async log(params: {
@@ -148,6 +152,14 @@ export class AdminService {
       throw new BadRequestException('操作后余额不能为负数');
     }
 
+    // Guard against exceeding MAX_CHIPS
+    const newBalance = user.coinBalance + amount;
+    if (newBalance > MAX_CHIPS) {
+      throw new BadRequestException(
+        `余额上限为 ${MAX_CHIPS.toLocaleString()} chips，操作后余额 ${newBalance.toLocaleString()} 超过上限`,
+      );
+    }
+
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
@@ -173,6 +185,24 @@ export class AdminService {
       targetId: userId,
       detail: { amount, reason, previousBalance: user.coinBalance },
     });
+
+    // Large adjustment alert
+    if (Math.abs(amount) > LARGE_ADJUSTMENT_THRESHOLD) {
+      const admin = await this.prisma.user.findUnique({
+        where: { id: adminId },
+        select: { nickname: true },
+      });
+      const action = amount > 0 ? '充值' : '扣除';
+      this.notificationService
+        .sendAdminAlert(
+          `⚠️ *大额管理员操作*\n` +
+            `管理员：${admin?.nickname ?? adminId}\n` +
+            `用户：${user.nickname} (${userId.slice(0, 8)}...)\n` +
+            `${action}：${Math.abs(amount).toLocaleString()} chips\n` +
+            `原因：${reason}`,
+        )
+        .catch(() => {}); // non-blocking
+    }
 
     return this.prisma.user.findUnique({
       where: { id: userId },

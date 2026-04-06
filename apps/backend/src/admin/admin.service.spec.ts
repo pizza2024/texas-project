@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminService } from './admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { NotificationService } from '../notification/notification.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('AdminService', () => {
@@ -52,12 +53,16 @@ describe('AdminService', () => {
       set: jest.fn().mockResolvedValue(undefined),
       del: jest.fn().mockResolvedValue(undefined),
     };
+    const mockNotification = {
+      sendAdminAlert: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: RedisService, useValue: mockRedis },
+        { provide: NotificationService, useValue: mockNotification },
       ],
     }).compile();
 

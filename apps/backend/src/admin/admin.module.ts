@@ -11,6 +11,7 @@ import { AdminFinanceController } from './admin-finance.controller';
 import { AdminAnalyticsController } from './admin-analytics.controller';
 import { AdminSystemController } from './admin-system.controller';
 import { WebsocketModule } from '../websocket/websocket.module';
+import { NotificationModule } from '../notification/notification.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
@@ -20,6 +21,7 @@ import { getJwtSecret } from '../config/jwt.config';
       signOptions: { expiresIn: '7d' },
     }),
     WebsocketModule,
+    NotificationModule,
   ],
   controllers: [
     AdminUserController,
