@@ -302,7 +302,7 @@ export class TableManagerService implements OnModuleInit {
       ]);
     } catch (err) {
       // Non-fatal: log and continue — game integrity (balance updates) must not be blocked
-      console.error(`[persistSettlementRecords] roomId=${roomId}`, err);
+      this.logger.error(`[persistSettlementRecords] roomId=${roomId}`, err);
     }
   }
 
