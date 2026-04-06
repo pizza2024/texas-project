@@ -339,7 +339,7 @@ export class WithdrawService {
 
     if (action === 'REJECT') {
       // Refund chips to user
-      await this.refundChips(request.userId, request.amountChips, id);
+      await this.refundChips(request.userId, request.amountChips, id, reason ?? 'Rejected by admin');
 
       const updated = await this.prisma.withdrawRequest.update({
         where: { id },
@@ -407,6 +407,7 @@ export class WithdrawService {
     userId: string,
     amountChips: number,
     requestId: string,
+    reason?: string,
   ): Promise<void> {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     const currentBalance = wallet?.chips ?? 0;
@@ -431,9 +432,32 @@ export class WithdrawService {
       }),
     ]);
 
+    // Audit log for the refund (non-blocking)
+    this.adminLogIfAvailable(userId, requestId, reason).catch(() => {});
+
     this.logger.log(
       `Withdraw refund: user=${userId}, chips=${amountChips}, requestId=${requestId}`,
     );
+  }
+
+  private async adminLogIfAvailable(
+    userId: string,
+    requestId: string,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.adminLog.create({
+        data: {
+          adminId: 'SYSTEM',
+          action: 'WITHDRAW_REFUND',
+          targetType: 'USER',
+          targetId: userId,
+          detail: JSON.stringify({ requestId, reason: reason ?? 'Rejected by admin' }),
+        },
+      });
+    } catch (e) {
+      this.logger.warn(`Failed to write WITHDRAW_REFUND admin log: ${(e as Error).message}`);
+    }
   }
 
   /** Execute USDT transfer on-chain */
@@ -524,7 +548,7 @@ export class WithdrawService {
       },
     });
 
-    await this.refundChips(request.userId, request.amountChips, requestId);
+    await this.refundChips(request.userId, request.amountChips, requestId, reason);
     this.logger.log(
       `Withdraw failed and refunded: id=${requestId}, reason=${reason}`,
     );
@@ -585,6 +609,21 @@ export class WithdrawService {
     );
 
     await this.handleWithdrawFailure(requestId, reason);
+
+    // Admin log for chain failure (distinct from WITHDRAW_REFUND logged in refundChips)
+    try {
+      await this.prisma.adminLog.create({
+        data: {
+          adminId: 'SYSTEM',
+          action: 'WITHDRAW_CHAIN_FAILURE',
+          targetType: 'USER',
+          targetId: request.userId,
+          detail: JSON.stringify({ requestId, reason }),
+        },
+      });
+    } catch (e) {
+      this.logger.warn(`Failed to write WITHDRAW_CHAIN_FAILURE admin log: ${(e as Error).message}`);
+    }
   }
 
   /** Periodic check for stale PROCESSING requests (should not happen normally) */
