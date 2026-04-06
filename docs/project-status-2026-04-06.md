@@ -2,7 +2,7 @@
 
 > 生成时间：2026-04-06  
 > 分支：`develop`（本地领先 origin/develop 1 个 commit）  
-> 最新 commit：`ce4b196` — fix: use crypto.randomInt for OTP generation instead of Math.random()
+> 最新 commit：`fd8b305` — feat(friends): add friends UI page with real-time WebSocket updates
 
 ---
 
@@ -210,12 +210,13 @@ texas-project/
 ### P0 — 必须
 1. 🔴 **修复 staging 域名**（`not-replaced-yet.com` → 真实域名）
 2. 🔴 **完成 USDT 提现自动执行**（WithdrawQueue → 链上转账）
-3. 🔴 **好友系统 UI**（Web/Mobile 集成）
+3. ✅ ~~**好友系统 UI**（Web/Mobile 集成）~~ → 已完成 `fd8b305`
 
 ### P1 — 重要
 4. 🟡 Telegram Mini App 集成
 5. 🟡 快速匹配 UI 完善（当前部分实现）
 6. 🟡 移动端创建房间 UI
+7. 🟡 移动端好友 UI（当前仅 Web）
 
 ### P2 — 增强
 7. 🔵 手牌复盘 Replay
@@ -226,3 +227,44 @@ texas-project/
 ---
 
 _本文档由 pipi 整理于 2026-04-06_
+
+---
+
+## 更新记录（2026-04-06 18:05）
+
+### ✅ 好友系统 UI 完成
+
+**前端页面：** `apps/web/app/friends/page.tsx`
+
+- `GET /friends` — 好友列表（支持搜索）
+- `POST /friends/request` — 发送好友请求
+- `DELETE /friends/:id` — 删除好友
+- `GET /friends/requests` — 收到的好友请求列表
+- `POST /friends/requests/:id/accept` — 接受请求
+- `POST /friends/requests/:id/reject` — 拒绝请求
+
+**WebSocket 实时事件：**
+- `friend_status_update` — 好友上下线状态实时更新
+- `friend_request_received` — 新好友请求实时推送
+
+**UI 功能：**
+- Friends Tab：好友列表 + 在线状态标签 + 搜索过滤 + 删除
+- Requests Tab：待处理请求 + 接受/拒绝按钮 + 未读红点计数
+- 添加好友 Modal：用户名/邮箱输入
+- Toast 通知：新请求到达时自动提示
+
+**导航入口：**
+- 桌面端：Rooms 页面顶部 `👥 好友` 按钮
+- 移动端：头像下拉菜单
+
+**i18n：** 英文 + 中文 keys 已添加
+
+**涉及文件：**
+- `apps/web/app/friends/page.tsx`（新建）
+- `apps/web/app/rooms/page.tsx`（修改：添加好友按钮）
+- `apps/web/lib/socket.ts`（修改：导出 friend handler）
+- `packages/shared/src/socket.ts`（修改：friend WebSocket handlers）
+- `apps/web/locales/en.json`（修改：新增 keys）
+- `apps/web/locales/zh-CN.json`（修改：新增 keys）
+
+**Commit：** `fd8b305` — feat(friends): add friends UI page with real-time WebSocket updates
