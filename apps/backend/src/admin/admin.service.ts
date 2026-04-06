@@ -1,9 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+
+const OVERVIEW_CACHE_KEY = 'admin:overview';
+const OVERVIEW_CACHE_TTL_SECONDS = 60;
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   async log(params: {
     adminId: string;
@@ -291,6 +298,21 @@ export class AdminService {
   // ── Analytics ────────────────────────────────────────────
 
   async getOverview() {
+    const cached = await this.redis.get(OVERVIEW_CACHE_KEY);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as {
+          totalUsers: number;
+          activeRooms: number;
+          totalHands: number;
+          todayTransactions: number;
+          todayFlow: number;
+        };
+      } catch {
+        // Corrupt cache — fall through to DB
+      }
+    }
+
     const [totalUsers, activeRooms, totalHands, recentTransactions] =
       await Promise.all([
         this.prisma.user.count(),
@@ -303,13 +325,21 @@ export class AdminService {
         }),
       ]);
 
-    return {
+    const result = {
       totalUsers,
       activeRooms,
       totalHands,
       todayTransactions: recentTransactions._count,
       todayFlow: recentTransactions._sum.amount ?? 0,
     };
+
+    await this.redis.set(
+      OVERVIEW_CACHE_KEY,
+      JSON.stringify(result),
+      OVERVIEW_CACHE_TTL_SECONDS,
+    );
+
+    return result;
   }
 
   async getUserGrowth(days = 30) {
