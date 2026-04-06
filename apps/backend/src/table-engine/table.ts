@@ -551,7 +551,9 @@ export class Table {
     this.actionEndsAt = null;
 
     // Check if this fold results in only one remaining player
-    const notFolded = this.players.filter((p) => p && p.status !== PlayerStatus.FOLD) as Player[];
+    const notFolded = this.players.filter(
+      (p) => p && p.status !== PlayerStatus.FOLD,
+    ) as Player[];
     if (notFolded.length === 1) {
       this.resolveFoldWin(notFolded[0]);
       return false;
@@ -577,11 +579,11 @@ export class Table {
     this.lastHandResult = this.players
       .filter((p) => p !== null)
       .map((p) => ({
-        playerId: p!.id,
-        nickname: p!.nickname,
-        handName: p!.id === winner.id ? '其他玩家弃牌' : '弃牌',
-        winAmount: p!.id === winner.id ? winAmount : 0,
-        totalBet: p!.totalBet,
+        playerId: p.id,
+        nickname: p.nickname,
+        handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+        winAmount: p.id === winner.id ? winAmount : 0,
+        totalBet: p.totalBet,
       }));
     this.isFoldWin = true;
     this.foldWinnerRevealed = false;
@@ -880,43 +882,6 @@ export class Table {
         } else if (this.calledAllIn === null) {
           this.calledAllIn = activePlayer.bet;
         }
-        handled = true;
-        break;
-      }
-
-      case 'straddle': {
-        // Straddle is a voluntary blind bet of 2x BB made by the player left of BB (UTG)
-        // before cards are dealt. Acts as the first raise. Only one straddle per hand.
-        if (this.currentStage !== GameStage.PREFLOP) return false;
-        // Can only straddle before any raise (currentBet should equal BB at this point)
-        if (this.currentBet !== this.bigBlind) return false;
-        // Only one straddle per hand
-        if (this.straddle !== null) return false;
-        // Player must not have acted yet
-        if (activePlayer.hasActed) return false;
-
-        const straddleAmount = Math.min(this.bigBlind * 2, activePlayer.stack);
-        if (straddleAmount < this.bigBlind * 2) return false; // must be able to cover full straddle
-
-        activePlayer.stack -= straddleAmount;
-        activePlayer.bet += straddleAmount;
-        activePlayer.totalBet += straddleAmount;
-        this.pot += straddleAmount;
-        this.currentBet = straddleAmount;
-        this.minBet = this.bigBlind; // raise increment is BB
-        activePlayer.hasActed = true;
-        this.straddle = {
-          playerId: activePlayer.id,
-          amount: straddleAmount,
-          position: activePlayer.position,
-        };
-
-        // Re-open action for everyone else still active
-        this.players.forEach((p) => {
-          if (p && p.id !== playerId && p.status === PlayerStatus.ACTIVE) {
-            p.hasActed = false;
-          }
-        });
         handled = true;
         break;
       }

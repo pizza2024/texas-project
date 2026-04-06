@@ -389,7 +389,9 @@ describe('compareScores', () => {
     const royal = evaluateHand(['AS', 'KS', 'QS', 'JS', 'TS']);
     const sflush = evaluateHand(['9H', '8H', '7H', '6H', '5H']);
     expect(compareScores(royal, sflush)).toBeGreaterThan(0);
-    expect(compareScores(sflush, evaluateHand(['AH', 'AD', 'AC', 'AS', '2S']))).toBeGreaterThan(0);
+    expect(
+      compareScores(sflush, evaluateHand(['AH', 'AD', 'AC', 'AS', '2S'])),
+    ).toBeGreaterThan(0);
   });
 
   it('same rank: first tiebreaker value decides', () => {
@@ -525,7 +527,9 @@ describe('evaluateHand – edge cases', () => {
   });
 
   it('throws for more than 7 cards', () => {
-    expect(() => evaluateHand(['AH', 'KD', 'QS', 'JS', 'TS', '2H', '3D', '4S'])).toThrow();
+    expect(() =>
+      evaluateHand(['AH', 'KD', 'QS', 'JS', 'TS', '2H', '3D', '4S']),
+    ).toThrow();
   });
 
   it('accepts exactly 5 cards', () => {

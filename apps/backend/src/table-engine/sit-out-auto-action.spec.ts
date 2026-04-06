@@ -1,9 +1,15 @@
 import { Table } from './table';
 import { PlayerStatus } from './player';
 
-function makePlayer(overrides: Partial<{
-  sub: string; nickname: string; stack: number; status: PlayerStatus; hasActed: boolean;
-}> = {}): any {
+function makePlayer(
+  overrides: Partial<{
+    sub: string;
+    nickname: string;
+    stack: number;
+    status: PlayerStatus;
+    hasActed: boolean;
+  }> = {},
+): any {
   return {
     sub: 'player-1',
     username: 'Player1',
@@ -25,9 +31,18 @@ function createTable(maxPlayers = 6): Table {
  * First to act preflop = Alice (Button)
  */
 function start3max(table: Table): void {
-  table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+  table.addPlayer(
+    makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+    1000,
+  );
   table.startHand();
 }
 
@@ -40,15 +55,24 @@ describe('Sit-out Auto-Action', () => {
 
     it('returns false for a null seat', () => {
       const table = createTable();
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+        1000,
+      );
       table.startHand();
       expect(table.isSittingOutPlayer(1)).toBe(false);
     });
 
     it('returns false for an ACTIVE player', () => {
       const table = createTable();
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+        1000,
+      );
       table.startHand();
       // In 2-player: activePlayerIndex = 0 (Button acts first)
       expect(table.isSittingOutPlayer(table.activePlayerIndex)).toBe(false);
@@ -56,10 +80,21 @@ describe('Sit-out Auto-Action', () => {
 
     it('returns true for a SITOUT player at their seat', () => {
       const table = createTable();
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 0, status: PlayerStatus.SITOUT }), 0);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({
+          sub: 'p2',
+          nickname: 'Bob',
+          stack: 0,
+          status: PlayerStatus.SITOUT,
+        }),
+        0,
+      );
       table.startHand();
-      const p2Index = table.players.findIndex(p => p?.id === 'p2');
+      const p2Index = table.players.findIndex((p) => p?.id === 'p2');
       expect(table.isSittingOutPlayer(p2Index)).toBe(true);
     });
   });
@@ -73,9 +108,18 @@ describe('Sit-out Auto-Action', () => {
 
     it('returns false when active player is ACTIVE (not SITOUT)', () => {
       const table = createTable();
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+        1000,
+      );
       table.startHand();
       expect(table.checkAndAutoFoldSittingOut()).toBe(false);
       expect(table.lastSitoutAutoFold).toBeNull();
@@ -96,7 +140,10 @@ describe('Sit-out Auto-Action', () => {
 
       // Hand continues (3 players, 2 remain)
       expect(result).toBe(true);
-      expect(table.lastSitoutAutoFold).toEqual({ playerId: 'p1', seatIndex: 0 });
+      expect(table.lastSitoutAutoFold).toEqual({
+        playerId: 'p1',
+        seatIndex: 0,
+      });
       expect(alice.status).toBe(PlayerStatus.FOLD);
       expect(alice.hasActed).toBe(true);
     });
@@ -112,7 +159,10 @@ describe('Sit-out Auto-Action', () => {
 
       table.checkAndAutoFoldSittingOut();
 
-      expect(table.lastSitoutAutoFold).toEqual({ playerId: 'p1', seatIndex: 0 });
+      expect(table.lastSitoutAutoFold).toEqual({
+        playerId: 'p1',
+        seatIndex: 0,
+      });
       expect(table.players[0]!.status).toBe(PlayerStatus.FOLD);
       // Next active: Bob (SB)
       expect(table.activePlayerIndex).toBe(1);
@@ -131,9 +181,18 @@ describe('Sit-out Auto-Action', () => {
 
       // Start a new hand
       table.resetToWaiting();
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+        1000,
+      );
       table.startHand();
 
       expect(table.lastSitoutAutoFold).toBeNull();

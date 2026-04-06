@@ -15,7 +15,14 @@ import { RoomService } from './room.service';
 import { AuthGuard } from '@nestjs/passport';
 import * as bcrypt from 'bcrypt';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, MaxLength, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  MaxLength,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApplyRateLimit, RateLimitGuard } from '../auth/rate-limit.guard';
 
@@ -128,7 +135,12 @@ export class RoomController {
 
   @Post(':id/verify-password')
   @UseGuards(AuthGuard('jwt'), RateLimitGuard)
-  @ApplyRateLimit({ limit: 10, windowSeconds: 60, keyPrefix: 'room_pw_verify', keyType: 'user' })
+  @ApplyRateLimit({
+    limit: 10,
+    windowSeconds: 60,
+    keyPrefix: 'room_pw_verify',
+    keyType: 'user',
+  })
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify room password for private rooms' })
   async verifyPassword(

@@ -314,9 +314,7 @@ export class TableManagerService implements OnModuleInit {
     return (await this.getUserCurrentRoom(userId))?.roomId ?? null;
   }
 
-  async getUserCurrentRoom(
-    userId: string,
-  ): Promise<{
+  async getUserCurrentRoom(userId: string): Promise<{
     roomId: string;
     isMatchmaking: boolean;
     isInActiveGame: boolean;

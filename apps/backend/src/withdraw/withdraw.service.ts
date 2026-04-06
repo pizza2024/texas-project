@@ -12,7 +12,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { NotificationService } from '../notification/notification.service';
-import { WithdrawQueueService, WITHDRAW_QUEUE_NAME } from '../queue/withdraw-queue.service';
+import {
+  WithdrawQueueService,
+  WITHDRAW_QUEUE_NAME,
+} from '../queue/withdraw-queue.service';
 import { CreateWithdrawDto } from './dto/create-withdraw.dto';
 import { WithdrawRequest, Prisma } from '@prisma/client';
 
@@ -88,9 +91,7 @@ export class WithdrawService {
     try {
       const ttl = await this.redisService.ttl(WITHDRAW_COOLDOWN_KEY(userId));
       if (ttl > 0) {
-        throw new BadRequestException(
-          `请等待 ${Math.ceil(ttl)} 秒后再试`,
-        );
+        throw new BadRequestException(`请等待 ${Math.ceil(ttl)} 秒后再试`);
       }
       // Key absent / expired in Redis — clear any stale in-memory entry
       this.cooldowns.delete(userId);
@@ -128,7 +129,9 @@ export class WithdrawService {
     canWithdraw: boolean;
   }> {
     try {
-      const ttlSeconds = await this.redisService.ttl(WITHDRAW_COOLDOWN_KEY(userId));
+      const ttlSeconds = await this.redisService.ttl(
+        WITHDRAW_COOLDOWN_KEY(userId),
+      );
       if (ttlSeconds > 0) {
         return { remainingMs: ttlSeconds * 1000, canWithdraw: false };
       }
@@ -387,7 +390,9 @@ export class WithdrawService {
       this.logger.log(`Withdraw ${id} enqueued for chain transfer`);
     } catch (err) {
       // Queue unavailable — fall back to direct execution
-      this.logger.warn(`Queue unavailable, falling back to direct execution: ${(err as Error).message}`);
+      this.logger.warn(
+        `Queue unavailable, falling back to direct execution: ${(err as Error).message}`,
+      );
       void this.executeChainWithdrawWithRetry(id, 1).catch((e: Error) => {
         void this.handleWithdrawFailure(id, e.message);
       });
@@ -601,10 +606,14 @@ export class WithdrawService {
           await this.withdrawQueue.enqueueWithdraw(request.id);
         } catch (err) {
           // Queue unavailable — fall back to direct retry
-          this.logger.warn(`Queue unavailable for stale request: ${(err as Error).message}`);
-          void this.executeChainWithdrawWithRetry(request.id, 1).catch((e: Error) => {
-            void this.handleWithdrawFailure(request.id, e.message);
-          });
+          this.logger.warn(
+            `Queue unavailable for stale request: ${(err as Error).message}`,
+          );
+          void this.executeChainWithdrawWithRetry(request.id, 1).catch(
+            (e: Error) => {
+              void this.handleWithdrawFailure(request.id, e.message);
+            },
+          );
         }
       }
     }

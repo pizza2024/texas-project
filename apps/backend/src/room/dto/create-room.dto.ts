@@ -32,13 +32,18 @@ export class CreateRoomDto {
   @Max(9, { message: '最多9个玩家' })
   maxPlayers: number;
 
-  @ApiPropertyOptional({ description: 'Minimum buy-in (defaults to big blind)' })
+  @ApiPropertyOptional({
+    description: 'Minimum buy-in (defaults to big blind)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
   minBuyIn?: number;
 
-  @ApiPropertyOptional({ description: 'Room password (creates private room)', maxLength: 64 })
+  @ApiPropertyOptional({
+    description: 'Room password (creates private room)',
+    maxLength: 64,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(64, { message: '房间密码最多64个字符' })

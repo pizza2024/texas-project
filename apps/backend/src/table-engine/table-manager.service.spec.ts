@@ -215,7 +215,10 @@ describe('TableManagerService', () => {
 
     await service.onModuleInit();
 
-    expect(walletService.resetBalanceAndUnfreeze).toHaveBeenCalledWith('user-1', 888);
+    expect(walletService.resetBalanceAndUnfreeze).toHaveBeenCalledWith(
+      'user-1',
+      888,
+    );
     expect(redis.del).toHaveBeenCalledWith('table:room-1');
     expect(prisma.table.updateMany).toHaveBeenCalledWith({
       where: { id: room.id },

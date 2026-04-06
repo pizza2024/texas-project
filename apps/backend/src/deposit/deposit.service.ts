@@ -104,9 +104,7 @@ export class DepositService {
     try {
       const ttl = await this.redisService.ttl(FAUCET_COOLDOWN_KEY(userId));
       if (ttl > 0) {
-        throw new BadRequestException(
-          `请等待 ${Math.ceil(ttl)} 秒后再试`,
-        );
+        throw new BadRequestException(`请等待 ${Math.ceil(ttl)} 秒后再试`);
       }
       // Key absent / expired in Redis — clear any stale in-memory entry
       this.faucetCooldowns.delete(userId);
@@ -217,9 +215,7 @@ export class DepositService {
       ),
     );
 
-    const anySucceeded = results.some(
-      (r) => r.status === 'fulfilled',
-    );
+    const anySucceeded = results.some((r) => r.status === 'fulfilled');
 
     // Only advance the cursor if at least one query succeeded.
     // (If all failed — e.g. the node is still syncing — the next run will
@@ -272,7 +268,9 @@ export class DepositService {
         where: { txHash },
       });
       if (alreadyProcessed) {
-        this.logger.debug(`[checkAddressDeposits] already processed: ${txHash}`);
+        this.logger.debug(
+          `[checkAddressDeposits] already processed: ${txHash}`,
+        );
         continue;
       }
 

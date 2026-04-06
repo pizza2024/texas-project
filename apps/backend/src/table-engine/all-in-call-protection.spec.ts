@@ -1,9 +1,15 @@
 import { Table } from './table';
 import { PlayerStatus } from './player';
 
-function makePlayer(overrides: Partial<{
-  sub: string; nickname: string; stack: number; status: PlayerStatus; hasActed: boolean;
-}> = {}): any {
+function makePlayer(
+  overrides: Partial<{
+    sub: string;
+    nickname: string;
+    stack: number;
+    status: PlayerStatus;
+    hasActed: boolean;
+  }> = {},
+): any {
   return {
     sub: 'player-1',
     username: 'Player1',
@@ -25,9 +31,18 @@ function createTable(): Table {
  * First to act preflop = Alice (Button)
  */
 function start3max(table: Table): void {
-  table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+  table.addPlayer(
+    makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+    1000,
+  );
   table.startHand();
 }
 

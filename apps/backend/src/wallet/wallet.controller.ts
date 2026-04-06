@@ -36,7 +36,9 @@ export class WalletController {
 
   @Get('history')
   async getHistory(@Request() req: { user: { userId: string } }) {
-    const withdraws = await this.walletService.getWithdrawHistory(req.user.userId);
+    const withdraws = await this.walletService.getWithdrawHistory(
+      req.user.userId,
+    );
     return { withdraws };
   }
 

@@ -25,7 +25,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'echo "No webServer start - ensure Hardhat and Next.js are already running"',
+    command:
+      'echo "No webServer start - ensure Hardhat and Next.js are already running"',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 5000,

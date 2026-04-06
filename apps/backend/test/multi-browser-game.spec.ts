@@ -37,7 +37,10 @@ const USER2 = {
 };
 
 // Helper: register a user via API (with retry on rate limit)
-async function registerUser(user: { username: string; password: string; nickname: string }, retries = 3) {
+async function registerUser(
+  user: { username: string; password: string; nickname: string },
+  retries = 3,
+) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await axios.post(API_BASE + '/auth/register', {
@@ -49,7 +52,7 @@ async function registerUser(user: { username: string; password: string; nickname
     } catch (e: any) {
       if (e.response && e.response.status === 429 && i < retries - 1) {
         console.log('[Setup] Rate limited, waiting 10s before retry...');
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 5000));
         continue;
       }
       throw e;
@@ -73,7 +76,7 @@ async function loginViaUi(page: any, username: string, password: string) {
     } catch (e: any) {
       if (e.response && e.response.status === 429 && attempt < 2) {
         console.log('[Login API] Rate limited, waiting 8s...');
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 3000));
         continue;
       }
       throw e;
@@ -106,7 +109,9 @@ async function loginViaUi(page: any, username: string, password: string) {
   // If still not at rooms, try direct navigation
   const url = page.url();
   if (!url.includes('/rooms')) {
-    console.log('[Login] Redirected to: ' + url + ', navigating to /rooms directly');
+    console.log(
+      '[Login] Redirected to: ' + url + ', navigating to /rooms directly',
+    );
     await page.goto(WEB_URL + '/rooms');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
@@ -116,16 +121,26 @@ async function loginViaUi(page: any, username: string, password: string) {
   if (!finalUrl.includes('/rooms')) {
     await page.screenshot({ path: '/tmp/login-state-' + username + '.png' });
     const bodyText = await page.textContent('body').catch(() => '');
-    throw new Error('After token injection, at: ' + finalUrl + ' (expected /rooms). Body: ' + (bodyText || '').substring(0, 200));
+    throw new Error(
+      'After token injection, at: ' +
+        finalUrl +
+        ' (expected /rooms). Body: ' +
+        (bodyText || '').substring(0, 200),
+    );
   }
 
-  console.log('[Login] ' + username + ' logged in successfully, at: ' + finalUrl);
+  console.log(
+    '[Login] ' + username + ' logged in successfully, at: ' + finalUrl,
+  );
 }
 
 // Helper: create a room via the web UI and return the room ID from the URL
 async function createRoomViaUi(page: any): Promise<string> {
   // Click "+ 创建牌桌" button in the lobby header
-  const createBtn = page.locator('button').filter({ hasText: /创建牌桌/i }).first();
+  const createBtn = page
+    .locator('button')
+    .filter({ hasText: /创建牌桌/i })
+    .first();
   await createBtn.click();
 
   // Wait for dialog to appear - the dialog has an input with maxLength=30
@@ -133,7 +148,10 @@ async function createRoomViaUi(page: any): Promise<string> {
   await page.waitForTimeout(500); // let dialog fully render
 
   // Submit the form - the Create Room dialog has a submit button with text "创建牌桌"
-  const submitBtn = page.locator('form button[type="submit"]').filter({ hasText: /创建牌桌/i }).first();
+  const submitBtn = page
+    .locator('form button[type="submit"]')
+    .filter({ hasText: /创建牌桌/i })
+    .first();
   await submitBtn.click();
 
   // Wait for navigation to room page
@@ -186,14 +204,22 @@ async function clickReady(page: any, userName: string) {
   // Debug: check what text is visible on the page
   const bodyText = await page.textContent('body').catch(() => '');
   const visibleText = bodyText ? bodyText.substring(0, 500) : '(empty)';
-  console.log('[' + userName + ' Room Page Text] ' + visibleText.replace(/\s+/g, ' ').substring(0, 300));
+  console.log(
+    '[' +
+      userName +
+      ' Room Page Text] ' +
+      visibleText.replace(/\s+/g, ' ').substring(0, 300),
+  );
 
   // Look for the Ready button - "准备" (Chinese) - use exact text match
   const readyBtn = page.locator('button').filter({ hasText: '准备' }).first();
   try {
     await readyBtn.waitFor({ state: 'visible', timeout: 8000 });
   } catch {
-    await page.screenshot({ path: '/tmp/ready-btn-debug-' + userName + '.png', fullPage: true });
+    await page.screenshot({
+      path: '/tmp/ready-btn-debug-' + userName + '.png',
+      fullPage: true,
+    });
     throw new Error('Ready button (准备) not found for ' + userName);
   }
   await readyBtn.click();
@@ -203,7 +229,11 @@ async function clickReady(page: any, userName: string) {
 // Helper: find and click a game action button (fold/check/call)
 // Returns true if the button was found and clicked
 // IMPORTANT: Exclude Ready button which shows "✓ 已准备 — 点击取消"
-async function tryClickAction(page: any, actionLabel: string, chineseText: string): Promise<boolean> {
+async function tryClickAction(
+  page: any,
+  actionLabel: string,
+  chineseText: string,
+): Promise<boolean> {
   // Find all buttons and filter for the one containing the action text
   // but NOT the Ready button (which contains "已准备")
   const allBtns = page.locator('button');
@@ -217,7 +247,14 @@ async function tryClickAction(page: any, actionLabel: string, chineseText: strin
         // Make sure it's not the Ready button
         if (text.includes('已准备') || text.includes('取消')) continue;
         await btn.click();
-        console.log('[Action] ' + actionLabel + ' (' + chineseText + ') clicked - text: ' + text.trim());
+        console.log(
+          '[Action] ' +
+            actionLabel +
+            ' (' +
+            chineseText +
+            ') clicked - text: ' +
+            text.trim(),
+        );
         return true;
       }
     } catch {
@@ -229,20 +266,27 @@ async function tryClickAction(page: any, actionLabel: string, chineseText: strin
 
 // Helper: wait for the player's turn by looking for action buttons
 // Returns true if player's turn was detected and acted upon
-async function waitAndAct(page: any, playerName: string, maxAttempts = 40): Promise<boolean> {
+async function waitAndAct(
+  page: any,
+  playerName: string,
+  maxAttempts = 40,
+): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     await page.waitForTimeout(1000);
 
     // Check if game ended
     const body = await page.textContent('body');
-    if (body && (
-      body.includes('结算') ||
-      body.includes('摊牌') ||
-      body.includes('结算') ||
-      body.includes('摊牌') ||
-      body.includes('结果')
-    )) {
-      console.log('[' + playerName + '] Game ended (settlement/showdown detected)');
+    if (
+      body &&
+      (body.includes('结算') ||
+        body.includes('摊牌') ||
+        body.includes('结算') ||
+        body.includes('摊牌') ||
+        body.includes('结果'))
+    ) {
+      console.log(
+        '[' + playerName + '] Game ended (settlement/showdown detected)',
+      );
       return false;
     }
 
@@ -256,7 +300,15 @@ async function waitAndAct(page: any, playerName: string, maxAttempts = 40): Prom
     // Raise: Raise
     if (await tryClickAction(page, playerName + ' Raise', '加注')) return true;
 
-    console.log('[' + playerName + ' Turn Check] ' + (i + 1) + '/' + maxAttempts + ' - no action buttons visible');
+    console.log(
+      '[' +
+        playerName +
+        ' Turn Check] ' +
+        (i + 1) +
+        '/' +
+        maxAttempts +
+        ' - no action buttons visible',
+    );
   }
   return false;
 }
@@ -265,7 +317,7 @@ async function waitAndAct(page: any, playerName: string, maxAttempts = 40): Prom
 // TESTS
 // ============================================================
 
-test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
+test.describe("Multi-Browser Texas Hold'em Game Flow", () => {
   test.beforeAll(async () => {
     // Register two test users (or verify they exist)
     console.log('[Setup] Ensuring test users exist...');
@@ -277,20 +329,32 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
         if (e.response && e.response.status === 409) {
           console.log('[Setup] User already exists (OK): ' + user.username);
         } else if (e.response && e.response.status === 429) {
-          console.log('[Setup] Rate limited for ' + user.username + ', waiting 5s...');
-          await new Promise(r => setTimeout(r, 5000));
+          console.log(
+            '[Setup] Rate limited for ' + user.username + ', waiting 5s...',
+          );
+          await new Promise((r) => setTimeout(r, 5000));
           try {
             await registerUser(user);
             console.log('[Setup] Registered after retry: ' + user.username);
           } catch (e2: any) {
             if (e2.response && e2.response.status === 409) {
-              console.log('[Setup] User already exists after retry (OK): ' + user.username);
+              console.log(
+                '[Setup] User already exists after retry (OK): ' +
+                  user.username,
+              );
             } else {
-              console.log('[Setup] Could not register ' + user.username + ': ' + e2.message);
+              console.log(
+                '[Setup] Could not register ' +
+                  user.username +
+                  ': ' +
+                  e2.message,
+              );
             }
           }
         } else {
-          console.log('[Setup] Could not register ' + user.username + ': ' + e.message);
+          console.log(
+            '[Setup] Could not register ' + user.username + ': ' + e.message,
+          );
         }
       }
     }
@@ -315,7 +379,7 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       // ── LOGIN BOTH USERS ────────────────────────────────────
       console.log('\n=== STEP 1: Login both users ===');
       await loginViaUi(page1, USER1.username, USER1.password);
-      await new Promise(r => setTimeout(r, 10000)); // stagger logins to avoid rate limit
+      await new Promise((r) => setTimeout(r, 10000)); // stagger logins to avoid rate limit
       await loginViaUi(page2, USER2.username, USER2.password);
 
       // Verify both are on rooms page
@@ -353,8 +417,14 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       for (let i = 0; i < 30; i++) {
         await page1.waitForTimeout(1000);
         // Look for card elements (poker cards are rendered with rounded-lg + flex classes)
-        const cardCount = await page1.locator('[class*="rounded-lg"][class*="flex"][class*="items-center"]').count();
-        console.log('[Wait Game Start] ' + (i + 1) + '/30 - card elements: ' + cardCount);
+        const cardCount = await page1
+          .locator(
+            '[class*="rounded-lg"][class*="flex"][class*="items-center"]',
+          )
+          .count();
+        console.log(
+          '[Wait Game Start] ' + (i + 1) + '/30 - card elements: ' + cardCount,
+        );
         if (cardCount >= 2) {
           gameStarted = true;
           break;
@@ -364,7 +434,9 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       if (!gameStarted) {
         await page1.screenshot({ path: '/tmp/room1-state.png' });
         await page2.screenshot({ path: '/tmp/room2-state.png' });
-        console.log('[Warn] Could not confirm game started from cards - continuing');
+        console.log(
+          '[Warn] Could not confirm game started from cards - continuing',
+        );
       } else {
         console.log('[Verify] Cards dealt - game started');
       }
@@ -377,14 +449,18 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       console.log('\n=== STEP 6: Player 1 acts (preflop) ===');
       const p1Acted = await waitAndAct(page1, 'Player 1', 40);
       if (!p1Acted) {
-        console.log('[Warn] Player 1 did not act (may have auto-folded or game ended)');
+        console.log(
+          '[Warn] Player 1 did not act (may have auto-folded or game ended)',
+        );
       }
 
       // ── PLAYER 2 RESPONDS ────────────────────────────────────
       console.log('\n=== STEP 7: Player 2 responds ===');
       const p2Acted = await waitAndAct(page2, 'Player 2', 40);
       if (!p2Acted) {
-        console.log('[Warn] Player 2 did not act (may have auto-folded or game ended)');
+        console.log(
+          '[Warn] Player 2 did not act (may have auto-folded or game ended)',
+        );
       }
 
       // ── CONTINUE THROUGH FLOP, TURN, RIVER ──────────────────
@@ -393,13 +469,18 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       for (let round = 0; round < 10; round++) {
         // Check if game is over
         const body1 = await page1.textContent('body');
-        if (body1 && (
-          body1.includes('Settlement') ||
-          body1.includes('Showdown') ||
-          body1.includes('Settlement') ||
-          body1.includes('Showdown')
-        )) {
-          console.log('[Stage] Game ended at settlement/showdown after ' + roundsCompleted + ' rounds');
+        if (
+          body1 &&
+          (body1.includes('Settlement') ||
+            body1.includes('Showdown') ||
+            body1.includes('Settlement') ||
+            body1.includes('Showdown'))
+        ) {
+          console.log(
+            '[Stage] Game ended at settlement/showdown after ' +
+              roundsCompleted +
+              ' rounds',
+          );
           break;
         }
 
@@ -429,24 +510,31 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
         const body1 = await page1.textContent('body');
         const body2 = await page2.textContent('body');
 
-        const p1End = body1 && (
-          body1.includes('Settlement') ||
-          body1.includes('Showdown') ||
-          body1.includes('Settlement') ||
-          body1.includes('Showdown') ||
-          body1.includes('结果') ||
-          body1.includes('win')
-        );
-        const p2End = body2 && (
-          body2.includes('Settlement') ||
-          body2.includes('Showdown') ||
-          body2.includes('Settlement') ||
-          body2.includes('Showdown') ||
-          body2.includes('结果') ||
-          body2.includes('win')
-        );
+        const p1End =
+          body1 &&
+          (body1.includes('Settlement') ||
+            body1.includes('Showdown') ||
+            body1.includes('Settlement') ||
+            body1.includes('Showdown') ||
+            body1.includes('结果') ||
+            body1.includes('win'));
+        const p2End =
+          body2 &&
+          (body2.includes('Settlement') ||
+            body2.includes('Showdown') ||
+            body2.includes('Settlement') ||
+            body2.includes('Showdown') ||
+            body2.includes('结果') ||
+            body2.includes('win'));
 
-        console.log('[Showdown Check] ' + (i + 1) + '/20 - P1 end: ' + !!p1End + ', P2 end: ' + !!p2End);
+        console.log(
+          '[Showdown Check] ' +
+            (i + 1) +
+            '/20 - P1 end: ' +
+            !!p1End +
+            ', P2 end: ' +
+            !!p2End,
+        );
 
         if (p1End && p2End) {
           showdownReached = true;
@@ -474,10 +562,11 @@ test.describe('Multi-Browser Texas Hold\'em Game Flow', () => {
       // Take final screenshots
       await page1.screenshot({ path: '/tmp/room1-final.png', fullPage: true });
       await page2.screenshot({ path: '/tmp/room2-final.png', fullPage: true });
-      console.log('[Screenshots] Saved to /tmp/room1-final.png and /tmp/room2-final.png');
+      console.log(
+        '[Screenshots] Saved to /tmp/room1-final.png and /tmp/room2-final.png',
+      );
 
       console.log('\n✅ All game flow steps executed successfully!');
-
     } finally {
       await browser1.close();
       await browser2.close();

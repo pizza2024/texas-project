@@ -35,7 +35,9 @@ export class NotificationService {
         parseMode: 'Markdown',
       });
     } catch (err) {
-      this.logger.warn(`Failed to send Telegram alert: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to send Telegram alert: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -61,7 +63,9 @@ export class NotificationService {
   }
 
   private formatAlert(message: string): string {
-    const timestamp = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const timestamp = new Date().toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+    });
     return `🔴 *Withdraw Alert* 🔴\n\n${message}\n\n⏰ ${timestamp}`;
   }
 }

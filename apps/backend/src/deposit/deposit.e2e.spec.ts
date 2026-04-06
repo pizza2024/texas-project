@@ -78,10 +78,14 @@ describe('DepositService E2E', () => {
   const setupModule = async (overrides: Record<string, string> = {}) => {
     // Set env vars before constructing service
     process.env.FAUCET_ENABLED = overrides.FAUCET_ENABLED ?? 'true';
-    process.env.HD_WALLET_MNEMONIC = overrides.HD_WALLET_MNEMONIC ?? 'test test test test test test test test test test test junk';
+    process.env.HD_WALLET_MNEMONIC =
+      overrides.HD_WALLET_MNEMONIC ??
+      'test test test test test test test test test test test junk';
     process.env.ETH_RPC_URL = overrides.ETH_RPC_URL ?? 'http://localhost:8545';
     process.env.FAUCET_AMOUNT_USDT = overrides.FAUCET_AMOUNT_USDT ?? '100';
-    process.env.USDT_CONTRACT_ADDRESS = overrides.USDT_CONTRACT_ADDRESS ?? '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0';
+    process.env.USDT_CONTRACT_ADDRESS =
+      overrides.USDT_CONTRACT_ADDRESS ??
+      '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -103,31 +107,43 @@ describe('DepositService E2E', () => {
   describe('faucet', () => {
     it('throws ForbiddenException when FAUCET_ENABLED is not true', async () => {
       await setupModule({ FAUCET_ENABLED: 'false' });
-      await expect(service.faucet('user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.faucet('user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws ForbiddenException when HD_WALLET_MNEMONIC is missing', async () => {
       await setupModule({ HD_WALLET_MNEMONIC: '' });
-      await expect(service.faucet('user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.faucet('user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws ForbiddenException when ETH_RPC_URL is missing', async () => {
       await setupModule({ ETH_RPC_URL: '' });
-      await expect(service.faucet('user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.faucet('user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws BadRequestException when faucet is called within cooldown period', async () => {
       await setupModule();
       // Force Redis TTL to throw → triggers in-memory fallback path
-      mockRedisService.ttl = jest.fn().mockRejectedValue(new Error('Redis unavailable'));
+      mockRedisService.ttl = jest
+        .fn()
+        .mockRejectedValue(new Error('Redis unavailable'));
       (service as any).faucetCooldowns.set('user-1', Date.now() - 30_000);
-      await expect(service.faucet('user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.faucet('user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException with remaining time when called during cooldown', async () => {
       await setupModule();
       // Force Redis TTL to throw → triggers in-memory fallback path
-      mockRedisService.ttl = jest.fn().mockRejectedValue(new Error('Redis unavailable'));
+      mockRedisService.ttl = jest
+        .fn()
+        .mockRejectedValue(new Error('Redis unavailable'));
       (service as any).faucetCooldowns.set('user-1', Date.now() - 50_000);
       try {
         await service.faucet('user-1');
@@ -148,9 +164,11 @@ describe('DepositService E2E', () => {
 
       const result = await service.faucet('user-1');
 
-      expect(result.txHash).toBe('0xtxhash0000000000000000000000000000000000000000000000000000000');
+      expect(result.txHash).toBe(
+        '0xtxhash0000000000000000000000000000000000000000000000000000000',
+      );
       expect(result.amount).toBe(100);
-      expect((ethers.Contract as jest.Mock)).toHaveBeenCalled();
+      expect(ethers.Contract as jest.Mock).toHaveBeenCalled();
     });
 
     it('mints with correct USDT amount (6 decimals) to user deposit address', async () => {
@@ -164,7 +182,10 @@ describe('DepositService E2E', () => {
       await service.faucet('user-1');
 
       // 100 USDT × 10^6 = 100_000_000
-      expect(mockMint).toHaveBeenCalledWith('0xuserdeposit', BigInt('100000000'));
+      expect(mockMint).toHaveBeenCalledWith(
+        '0xuserdeposit',
+        BigInt('100000000'),
+      );
     });
 
     it('creates deposit address for new user', async () => {
@@ -213,7 +234,9 @@ describe('DepositService E2E', () => {
 
       // Second call: Redis reports 59s remaining on cooldown key
       jest.spyOn(mockRedisService, 'ttl').mockResolvedValue(59);
-      await expect(service.faucet('user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.faucet('user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('uses FAUCET_AMOUNT_USDT env var for the minted amount', async () => {
@@ -227,7 +250,10 @@ describe('DepositService E2E', () => {
       const result = await service.faucet('user-1');
 
       expect(result.amount).toBe(50);
-      expect(mockMint).toHaveBeenCalledWith('0xuserdeposit', BigInt('50000000'));
+      expect(mockMint).toHaveBeenCalledWith(
+        '0xuserdeposit',
+        BigInt('50000000'),
+      );
     });
   });
 
@@ -251,10 +277,15 @@ describe('DepositService E2E', () => {
       // Make HDNodeWallet.fromMnemonic return the expected address so the function uses it
       (HDNodeWallet.fromMnemonic as jest.Mock).mockReturnValueOnce({
         address: '0xderivedaddress1',
-        connect: (provider: unknown) => ({ address: '0xderivedaddress1', provider }),
+        connect: (provider: unknown) => ({
+          address: '0xderivedaddress1',
+          provider,
+        }),
       });
       mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: 0 } });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({
+        _max: { index: 0 },
+      });
       mockPrisma.depositAddress.create.mockResolvedValue({
         userId: 'user-1',
         address: '0xderivedaddress1',
@@ -272,7 +303,9 @@ describe('DepositService E2E', () => {
     it('user addresses start at index 1 (index 0 reserved for owner wallet)', async () => {
       await setupModule();
       mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: 10 } });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({
+        _max: { index: 10 },
+      });
       mockPrisma.depositAddress.create.mockResolvedValue({
         userId: 'user-1',
         address: '0xnewaddress11',
@@ -307,10 +340,24 @@ describe('DepositService E2E', () => {
     it('returns deposit records ordered by createdAt descending with limit 20', async () => {
       await setupModule();
       const mockRecords = [
-        { id: '1', userId: 'user-1', txHash: 'tx1', amount: 100, createdAt: new Date() },
-        { id: '2', userId: 'user-1', txHash: 'tx2', amount: 200, createdAt: new Date() },
+        {
+          id: '1',
+          userId: 'user-1',
+          txHash: 'tx1',
+          amount: 100,
+          createdAt: new Date(),
+        },
+        {
+          id: '2',
+          userId: 'user-1',
+          txHash: 'tx2',
+          amount: 200,
+          createdAt: new Date(),
+        },
       ];
-      mockPrisma.depositRecord.findMany = jest.fn().mockResolvedValue(mockRecords);
+      mockPrisma.depositRecord.findMany = jest
+        .fn()
+        .mockResolvedValue(mockRecords);
 
       const history = await service.getDepositHistory('user-1');
 

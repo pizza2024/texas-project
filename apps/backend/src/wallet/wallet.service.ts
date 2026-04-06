@@ -250,7 +250,12 @@ export class WalletService {
       // Fallback chain mirrors WalletService.getBalance(): wallet.chips → user.coinBalance → STARTING_BALANCE
       const currentBalance =
         wallet?.chips ??
-        (await tx.user.findUnique({ where: { id: userId }, select: { coinBalance: true } }))?.coinBalance ??
+        (
+          await tx.user.findUnique({
+            where: { id: userId },
+            select: { coinBalance: true },
+          })
+        )?.coinBalance ??
         WalletService.STARTING_CHIPS;
 
       // Deduct chips

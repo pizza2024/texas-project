@@ -57,18 +57,21 @@ export class WithdrawQueueService implements OnModuleDestroy {
       },
     );
 
-    this.worker.on('failed', (job: Job<WithdrawJobData> | undefined, err: Error) => {
-      if (job) {
-        const jobId = job.id ?? 'unknown';
-        const requestId = job.data?.requestId ?? 'unknown';
-        const attempts = job.attemptsMade;
-        this.logger.error(
-          `Job ${jobId} failed for requestId=${requestId} after ${attempts} attempts: ${err.message}`,
-        );
-      } else {
-        this.logger.error(`Job failed with error: ${err.message}`);
-      }
-    });
+    this.worker.on(
+      'failed',
+      (job: Job<WithdrawJobData> | undefined, err: Error) => {
+        if (job) {
+          const jobId = job.id ?? 'unknown';
+          const requestId = job.data?.requestId ?? 'unknown';
+          const attempts = job.attemptsMade;
+          this.logger.error(
+            `Job ${jobId} failed for requestId=${requestId} after ${attempts} attempts: ${err.message}`,
+          );
+        } else {
+          this.logger.error(`Job failed with error: ${err.message}`);
+        }
+      },
+    );
 
     this.logger.log(
       `WithdrawQueue initialized: maxAttempts=${MAX_ATTEMPTS}, retryDelay=${RETRY_DELAY_SECONDS}s`,
@@ -108,7 +111,11 @@ export class WithdrawQueueService implements OnModuleDestroy {
   /**
    * Get queue stats for monitoring.
    */
-  async getStats(): Promise<{ waiting: number; active: number; failed: number }> {
+  async getStats(): Promise<{
+    waiting: number;
+    active: number;
+    failed: number;
+  }> {
     const [waiting, active, failed] = await Promise.all([
       this.queue.getWaitingCount(),
       this.queue.getActiveCount(),

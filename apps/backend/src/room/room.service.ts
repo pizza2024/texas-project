@@ -12,7 +12,9 @@ export interface PaginatedRooms {
 export class RoomService {
   constructor(private prisma: PrismaService) {}
 
-  async createRoom(data: Prisma.RoomCreateInput): Promise<Omit<Room, 'password'>> {
+  async createRoom(
+    data: Prisma.RoomCreateInput,
+  ): Promise<Omit<Room, 'password'>> {
     const room = await this.prisma.room.create({
       data,
     });
@@ -27,7 +29,6 @@ export class RoomService {
       isPrivate: !!room.password,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _omitted, ...safeRoom } = room;
     return safeRoom;
   }

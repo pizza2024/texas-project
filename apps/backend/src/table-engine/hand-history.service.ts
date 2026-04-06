@@ -52,7 +52,10 @@ export class HandHistoryService {
 
   private parseHandToHistoryEntry(hand: HandForParsing): HandHistoryEntry {
     // Build player action summary from actions
-    const playerActions = new Map<string, { bet: number; fold: boolean; allIn: boolean }>();
+    const playerActions = new Map<
+      string,
+      { bet: number; fold: boolean; allIn: boolean }
+    >();
     for (const action of hand.actions) {
       if (!playerActions.has(action.userId)) {
         playerActions.set(action.userId, { bet: 0, fold: false, allIn: false });
@@ -68,43 +71,47 @@ export class HandHistoryService {
       }
     }
 
-    const players: ParsedPlayer[] = [...playerActions.entries()].map(([pid, pa]) => {
-      const actionUser = hand.actions.find((a) => a.userId === pid)?.user;
-      const settlement = hand.settlements.find((s) => s.userId === pid);
-      const netProfit = (settlement?.amount ?? 0) - pa.bet;
+    const players: ParsedPlayer[] = [...playerActions.entries()].map(
+      ([pid, pa]) => {
+        const actionUser = hand.actions.find((a) => a.userId === pid)?.user;
+        const settlement = hand.settlements.find((s) => s.userId === pid);
+        const netProfit = (settlement?.amount ?? 0) - pa.bet;
 
-      let holeCards: string[] = [];
-      let finalHand = '弃牌';
-      let winAmount = 0;
+        let holeCards: string[] = [];
+        let finalHand = '弃牌';
+        let winAmount = 0;
 
-      if (!pa.fold && hand.table.stateSnapshot) {
-        try {
-          const snapshot = JSON.parse(hand.table.stateSnapshot);
-          const playerData = snapshot.players?.find((p: any) => p?.id === pid);
-          if (playerData) {
-            holeCards = playerData.cards || [];
-            if (snapshot.communityCards?.length >= 3) {
-              const score = bestHandFrom(holeCards, snapshot.communityCards);
-              finalHand = score.name;
+        if (!pa.fold && hand.table.stateSnapshot) {
+          try {
+            const snapshot = JSON.parse(hand.table.stateSnapshot);
+            const playerData = snapshot.players?.find(
+              (p: any) => p?.id === pid,
+            );
+            if (playerData) {
+              holeCards = playerData.cards || [];
+              if (snapshot.communityCards?.length >= 3) {
+                const score = bestHandFrom(holeCards, snapshot.communityCards);
+                finalHand = score.name;
+              }
             }
+            if (settlement) {
+              winAmount = settlement.amount;
+            }
+          } catch {
+            holeCards = ['??', '??'];
           }
-          if (settlement) {
-            winAmount = settlement.amount;
-          }
-        } catch {
-          holeCards = ['??', '??'];
         }
-      }
 
-      return {
-        id: pid,
-        nickname: actionUser?.nickname ?? actionUser?.username ?? 'Unknown',
-        holeCards,
-        finalHand,
-        winAmount,
-        netProfit,
-      };
-    });
+        return {
+          id: pid,
+          nickname: actionUser?.nickname ?? actionUser?.username ?? 'Unknown',
+          holeCards,
+          finalHand,
+          winAmount,
+          netProfit,
+        };
+      },
+    );
 
     let communityCards: string[] = [];
     if (hand.table.stateSnapshot) {

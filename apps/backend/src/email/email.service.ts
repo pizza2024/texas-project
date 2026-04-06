@@ -58,7 +58,9 @@ export class EmailService {
         return { success: false };
       }
 
-      this.logger.log(`Email sent to ${options.to}: ${options.subject}, ID: ${data?.id}`);
+      this.logger.log(
+        `Email sent to ${options.to}: ${options.subject}, ID: ${data?.id}`,
+      );
       return { success: true, previewUrl: undefined };
     } catch (error: any) {
       this.logger.error(`Failed to send email to ${options.to}`, error);

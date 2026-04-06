@@ -64,7 +64,15 @@ describe('AppGateway', () => {
         updateElo: jest.fn(),
       } as any,
       { isAvailable: false, get: jest.fn().mockResolvedValue(null) } as any,
-      { createBot: jest.fn().mockReturnValue({ id: 'bot-1', nickname: '[Bot]TestBot', stack: 1000 }), fillTableWithBots: jest.fn(), removeBot: jest.fn() } as any,
+      {
+        createBot: jest.fn().mockReturnValue({
+          id: 'bot-1',
+          nickname: '[Bot]TestBot',
+          stack: 1000,
+        }),
+        fillTableWithBots: jest.fn(),
+        removeBot: jest.fn(),
+      } as any,
       { setServer: jest.fn() } as any,
       { getAcceptedFriends: jest.fn().mockResolvedValue([]) } as any,
     );

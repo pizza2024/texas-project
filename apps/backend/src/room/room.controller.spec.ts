@@ -23,7 +23,12 @@ describe('RoomController', () => {
         RateLimitGuard,
         {
           provide: RedisService,
-          useValue: { incr: jest.fn(), ttl: jest.fn(), get: jest.fn(), set: jest.fn() },
+          useValue: {
+            incr: jest.fn(),
+            ttl: jest.fn(),
+            get: jest.fn(),
+            set: jest.fn(),
+          },
         },
         Reflector,
       ],

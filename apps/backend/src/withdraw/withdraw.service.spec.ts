@@ -77,9 +77,13 @@ describe('WithdrawService', () => {
 
     // WithdrawQueueService mock: enqueueWithdraw throws to force fallback to direct execution
     const mockWithdrawQueue = {
-      enqueueWithdraw: jest.fn().mockRejectedValue(new Error('Queue unavailable')),
+      enqueueWithdraw: jest
+        .fn()
+        .mockRejectedValue(new Error('Queue unavailable')),
       isInQueue: jest.fn().mockResolvedValue(false),
-      getStats: jest.fn().mockResolvedValue({ waiting: 0, active: 0, failed: 0 }),
+      getStats: jest
+        .fn()
+        .mockResolvedValue({ waiting: 0, active: 0, failed: 0 }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

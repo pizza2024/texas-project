@@ -8,7 +8,13 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger, OnModuleDestroy, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import {
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { TableManagerService } from '../table-engine/table-manager.service';
@@ -81,8 +87,10 @@ export class AppGateway
    */
   private userLocks = new Map<string, Promise<void>>();
   /** Sliding-window rate limiter: userId -> { count, windowStart } */
-  private rateLimits = new Map<string, { count: number; windowStart: number }>();
-
+  private rateLimits = new Map<
+    string,
+    { count: number; windowStart: number }
+  >();
 
   constructor(
     private tableManager: TableManagerService,
@@ -215,7 +223,9 @@ export class AppGateway
 
   private handleRoomStatusUpdated = (payload: RoomStatusUpdatedPayload) => {
     if (!this.server) {
-      this.logger.warn('room_status_updated skipped: websocket server not ready');
+      this.logger.warn(
+        'room_status_updated skipped: websocket server not ready',
+      );
       return;
     }
     this.server.emit('room_status_updated', payload);
@@ -269,7 +279,9 @@ export class AppGateway
     }
 
     for (const [userId, userSockets] of socketsByUser) {
-      const view = userId ? table.getMaskedView(userId) : table.getMaskedView('');
+      const view = userId
+        ? table.getMaskedView(userId)
+        : table.getMaskedView('');
       for (const socket of userSockets) {
         socket.emit('room_update', view);
       }
@@ -733,12 +745,15 @@ export class AppGateway
 
     // Rate limit join attempts to prevent room enumeration
     if (!this.checkRateLimit(userId)) {
-      client.emit('rate_limited', { message: 'Too many join attempts, please slow down' });
+      client.emit('rate_limited', {
+        message: 'Too many join attempts, please slow down',
+      });
       return;
     }
 
     return this.withUserLock(userId, async () => {
-      const currentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
+      const currentRoomId =
+        await this.tableManager.getUserCurrentRoomId(userId);
       if (currentRoomId && currentRoomId !== roomId) {
         client.emit('already_in_room', {
           roomId: currentRoomId,
@@ -747,12 +762,17 @@ export class AppGateway
         });
         return {
           event: 'already_in_room',
-          data: { roomId: currentRoomId, targetRoomId: roomId, canSwitch: true },
+          data: {
+            roomId: currentRoomId,
+            targetRoomId: roomId,
+            canSwitch: true,
+          },
         };
       }
 
       return this.withRoomLock(roomId, async () => {
-        const verifiedCurrentRoomId = await this.tableManager.getUserCurrentRoomId(userId);
+        const verifiedCurrentRoomId =
+          await this.tableManager.getUserCurrentRoomId(userId);
         if (verifiedCurrentRoomId && verifiedCurrentRoomId !== roomId) {
           client.emit('already_in_room', {
             roomId: verifiedCurrentRoomId,
@@ -873,8 +893,16 @@ export class AppGateway
       } else {
         // Not all ready yet — start auto-start countdown
         const playable = table.players.filter((p) => p && p.stack > 0);
-        if (playable.length === 1 && playable[0]!.ready && playable[0]!.id === userId) {
-          await this.scheduleAutoStart(roomId, table, AppGateway.SOLO_READY_COUNTDOWN_MS);
+        if (
+          playable.length === 1 &&
+          playable[0]!.ready &&
+          playable[0]!.id === userId
+        ) {
+          await this.scheduleAutoStart(
+            roomId,
+            table,
+            AppGateway.SOLO_READY_COUNTDOWN_MS,
+          );
         }
       }
 
@@ -897,7 +925,8 @@ export class AppGateway
   @SubscribeMessage('player_action')
   async handlePlayerAction(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { action: unknown; amount?: unknown; roomId?: unknown },
+    @MessageBody()
+    data: { action: unknown; amount?: unknown; roomId?: unknown },
   ) {
     const userId = client.data.user?.sub as string | undefined;
     if (!userId) return;
@@ -909,7 +938,9 @@ export class AppGateway
         ? data.action
         : null;
     const amount =
-      typeof data?.amount === 'number' && isFinite(data.amount) && data.amount >= 0
+      typeof data?.amount === 'number' &&
+      isFinite(data.amount) &&
+      data.amount >= 0
         ? data.amount
         : 0;
     const roomId = typeof data?.roomId === 'string' ? data.roomId : null;
@@ -921,7 +952,9 @@ export class AppGateway
 
     // Rate limit check
     if (!this.checkRateLimit(userId)) {
-      client.emit('rate_limited', { message: 'Too many actions, please slow down' });
+      client.emit('rate_limited', {
+        message: 'Too many actions, please slow down',
+      });
       return;
     }
 

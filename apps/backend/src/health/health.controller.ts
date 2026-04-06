@@ -25,7 +25,9 @@ export class HealthController {
 
   @Get('detailed')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Detailed health check with database and Redis status' })
+  @ApiOperation({
+    summary: 'Detailed health check with database and Redis status',
+  })
   @ApiResponse({ status: 200, description: 'Detailed service status' })
   async detailedCheck() {
     let dbStatus: 'connected' | 'disconnected' = 'disconnected';

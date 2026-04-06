@@ -23,7 +23,10 @@ async function bootstrap() {
   // CORS 配置 - 生产环境建议限制 origin
   const corsOrigin = process.env.CORS_ORIGIN || '*';
   const normalizeOrigin = (value: string) =>
-    value.trim().replace(/^['"]|['"]$/g, '').replace(/\/$/, '');
+    value
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+      .replace(/\/$/, '');
 
   const parsedCorsOrigin =
     corsOrigin === '*'

@@ -13,15 +13,39 @@ const IS_TEST = process.env.NODE_ENV !== 'production';
  * test bots get [Bot] prefix.
  */
 const BOT_NAMES = [
-  'AlexChen', 'JamieWong', 'ChrisLiu', 'TaylorM', 'JordanK',
-  'CaseyP', 'RileyS', 'MorganL', 'QuinnA', 'DrewB',
-  '虾虾', '皮皮', '小德', '德哥', '虾客',
-  '红龙', '蓝鲸', '黑桃', '方块', '梅花',
+  'AlexChen',
+  'JamieWong',
+  'ChrisLiu',
+  'TaylorM',
+  'JordanK',
+  'CaseyP',
+  'RileyS',
+  'MorganL',
+  'QuinnA',
+  'DrewB',
+  '虾虾',
+  '皮皮',
+  '小德',
+  '德哥',
+  '虾客',
+  '红龙',
+  '蓝鲸',
+  '黑桃',
+  '方块',
+  '梅花',
 ];
 
 const BOT_NAMES_TEST = [
-  '[Bot]虾虾', '[Bot]皮皮', '[Bot]小德', '[Bot]德哥', '[Bot]虾客',
-  '[Bot]LuckyFish', '[Bot]RiverRat', '[Bot]CardShark', '[Bot]BluffMaster', '[Bot]PotKing',
+  '[Bot]虾虾',
+  '[Bot]皮皮',
+  '[Bot]小德',
+  '[Bot]德哥',
+  '[Bot]虾客',
+  '[Bot]LuckyFish',
+  '[Bot]RiverRat',
+  '[Bot]CardShark',
+  '[Bot]BluffMaster',
+  '[Bot]PotKing',
 ];
 
 export interface BotPlayerData {
@@ -135,7 +159,10 @@ export class BotService {
       if (Math.random() < 0.4 && playerStack > minRaise) {
         return {
           action: 'raise',
-          amount: this.randomRaise(minRaise, Math.min(maxRaise, Math.floor(potSize / 2))),
+          amount: this.randomRaise(
+            minRaise,
+            Math.min(maxRaise, Math.floor(potSize / 2)),
+          ),
         };
       }
       return { action: 'check', amount: 0 };
@@ -143,19 +170,32 @@ export class BotService {
 
     // Must call or fold post-flop
     const potOdds = currentBet / (potSize + currentBet);
-    const handStrength = this.estimateHandStrength(gameState.communityCards, communityCards);
+    const handStrength = this.estimateHandStrength(
+      gameState.communityCards,
+      communityCards,
+    );
 
     if (potOdds < 0.3) {
       // Bad pot odds — mostly fold, occasionally call with made hands
-      if (handStrength >= 0.6 || (this.hasStrongDraw(gameState.communityCards, communityCards) && Math.random() < 0.2)) {
+      if (
+        handStrength >= 0.6 ||
+        (this.hasStrongDraw(gameState.communityCards, communityCards) &&
+          Math.random() < 0.2)
+      ) {
         return { action: 'call' };
       }
       return { action: 'fold' };
     } else if (potOdds < 0.5) {
       // Medium pot odds — call with made hands or strong draws
-      if (handStrength >= 0.4 || this.hasStrongDraw(gameState.communityCards, communityCards)) {
+      if (
+        handStrength >= 0.4 ||
+        this.hasStrongDraw(gameState.communityCards, communityCards)
+      ) {
         if (Math.random() < 0.3 && playerStack > minRaise) {
-          return { action: 'raise', amount: this.randomRaise(minRaise, maxRaise) };
+          return {
+            action: 'raise',
+            amount: this.randomRaise(minRaise, maxRaise),
+          };
         }
         return { action: 'call' };
       }
@@ -194,13 +234,18 @@ export class BotService {
    * Estimate hand strength 0-1 based on community cards.
    * Simplified — checks pairs, flush draws, straight draws.
    */
-  private estimateHandStrength(_holeCards: string[], community: string[]): number {
+  private estimateHandStrength(
+    _holeCards: string[],
+    community: string[],
+  ): number {
     if (community.length === 0) return 0.2;
 
     // Very simplified: just count community card rank diversity
     const ranks = community.map((c) => c[0]);
     const rankCount: Record<string, number> = {};
-    for (const r of ranks) { rankCount[r] = (rankCount[r] ?? 0) + 1; }
+    for (const r of ranks) {
+      rankCount[r] = (rankCount[r] ?? 0) + 1;
+    }
     const maxPair = Math.max(...Object.values(rankCount), 0);
 
     if (maxPair >= 3) return 0.8; // trips or better
@@ -208,20 +253,41 @@ export class BotService {
 
     const suits = community.map((c) => c[1]);
     const suitCount: Record<string, number> = {};
-    for (const s of suits) { suitCount[s] = (suitCount[s] ?? 0) + 1; }
+    for (const s of suits) {
+      suitCount[s] = (suitCount[s] ?? 0) + 1;
+    }
     const hasFlushDraw = Object.values(suitCount).some((c) => c >= 4);
 
     if (hasFlushDraw) return 0.45;
 
     // Straight draw check (very simplified)
-    const rankVals = ranks.map((r) => {
-      const v = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
-        '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 }[r] ?? 0;
-      return v;
-    }).sort((a, b) => a - b);
+    const rankVals = ranks
+      .map((r) => {
+        const v =
+          {
+            '2': 2,
+            '3': 3,
+            '4': 4,
+            '5': 5,
+            '6': 6,
+            '7': 7,
+            '8': 8,
+            '9': 9,
+            T: 10,
+            J: 11,
+            Q: 12,
+            K: 13,
+            A: 14,
+          }[r] ?? 0;
+        return v;
+      })
+      .sort((a, b) => a - b);
     let hasStraightDraw = false;
     for (let i = 0; i < rankVals.length - 1; i++) {
-      if (rankVals[i + 1] - rankVals[i] <= 2) { hasStraightDraw = true; break; }
+      if (rankVals[i + 1] - rankVals[i] <= 2) {
+        hasStraightDraw = true;
+        break;
+      }
     }
     if (hasStraightDraw) return 0.35;
 
@@ -234,17 +300,38 @@ export class BotService {
     const ranks = allCards.map((c) => c[0]);
 
     const suitCount: Record<string, number> = {};
-    for (const s of suits) { suitCount[s] = (suitCount[s] ?? 0) + 1; }
+    for (const s of suits) {
+      suitCount[s] = (suitCount[s] ?? 0) + 1;
+    }
     const flushDraw = Object.values(suitCount).some((c) => c >= 4);
 
-    const rankVals = ranks.map((r) => {
-      const v = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
-        '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 }[r] ?? 0;
-      return v;
-    }).sort((a, b) => a - b);
+    const rankVals = ranks
+      .map((r) => {
+        const v =
+          {
+            '2': 2,
+            '3': 3,
+            '4': 4,
+            '5': 5,
+            '6': 6,
+            '7': 7,
+            '8': 8,
+            '9': 9,
+            T: 10,
+            J: 11,
+            Q: 12,
+            K: 13,
+            A: 14,
+          }[r] ?? 0;
+        return v;
+      })
+      .sort((a, b) => a - b);
     let straightDraw = false;
     for (let i = 0; i < rankVals.length - 1; i++) {
-      if (rankVals[i + 1] - rankVals[i] <= 2) { straightDraw = true; break; }
+      if (rankVals[i + 1] - rankVals[i] <= 2) {
+        straightDraw = true;
+        break;
+      }
     }
 
     return flushDraw || straightDraw;

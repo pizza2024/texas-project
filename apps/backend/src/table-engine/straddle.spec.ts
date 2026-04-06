@@ -8,9 +8,15 @@ import { PlayerStatus } from './player';
  * - SB at seat 1, BB at seat 2
  * - First to act preflop = Button (seat 0)
  */
-function makePlayer(overrides: Partial<{
-  sub: string; nickname: string; stack: number; status: PlayerStatus; hasActed: boolean;
-}> = {}): any {
+function makePlayer(
+  overrides: Partial<{
+    sub: string;
+    nickname: string;
+    stack: number;
+    status: PlayerStatus;
+    hasActed: boolean;
+  }> = {},
+): any {
   return {
     sub: 'player-1',
     username: 'Player1',
@@ -32,9 +38,18 @@ function createTable3max(): Table {
  * First to act preflop = Alice (Button)
  */
 function start3max(table: Table): void {
-  table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-  table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+  table.addPlayer(
+    makePlayer({ sub: 'p1', nickname: 'Alice', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+    1000,
+  );
+  table.addPlayer(
+    makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+    1000,
+  );
   table.startHand();
 }
 
@@ -74,9 +89,18 @@ describe('Straddle', () => {
     it('returns false when player stack < 2x bigBlind', () => {
       const table = createTable3max();
       // Alice (Button) has only 19 chips — less than 2x BB (20)
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 19 }), 19);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 19 }),
+        19,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+        1000,
+      );
       table.startHand();
 
       // Alice is Button (first to act)
@@ -108,9 +132,18 @@ describe('Straddle', () => {
     it('sets player to ALLIN if stack exactly equals 2x BB', () => {
       const table = createTable3max();
       // Alice (Button) has exactly 2x BB chips
-      table.addPlayer(makePlayer({ sub: 'p1', nickname: 'Alice', stack: 20 }), 20);
-      table.addPlayer(makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }), 1000);
-      table.addPlayer(makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }), 1000);
+      table.addPlayer(
+        makePlayer({ sub: 'p1', nickname: 'Alice', stack: 20 }),
+        20,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p2', nickname: 'Bob', stack: 1000 }),
+        1000,
+      );
+      table.addPlayer(
+        makePlayer({ sub: 'p3', nickname: 'Carol', stack: 1000 }),
+        1000,
+      );
       table.startHand();
 
       // Alice straddles with exactly 20 chips
