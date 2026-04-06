@@ -13,6 +13,7 @@ describe('AppGateway', () => {
     persistTableBalances: jest.Mock;
     persistTableState: jest.Mock;
     persistSettlementRecords: jest.Mock;
+    registerPlayerRoom: jest.Mock;
   };
   let jwtService: {
     verify: jest.Mock;

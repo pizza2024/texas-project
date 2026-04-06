@@ -11,8 +11,8 @@ import { RedisService } from '../redis/redis.service';
 
 describe('WithdrawService', () => {
   let service: WithdrawService;
-  let prisma: jest.Mocked<PrismaService>;
-  let walletService: jest.Mocked<WalletService>;
+  let prisma: any;
+  let walletService: any;
 
   const mockUserId = 'user-123';
   const mockAdminId = 'admin-456';
