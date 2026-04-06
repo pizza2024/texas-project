@@ -100,7 +100,13 @@ export class WithdrawService {
       // Redis unavailable — use in-memory fallback
     }
     const lastUsed = this.cooldowns.get(userId) ?? 0;
-    const remaining = WITHDRAW_COOLDOWN_MS - (Date.now() - lastUsed);
+    const age = Date.now() - lastUsed;
+    if (age > WITHDRAW_COOLDOWN_MS) {
+      // Entry expired — clean it up instead of treating as active cooldown
+      this.cooldowns.delete(userId);
+      return;
+    }
+    const remaining = WITHDRAW_COOLDOWN_MS - age;
     if (remaining > 0) {
       throw new BadRequestException(
         `请等待 ${Math.ceil(remaining / 1000)} 秒后再试`,
