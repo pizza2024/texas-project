@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
@@ -140,7 +144,7 @@ export class AdminService {
     if (!user) throw new NotFoundException('User not found');
 
     // Guard against negative resulting balance
-    if (amount < 0 && (user.coinBalance + amount) < 0) {
+    if (amount < 0 && user.coinBalance + amount < 0) {
       throw new BadRequestException('操作后余额不能为负数');
     }
 

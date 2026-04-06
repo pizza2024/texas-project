@@ -1,22 +1,27 @@
 import { Table, GameStage, TableConfig } from './table';
-import { PlayerStatus } from './player';
+import { Player, PlayerStatus } from './player';
 
 const DEFAULT_TIMEOUT = 30000;
 
-function makePlayer(
-  overrides: Partial<
-    Parameters<typeof createTable>[2] extends infer T ? T : never
-  > = {},
-): any {
+function makePlayer(overrides: Partial<Player> & { sub?: string } = {}): Player {
   return {
-    sub: 'player-1',
+    id: 'player-1',
     username: 'Player1',
     nickname: 'Player One',
     avatar: '',
     stack: 1000,
+    bet: 0,
+    totalBet: 0,
     status: PlayerStatus.ACTIVE,
+    cards: [],
+    position: 0,
+    isButton: false,
+    isSmallBlind: false,
+    isBigBlind: false,
+    hasActed: false,
+    ready: false,
     ...overrides,
-  };
+  } as Player;
 }
 
 function createTable(maxPlayers = 6, config?: TableConfig): Table {

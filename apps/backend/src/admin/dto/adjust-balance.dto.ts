@@ -1,4 +1,10 @@
-import { IsNumber, IsString, IsOptional, IsUUID, MinLength } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsUUID,
+  MinLength,
+} from 'class-validator';
 
 /** For /admin/users/:id/balance - userId is in URL, not body */
 export class AdjustBalanceDto {

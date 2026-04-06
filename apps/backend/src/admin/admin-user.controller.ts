@@ -94,7 +94,10 @@ export class AdminUserController {
   ) {
     // Large adjustments require SUPER_ADMIN role for additional oversight
     const absAmount = Math.abs(dto.amount);
-    if (absAmount > LARGE_ADJUSTMENT_THRESHOLD && req.admin.role !== 'SUPER_ADMIN') {
+    if (
+      absAmount > LARGE_ADJUSTMENT_THRESHOLD &&
+      req.admin.role !== 'SUPER_ADMIN'
+    ) {
       throw new ForbiddenException(
         `Large adjustments (>${LARGE_ADJUSTMENT_THRESHOLD} chips) require SUPER_ADMIN confirmation`,
       );

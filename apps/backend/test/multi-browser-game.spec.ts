@@ -63,7 +63,7 @@ async function registerUser(
 // Helper: login via API + inject token directly to bypass UI login issues
 async function loginViaUi(page: any, username: string, password: string) {
   // First, get the JWT token via API
-  let token: string;
+  let token = '';
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await axios.post(API_BASE + '/auth/login', {
