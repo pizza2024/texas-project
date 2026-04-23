@@ -1,7 +1,7 @@
 # Test 代理报告
 
-> **时间**: 2026-04-24 04:45
-> **类型**: 轮询报告（第8轮）
+> **时间**: 2026-04-24 05:45
+> **类型**: 轮询报告（第10轮）
 > **项目**: Texas Hold'em Monorepo
 
 ---
@@ -10,91 +10,52 @@
 
 | 状态 | 数量 | 详情 |
 |------|------|------|
-| 🔴 P0 | 1项新增 | WebSocket 重构破坏测试（P0 测试阻塞） |
+| 🔴 P0 | 1项 | app.gateway.spec.ts 仍有4个测试失败（mock 架构问题） |
 | ✅ P1 | 全部清零 | 无新增 P1 问题 |
 | ⚠️ P2 | 2项待处理 | W-004（WebSocket集成测试）、W-005（游戏E2E测试） |
-| ⚠️ P2-Low | 2项新增 | Prettier 格式错误（12处）、WebSocket 重构未 commit |
+| ⚠️ P2-Low | 1项新增 | Web 前端 console.log（2处） |
 
 ---
 
-## CodeReview 发现
+## P0 — app.gateway.spec.ts 4个测试失败
 
-### 本轮新提交
+**文件**: `apps/backend/src/websocket/app.gateway.spec.ts`
+**现状**: 7 passed, 4 failed / 11 total
 
-**无新提交** — 自上次报告（04:00）以来无代码更新。
+**根因**: TimerService mock 架构问题 — `finalizeSettlement`/`finalizeActionTimeout` 等 mock 只调用 `table.begin*Countdown` 设置时间戳，但不推进游戏状态。`jest.advanceTimersByTimeAsync()` 触发时游戏状态未实际推进。
 
-### ⚠️ 未提交的重大重构（P0 — 测试阻塞）
+**4个失败用例**:
+1. `runs settlement countdown, enters ready countdown, and then auto-starts` — `resetToWaiting` 未调用
+2. `rebuilds an in-progress settlement timer from restored state` — 同上
+3. `auto-checks on timeout when checking is allowed` — `getTimeoutAction` 未调用
+4. `auto-folds on timeout when checking is not allowed` — `processAction` 未调用，且 `scheduleActionTimeout` 已移至 TimerService
 
-**Coding 代理正在进行的 WebSocket 重构尚未 commit，导致测试套件完全失败：**
+**修复方案**: TimerService mock 需在调用 `begin*Countdown` 后同步触发状态推进回调（直接调用 `table.resetToWaiting()` 等），模拟真实 timer 触发行为。
 
-#### 重构内容（已拆分为5个文件）
+**W-012 P2-Low**: `apps/web/app/room/[id]/page.tsx` 第 324、330 行有 `console.log` 残留。
 
-| 文件 | 行数 | 说明 |
-|------|------|------|
-| `app.gateway.ts` | 540 | 从 838 行削减至 540 行（-298行） |
-| `connection-state.service.ts` | 230 | 连接状态管理（userSockets, rateLimits, passwordAttempts） |
-| `broadcast.service.ts` | 64 | 广播逻辑提取 |
-| `timer.service.ts` | 333 | 计时器管理（action/settlement/autoStart timers） |
-| `websocket.module.ts` | 44 | 新增3个 service 的 providers 和 exports |
+---
 
-**总计**: 1211 行（架构改进方向正确）
-
-#### 🔴 P0 — 测试失败（9个用例全部报错）
+## 测试运行结果
 
 ```
-FAIL src/websocket/app.gateway.spec.ts
-  ✕ syncs the room state when a seated player disconnects
-  ✕ does nothing when the disconnected client is not in a room
-  ...（共9个用例全部失败）
+Tests: 4 failed, 192 passed, 196 total
+  └─ table-engine:  133 passed (100%)
+  └─ app.gateway:   7 passed, 4 failed
 ```
-
-**根因**：
-1. `connectionState` 变量作用域错误（spec.ts 第127行超出 beforeEach 作用域）
-2. `timerService` 依赖未注入（`gateway.onModuleDestroy()` 报 undefined）
-
-#### ⚠️ P2-Low — Prettier 格式错误（12处未修复）
-
-```
-timer.service.ts: 11 errors (multi-line 格式问题)
-app.gateway.ts:     1 error  (broadcastTableState 调用格式)
-```
-
-#### ✅ 已确认清零项
-
-| 检查项 | 结果 |
-|--------|------|
-| Math.random() | ✅ 后端零残留 |
-| console.log/debug | ✅ 后端零残留 |
-| TODO/FIXME/HACK/XXX | ✅ 零遗留 |
 
 ---
 
 ## 任务队列
 
 ### P0 — 阻塞问题
-
-| ID | 任务 | 优先级 | 状态 |
-|----|------|--------|------|
-| **T-009** | **修复 app.gateway.spec.ts — connectionState 作用域 + timerService 注入** | **P0** | **❌ 待 Coding 修复** |
+- [ ] **T-009**: 修复 app.gateway.spec.ts — TimerService mock 架构问题（4个测试失败）
 
 ### P2 — 近期处理
-
-| ID | 任务 | 优先级 | 状态 |
-|----|------|--------|------|
-| W-004 | WebSocket 真实 Socket.io 集成测试 | P2 | ❌ 待实现 |
-| W-005 | 游戏完整 E2E 测试（加入房间→游戏→结算） | P2 | ❌ 待实现 |
-| W-006 | Prettier 格式修复（12处 prettier/prettier 错误） | P2-Low | ❌ 待修复 |
-| W-011 | WebSocket 重构文件 commit | P2-Low | ❌ 待 commit |
-
-### P3 — 规划中
-
-| 任务 | 优先级 |
-|------|--------|
-| 表情互动系统 | P3 |
-| 每日登录奖励 | P3 |
-| 成就/任务系统 | P3 |
-| 俱乐部系统 | P3 |
+- [ ] W-004: WebSocket 真实 Socket.io 集成测试
+- [ ] W-005: 游戏完整 E2E 测试
+- [ ] W-012: 移除 Web 前端 console.log（2处）
 
 ---
 
-*Test — 2026-04-24 04:45*
+*Test — 2026-04-24 05:45*

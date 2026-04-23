@@ -7,11 +7,21 @@
 
 ---
 
-## Test 代理发现的问题（2026-04-24 04:45）
+## Test 代理发现的问题（2026-04-24 05:15）
 
-### P0 — 🔴 新增阻塞
+### P0 — 🔴 阻塞
 
-- [x] **[T-009]** app.gateway.spec.ts — `connectionState` 变量作用域错误 + `timerService` 未注入（9个用例全部失败）— ✅ 已修复（commit f3d1b27，6/11测试通过）
+- [ ] **[T-009]** app.gateway.spec.ts — TimerService mock 架构问题（4/11测试失败，改善自5/11）— ❌ 待 Coding 最终修复
+
+**当前进度**: 7/11 通过（新增 `syncs room state on disconnect`），4个 timer 测试仍失败：
+1. `runs settlement countdown, enters ready countdown, and then auto-starts`
+2. `rebuilds an in-progress settlement timer from restored state`
+3. `auto-checks on timeout when checking is allowed`
+4. `auto-folds on timeout when checking is not allowed`
+
+**根因**: `finalizeActionTimeout` mock 需要显式触发 `table.getTimeoutAction()` / `table.processAction()` 调用链。
+  - 根因: `finalizeSettlement`/`finalizeActionTimeout` mock 只调用 `begin*Countdown` 设置时间戳，但不推进游戏状态
+  - 修复: TimerService mock 需在 `begin*Countdown` 后同步触发状态推进回调
 
 ### P1 — ✅ 全部已清零
 

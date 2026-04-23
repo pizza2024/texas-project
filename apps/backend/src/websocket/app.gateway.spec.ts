@@ -1,6 +1,7 @@
 import { AppGateway } from './app.gateway';
 import { GameStage } from '../table-engine/table';
 import { BroadcastService } from './broadcast.service';
+import { TimerService } from './timer.service';
 
 describe('AppGateway', () => {
   let tableManager: {
@@ -111,10 +112,10 @@ describe('AppGateway', () => {
           .mockImplementation(
             (
               userId: string,
-              _getUserCurrentRoomId: any,
+              getUserCurrentRoomId: (uid: string) => Promise<string | null>,
               _hasOtherActiveSocketFn: any,
-              _withRoomLock: any,
-              _leaveCurrentRoom: any,
+              withRoomLock: <T>(roomId: string, fn: () => Promise<T>) => Promise<T>,
+              leaveCurrentRoom: (uid: string) => Promise<{ roomId: string; dissolved: boolean; reachedSettlement?: boolean }>,
               _getTable: any,
               _broadcastTableState: any,
               _clearRoundTimers: any,
@@ -127,9 +128,41 @@ describe('AppGateway', () => {
               // Clear any existing timer for this user
               const existing = connectionState.pendingDisconnects.get(userId);
               if (existing) clearTimeout(existing);
-              // Store a mock timer that will be triggered by jest.runOnlyPendingTimersAsync()
-              const mockTimer = setTimeout(() => {
-                connectionState.pendingDisconnects.delete(userId);
+              // Store a mock timer that mirrors real scheduleDisconnectCleanup behavior
+              const mockTimer = setTimeout(async () => {
+                try {
+                  connectionState.pendingDisconnects.delete(userId);
+                  // Check if user reconnected while timer was pending
+                  if ((gateway as any).connectionState.userSockets.get(userId)?.size > 0) {
+                    return;
+                  }
+                  const roomId = await getUserCurrentRoomId(userId);
+                  if (!roomId) return;
+                  await withRoomLock(roomId, async () => {
+                    const result = await leaveCurrentRoom(userId);
+                    if (!result) return;
+
+                    if (result.dissolved) {
+                      // clearRoundTimers called — nothing else to do in test
+                    } else if (result.reachedSettlement) {
+                      const tbl = await _getTable(roomId);
+                      if (tbl) {
+                        await _schedulePostHandFlow(roomId, tbl);
+                        await _broadcastTableState(roomId, tbl);
+                      }
+                    } else {
+                      const tbl = await _getTable(roomId);
+                      if (tbl) {
+                        if (_isActionStage(tbl.currentStage)) {
+                          await _scheduleActionTimeout(roomId, tbl);
+                        }
+                        await _broadcastTableState(roomId, tbl);
+                      }
+                    }
+                  });
+                } catch {
+                  // Ignore errors in mock timer path
+                }
               }, DISCONNECT_GRACE_PERIOD_MS) as unknown as NodeJS.Timeout;
               connectionState.pendingDisconnects.set(userId, mockTimer);
             },
@@ -139,10 +172,43 @@ describe('AppGateway', () => {
       broadcastService as any,
       {
         clearRoundTimers: jest.fn(),
-        scheduleActionTimeout: jest.fn().mockResolvedValue(undefined),
-        scheduleAutoStart: jest.fn().mockResolvedValue(undefined),
-        schedulePostHandFlow: jest.fn().mockResolvedValue(undefined),
-        isActionStage: jest.fn().mockReturnValue(false),
+        scheduleActionTimeout: jest
+          .fn()
+          .mockImplementation(
+            (_server: any, _roomId: string, table: any, durationMs?: number) => {
+              if (table?.beginActionCountdown) {
+                table.beginActionCountdown(
+                  durationMs ?? TimerService.ACTION_DURATION_MS,
+                );
+              }
+            },
+          ),
+        scheduleAutoStart: jest
+          .fn()
+          .mockImplementation(
+            (
+              _server: any,
+              _roomId: string,
+              table: any,
+              durationMs?: number,
+            ) => {
+              if (table?.beginReadyCountdown) {
+                table.beginReadyCountdown(
+                  durationMs ?? TimerService.READY_COUNTDOWN_MS,
+                );
+              }
+            },
+          ),
+        schedulePostHandFlow: jest
+          .fn()
+          .mockImplementation((_server: any, _roomId: string, table: any) => {
+            if (table?.beginSettlementCountdown) {
+              table.beginSettlementCountdown(
+                TimerService.SETTLEMENT_DURATION_MS,
+              );
+            }
+          }),
+        isActionStage: jest.fn().mockReturnValue(true),
         finalizeActionTimeout: jest.fn().mockResolvedValue(undefined),
         finalizeReadyCountdown: jest.fn().mockResolvedValue(undefined),
         finalizeSettlement: jest.fn().mockResolvedValue(undefined),

@@ -151,9 +151,9 @@ export class AppGateway
       (rid) => this.tableManager.getTable(rid),
       (rid, tbl) => this.broadcastTableState(rid, tbl),
       (rid) => this.clearRoundTimers(rid),
-      (rid, tbl) => this.schedulePostHandFlow(rid, tbl),
+      (rid, tbl) => this.schedulePostHandFlow(this.server, rid, tbl),
       (stage) => this.isActionStage(stage),
-      (rid, tbl) => this.scheduleActionTimeout(rid, tbl),
+      (rid, tbl) => this.scheduleActionTimeout(this.server, rid, tbl),
       TimerService.DISCONNECT_GRACE_PERIOD_MS,
       this.logger,
     );
@@ -185,19 +185,21 @@ export class AppGateway
   }
 
   async scheduleActionTimeout(
+    server: any,
     roomId: string,
     table: import('../table-engine/table').Table,
   ) {
-    return this.timerService.scheduleActionTimeout(this.server, roomId, table);
+    return this.timerService.scheduleActionTimeout(server, roomId, table);
   }
 
   async scheduleAutoStart(
+    server: any,
     roomId: string,
     table: import('../table-engine/table').Table,
     durationMs?: number,
   ) {
     return this.timerService.scheduleAutoStart(
-      this.server,
+      server,
       roomId,
       table,
       durationMs,
@@ -205,10 +207,11 @@ export class AppGateway
   }
 
   async schedulePostHandFlow(
+    server: any,
     roomId: string,
     table: import('../table-engine/table').Table,
   ) {
-    return this.timerService.schedulePostHandFlow(this.server, roomId, table);
+    return this.timerService.schedulePostHandFlow(server, roomId, table);
   }
 
   async ensureRecoveredRoundFlow(
@@ -361,9 +364,9 @@ export class AppGateway
       (rid) => this.tableManager.getTable(rid),
       (rid, tbl) => this.broadcastTableState(rid, tbl),
       (rid) => this.clearRoundTimers(rid),
-      (rid, tbl) => this.schedulePostHandFlow(rid, tbl),
+      (rid, tbl) => this.schedulePostHandFlow(this.server, rid, tbl),
       (stage) => this.isActionStage(stage),
-      (rid, tbl) => this.scheduleActionTimeout(rid, tbl),
+      (rid, tbl) => this.scheduleActionTimeout(this.server, rid, tbl),
       TimerService.DISCONNECT_GRACE_PERIOD_MS,
       this.logger,
     );

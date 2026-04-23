@@ -205,7 +205,7 @@ export async function handlePlayerReady(gateway: AppGateway, client: Socket) {
       table.startHandIfReady();
       await gateway.tableManager.persistTableBalances(roomId);
       if (gateway.isActionStage(table.currentStage)) {
-        await gateway.scheduleActionTimeout(roomId, table);
+        await gateway.scheduleActionTimeout(gateway.server, roomId, table);
       }
     } else {
       // Not all ready yet — start auto-start countdown
@@ -215,7 +215,7 @@ export async function handlePlayerReady(gateway: AppGateway, client: Socket) {
         playable[0]!.ready &&
         playable[0]!.id === userId
       ) {
-        await gateway.scheduleAutoStart(roomId, table, SOLO_READY_COUNTDOWN_MS);
+        await gateway.scheduleAutoStart(gateway.server, roomId, table, SOLO_READY_COUNTDOWN_MS);
       }
     }
 
@@ -280,9 +280,9 @@ export async function handlePlayerAction(
     await gateway.tableManager.persistTableState(roomId);
     await gateway.tableManager.persistTableBalances(roomId);
     if (table.currentStage === GameStage.SETTLEMENT) {
-      await gateway.schedulePostHandFlow(roomId, table);
+      await gateway.schedulePostHandFlow(gateway.server, roomId, table);
     } else if (gateway.isActionStage(table.currentStage)) {
-      await gateway.scheduleActionTimeout(roomId, table);
+      await gateway.scheduleActionTimeout(gateway.server, roomId, table);
     }
 
     await gateway.broadcastTableState(roomId, table);
@@ -317,14 +317,14 @@ export async function handleLeaveRoom(gateway: AppGateway, client: Socket) {
       } else if (result.reachedSettlement) {
         const table = await gateway.tableManager.getTable(roomId);
         if (table) {
-          await gateway.schedulePostHandFlow(roomId, table);
+          await gateway.schedulePostHandFlow(gateway.server, roomId, table);
           await gateway.broadcastTableState(roomId, table);
         }
       } else {
         const table = await gateway.tableManager.getTable(roomId);
         if (table) {
           if (gateway.isActionStage(table.currentStage)) {
-            await gateway.scheduleActionTimeout(roomId, table);
+            await gateway.scheduleActionTimeout(gateway.server, roomId, table);
           }
           await gateway.broadcastTableState(roomId, table);
         }
