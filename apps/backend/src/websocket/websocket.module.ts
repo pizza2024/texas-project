@@ -1,6 +1,9 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AppGateway } from './app.gateway';
 import { WebSocketManager } from './websocket-manager';
+import { ConnectionStateService } from './connection-state.service';
+import { BroadcastService } from './broadcast.service';
+import { TimerService } from './timer.service';
 import { TableEngineModule } from '../table-engine/table-engine.module';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
@@ -8,6 +11,7 @@ import { UserModule } from '../user/user.module';
 import { MatchmakingModule } from '../matchmaking/matchmaking.module';
 import { BotModule } from '../bot/bot.module';
 import { FriendModule } from '../friend/friend.module';
+import { RedisModule } from '../redis/redis.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
@@ -22,7 +26,19 @@ import { getJwtSecret } from '../config/jwt.config';
       secret: getJwtSecret(),
     }),
   ],
-  providers: [AppGateway, WebSocketManager],
-  exports: [AppGateway, WebSocketManager],
+  providers: [
+    AppGateway,
+    WebSocketManager,
+    ConnectionStateService,
+    BroadcastService,
+    TimerService,
+  ],
+  exports: [
+    AppGateway,
+    WebSocketManager,
+    ConnectionStateService,
+    BroadcastService,
+    TimerService,
+  ],
 })
 export class WebsocketModule {}

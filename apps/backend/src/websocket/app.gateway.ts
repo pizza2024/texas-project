@@ -15,7 +15,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { Socket, Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
@@ -43,7 +43,9 @@ import {
   handleQuickMatch,
   handleShowCards,
 } from './game.handler';
-import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_ACTIONS } from './constants';
+import { ConnectionStateService } from './connection-state.service';
+import { BroadcastService } from './broadcast.service';
+import { TimerService } from './timer.service';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -64,27 +66,16 @@ export class AppGateway
     OnModuleInit,
     OnModuleDestroy
 {
-  // ── Constants ────────────────────────────────────────────────────────────
-  // Gateway-only constants
-  static readonly DISCONNECT_GRACE_PERIOD_MS = 15_000;
-  static readonly SETTLEMENT_DURATION_MS = 5_000;
-  static readonly READY_COUNTDOWN_MS = 5_000;
-  static readonly ACTION_DURATION_MS = 20_000;
   // NOTE: SOLO_READY_COUNTDOWN_MS, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_ACTIONS
   // are defined in ./constants.ts and imported directly by game.handler.ts.
-  // They are NOT exposed as AppGateway static properties (no external usage found).
+  // DISCONNECT_GRACE_PERIOD_MS, SETTLEMENT_DURATION_MS, READY_COUNTDOWN_MS,
+  // ACTION_DURATION_MS are defined in timer.service.ts (AppGatewayConstants).
 
   // ── WebSocket server ────────────────────────────────────────────────────
   @WebSocketServer() server: Server;
 
   // ── Logger (public so handlers can use it) ──────────────────────────────
   readonly logger: Logger = new Logger('AppGateway');
-
-  // ── Timer maps ─────────────────────────────────────────────────────────
-  private pendingDisconnects = new Map<string, NodeJS.Timeout>();
-  private settlementTimers = new Map<string, NodeJS.Timeout>();
-  private autoStartTimers = new Map<string, NodeJS.Timeout>();
-  private actionTimers = new Map<string, NodeJS.Timeout>();
 
   // ── Concurrency locks ──────────────────────────────────────────────────
   /**
@@ -98,111 +89,6 @@ export class AppGateway
    */
   private userLocks = new Map<string, Promise<void>>();
 
-  // ── User→socket index (O(1) lookup instead of fetchSockets O(n)) ───────
-  /** Maps userId → Set of their active socket IDs */
-  private userSockets = new Map<string, Set<string>>();
-
-  // ── Rate limiter (public so handlers can check it) ────────────────────
-  rateLimits = new Map<string, { count: number; windowStart: number }>();
-
-  /**
-   * Redis-backed rate limit check with in-memory Map fallback.
-   * Redis key: ws_rate:{userId} — TTL = RATE_LIMIT_WINDOW_MS in seconds
-   * Falls back to in-memory Map if Redis is unavailable.
-   */
-  async checkRateLimit(userId: string): Promise<boolean> {
-    const windowSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);
-    const count = await this.redisService.incr(`ws_rate:${userId}`, windowSec);
-
-    if (count !== null) {
-      return count <= RATE_LIMIT_MAX_ACTIONS;
-    }
-
-    // Redis unavailable — fall back to in-memory Map (original behaviour)
-    const now = Date.now();
-    const entry = this.rateLimits.get(userId);
-    const windowStart = entry?.windowStart ?? now;
-    const cnt = entry?.count ?? 0;
-
-    if (now - windowStart > RATE_LIMIT_WINDOW_MS) {
-      this.rateLimits.set(userId, { count: 1, windowStart: now });
-      return true;
-    }
-
-    if (cnt >= RATE_LIMIT_MAX_ACTIONS) {
-      return false;
-    }
-
-    this.rateLimits.set(userId, { count: cnt + 1, windowStart });
-    return true;
-  }
-
-  // ── Password brute-force protection ─────────────────────────────────────
-  private readonly logger = new Logger(AppGateway.name);
-
-  private passwordAttempts = new Map<
-    string,
-    { count: number; windowStart: number }
-  >();
-
-  private readonly PASSWORD_ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-  private readonly PASSWORD_ATTEMPT_MAX = 5; // 5 wrong passwords per window
-  private readonly PASSWORD_BAN_MS = 5 * 60 * 1000; // 5 minute ban per IP+roomId
-
-  /**
-   * Check if an IP+roomId combo is banned due to too many wrong password attempts.
-   * Returns 'banned' | 'rate_limited' | 'ok'.
-   * Logs [SECURITY-BRUTE-FORCE] events for SIEM alerting.
-   */
-  checkPasswordAttemptLimit(
-    ip: string,
-    roomId: string,
-  ): 'banned' | 'rate_limited' | 'ok' {
-    const key = `${ip}:${roomId}`;
-    const now = Date.now();
-    const entry = this.passwordAttempts.get(key);
-    const windowStart = entry?.windowStart ?? now;
-    const cnt = entry?.count ?? 0;
-
-    // Reset window if expired
-    if (now - windowStart > this.PASSWORD_ATTEMPT_WINDOW_MS) {
-      this.passwordAttempts.set(key, { count: 1, windowStart: now });
-      return 'ok';
-    }
-
-    if (cnt >= this.PASSWORD_ATTEMPT_MAX) {
-      const banRemaining = Math.ceil(
-        (this.PASSWORD_BAN_MS - (now - windowStart)) / 1000,
-      );
-      this.logger.warn(
-        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} banned for ${banRemaining}s ` +
-          `(attempt #${cnt} exceeds limit ${this.PASSWORD_ATTEMPT_MAX})`,
-      );
-      return 'banned';
-    }
-
-    this.passwordAttempts.set(key, { count: cnt + 1, windowStart });
-
-    if (cnt >= this.PASSWORD_ATTEMPT_MAX - 2) {
-      // Warn at 3rd and 4th failed attempts
-      this.logger.warn(
-        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} ` +
-          `wrong password attempt #${cnt + 1}/${this.PASSWORD_ATTEMPT_MAX}`,
-      );
-    }
-
-    return 'ok';
-  }
-
-  /**
-   * Clear password attempt counter on successful join.
-   * Call this when the user successfully joins (password correct or no password).
-   */
-  clearPasswordAttempts(ip: string, roomId: string): void {
-    const key = `${ip}:${roomId}`;
-    this.passwordAttempts.delete(key);
-  }
-
   // ── Injected services ───────────────────────────────────────────────────
   constructor(
     readonly tableManager: TableManagerService,
@@ -214,7 +100,127 @@ export class AppGateway
     private wsManager: WebSocketManager,
     @Inject(forwardRef(() => FriendService))
     readonly friendService: FriendService,
+    private connectionState: ConnectionStateService,
+    private readonly broadcastService: BroadcastService,
+    private readonly timerService: TimerService,
   ) {}
+
+  // ── Delegating getters for ConnectionStateService ───────────────────────
+
+  get userSockets() {
+    return this.connectionState.userSockets;
+  }
+
+  get pendingDisconnects() {
+    return this.connectionState.pendingDisconnects;
+  }
+
+  async checkRateLimit(userId: string) {
+    return this.connectionState.checkRateLimit(userId);
+  }
+
+  checkPasswordAttemptLimit(ip: string, roomId: string) {
+    return this.connectionState.checkPasswordAttemptLimit(ip, roomId);
+  }
+
+  clearPasswordAttempts(ip: string, roomId: string) {
+    return this.connectionState.clearPasswordAttempts(ip, roomId);
+  }
+
+  hasOtherActiveSocket(userId: string, socketId: string) {
+    return this.connectionState.hasOtherActiveSocket(
+      this.connectionState.userSockets,
+      this.server,
+      userId,
+      socketId,
+    );
+  }
+
+  clearPendingDisconnect(userId: string) {
+    return this.connectionState.clearPendingDisconnect(userId);
+  }
+
+  scheduleDisconnectCleanup(userId: string) {
+    return this.connectionState.scheduleDisconnectCleanup(
+      userId,
+      (uid) => this.tableManager.getUserCurrentRoomId(uid),
+      (uid, sid) => this.hasOtherActiveSocket(uid, sid),
+      <T>(roomId: string, fn: () => Promise<T>) =>
+        this.withRoomLock(roomId, fn),
+      (uid) => this.tableManager.leaveCurrentRoom(uid),
+      (rid) => this.tableManager.getTable(rid),
+      (rid, tbl) => this.broadcastTableState(rid, tbl),
+      (rid) => this.clearRoundTimers(rid),
+      (rid, tbl) => this.schedulePostHandFlow(rid, tbl),
+      (stage) => this.isActionStage(stage),
+      (rid, tbl) => this.scheduleActionTimeout(rid, tbl),
+      TimerService.DISCONNECT_GRACE_PERIOD_MS,
+      this.logger,
+    );
+  }
+
+  // ── Timer and broadcast delegates (used by game.handler.ts) ──────────────
+
+  /**
+   * @deprecated Delegates to BroadcastService.broadcastTableState.
+   *   Handlers should migrate to using broadcastService directly.
+   */
+  async broadcastTableState(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ) {
+    return this.broadcastService.broadcastTableState(
+      this.server,
+      roomId,
+      table,
+    );
+  }
+
+  clearRoundTimers(roomId: string) {
+    return this.timerService.clearRoundTimers(roomId);
+  }
+
+  isActionStage(stage: GameStage) {
+    return this.timerService.isActionStage(stage);
+  }
+
+  async scheduleActionTimeout(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ) {
+    return this.timerService.scheduleActionTimeout(this.server, roomId, table);
+  }
+
+  async scheduleAutoStart(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+    durationMs?: number,
+  ) {
+    return this.timerService.scheduleAutoStart(
+      this.server,
+      roomId,
+      table,
+      durationMs,
+    );
+  }
+
+  async schedulePostHandFlow(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ) {
+    return this.timerService.schedulePostHandFlow(this.server, roomId, table);
+  }
+
+  async ensureRecoveredRoundFlow(
+    roomId: string,
+    table: import('../table-engine/table').Table,
+  ) {
+    return this.timerService.ensureRecoveredRoundFlow(
+      this.server,
+      roomId,
+      table,
+    );
+  }
 
   // ════════════════════════════════════════════════════════════════════════
   // Lifecycle methods
@@ -285,13 +291,13 @@ export class AppGateway
           // Clean up userSockets index for the evicted socket
           const otherUserId = other.data.user?.sub as string | undefined;
           if (otherUserId) {
-            this.userSockets.get(otherUserId)?.delete(other.id);
+            this.connectionState.userSockets.get(otherUserId)?.delete(other.id);
           }
         }
       }
 
       // Register new socket in userSockets index
-      const existing = this.userSockets.get(payload.sub);
+      const existing = this.connectionState.userSockets.get(payload.sub);
       if (existing) {
         existing.add(client.id);
       } else {
@@ -323,7 +329,7 @@ export class AppGateway
 
     // Remove socket from userSockets index immediately so
     // hasOtherActiveSocket reflects the post-disconnect state.
-    this.userSockets.get(userId)?.delete(client.id);
+    this.connectionState.userSockets.get(userId)?.delete(client.id);
 
     // Only notify friends if this is the user's last active socket
     if (!(await this.hasOtherActiveSocket(userId, client.id))) {
@@ -339,7 +345,28 @@ export class AppGateway
       return;
     }
 
-    this.scheduleDisconnectCleanup(userId);
+    this.connectionState.scheduleDisconnectCleanup(
+      userId,
+      (uid) => this.tableManager.getUserCurrentRoomId(uid),
+      (uid, sid) =>
+        this.connectionState.hasOtherActiveSocket(
+          this.connectionState.userSockets,
+          this.server,
+          uid,
+          sid,
+        ),
+      <T>(roomId: string, fn: () => Promise<T>) =>
+        this.withRoomLock(roomId, fn),
+      (uid) => this.tableManager.leaveCurrentRoom(uid),
+      (rid) => this.tableManager.getTable(rid),
+      (rid, tbl) => this.broadcastTableState(rid, tbl),
+      (rid) => this.clearRoundTimers(rid),
+      (rid, tbl) => this.schedulePostHandFlow(rid, tbl),
+      (stage) => this.isActionStage(stage),
+      (rid, tbl) => this.scheduleActionTimeout(rid, tbl),
+      TimerService.DISCONNECT_GRACE_PERIOD_MS,
+      this.logger,
+    );
   }
 
   onModuleInit() {
@@ -352,15 +379,8 @@ export class AppGateway
     roomEvents.off(ROOM_CREATED_EVENT, this.handleRoomCreated);
     roomEvents.off(ROOM_DISSOLVED_EVENT, this.handleRoomDissolved);
     roomEvents.off(ROOM_STATUS_UPDATED_EVENT, this.handleRoomStatusUpdated);
-    for (const timeout of this.pendingDisconnects.values())
-      clearTimeout(timeout);
-    this.pendingDisconnects.clear();
-    for (const timeout of this.settlementTimers.values()) clearTimeout(timeout);
-    this.settlementTimers.clear();
-    for (const timeout of this.autoStartTimers.values()) clearTimeout(timeout);
-    this.autoStartTimers.clear();
-    for (const timeout of this.actionTimers.values()) clearTimeout(timeout);
-    this.actionTimers.clear();
+    this.connectionState.clearAllPendingDisconnects();
+    // TimerService handles its own timer cleanup via OnModuleDestroy
   }
 
   // ════════════════════════════════════════════════════════════════════════
@@ -475,438 +495,6 @@ export class AppGateway
     );
 
     return outer;
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // Table state broadcasting
-  // ════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Broadcast masked table state to every socket in the room individually.
-   * Optimized: group sockets by userId so getMaskedView() is only called once per user.
-   * This matters when one user has multiple open sockets (multi-device).
-   */
-  async broadcastTableState(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-  ) {
-    // O(1) lookup of room socket IDs via adapter.rooms Map, then direct
-    // socket Map access — avoids O(n) fetchSockets() over all server sockets.
-    // Falls back to in().fetchSockets() for environments where adapter.rooms
-    // is not populated (e.g. some test mocks).
-    const adapterRooms = (this.server.sockets.adapter as any)?.rooms;
-
-    let socketList: Socket<any>[];
-
-    if (adapterRooms) {
-      const roomSocketIds = adapterRooms.get(roomId);
-      if (!roomSocketIds || roomSocketIds.size === 0) return;
-      socketList = [];
-      for (const socketId of roomSocketIds) {
-        const socket = this.server.sockets.sockets.get(socketId);
-        if (socket) socketList.push(socket);
-      }
-    } else {
-      // Fallback: use in().fetchSockets() (works with simple test mocks)
-
-      socketList = (await this.server
-        .in(roomId)
-        .fetchSockets()) as unknown as Socket<any>[];
-    }
-
-    // Group sockets by userId so we compute masked view once per user
-    const socketsByUser = new Map<string | undefined, Socket[]>();
-    for (const socket of socketList) {
-      const userId = socket.data.user?.sub as string | undefined;
-      const list = socketsByUser.get(userId) ?? [];
-      list.push(socket);
-      socketsByUser.set(userId, list);
-    }
-
-    for (const [userId, userSockets] of socketsByUser) {
-      const view = userId
-        ? table.getMaskedView(userId)
-        : table.getMaskedView('');
-      for (const socket of userSockets) {
-        socket.emit('room_update', view);
-      }
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // Disconnect handling
-  // ════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Check if userId has any active socket other than socketId.
-   * Uses the userSockets index (O(1)) when populated; falls back to
-   * fetchSockets() (O(n)) for test environments where the index is empty.
-   */
-  private async hasOtherActiveSocket(
-    userId: string,
-    socketId: string,
-  ): Promise<boolean> {
-    const sockets = this.userSockets.get(userId);
-    if (sockets && sockets.size > 0) {
-      // Index is populated — O(1) lookup
-      for (const id of sockets) {
-        if (id !== socketId) return true;
-      }
-      return false;
-    }
-    // Fallback: scan all sockets (test mocks, or if index is empty)
-    const allSockets = await this.server.fetchSockets();
-    return allSockets.some(
-      (socket) =>
-        socket.id !== socketId &&
-        (socket.data.user?.sub as string | undefined) === userId,
-    );
-  }
-
-  clearPendingDisconnect(userId: string) {
-    const timeout = this.pendingDisconnects.get(userId);
-    if (!timeout) return;
-    clearTimeout(timeout);
-    this.pendingDisconnects.delete(userId);
-  }
-
-  scheduleDisconnectCleanup(userId: string) {
-    this.clearPendingDisconnect(userId);
-
-    const timeout = setTimeout(async () => {
-      try {
-        this.pendingDisconnects.delete(userId);
-
-        if (await this.hasOtherActiveSocket(userId, '')) {
-          return;
-        }
-
-        const roomId = await this.tableManager.getUserCurrentRoomId(userId);
-        if (!roomId) return;
-
-        await this.withRoomLock(roomId, async () => {
-          const result = await this.tableManager.leaveCurrentRoom(userId);
-          if (!result) return;
-
-          if (result.dissolved) {
-            this.clearRoundTimers(roomId);
-          } else if (result.reachedSettlement) {
-            const table = await this.tableManager.getTable(roomId);
-            if (table) {
-              await this.schedulePostHandFlow(roomId, table);
-              await this.broadcastTableState(roomId, table);
-            }
-          } else {
-            const table = await this.tableManager.getTable(roomId);
-            if (table) {
-              if (this.isActionStage(table.currentStage)) {
-                await this.scheduleActionTimeout(roomId, table);
-              }
-              await this.broadcastTableState(roomId, table);
-            }
-          }
-        });
-      } catch (err) {
-        this.logger.error(
-          `scheduleDisconnectCleanup error for user ${userId}: ${(err as Error).message}`,
-        );
-      }
-    }, AppGateway.DISCONNECT_GRACE_PERIOD_MS);
-
-    this.pendingDisconnects.set(userId, timeout);
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // Round timers
-  // ════════════════════════════════════════════════════════════════════════
-
-  clearRoundTimers(roomId: string) {
-    const actionTimer = this.actionTimers.get(roomId);
-    if (actionTimer) {
-      clearTimeout(actionTimer);
-      this.actionTimers.delete(roomId);
-    }
-
-    const settlementTimer = this.settlementTimers.get(roomId);
-    if (settlementTimer) {
-      clearTimeout(settlementTimer);
-      this.settlementTimers.delete(roomId);
-    }
-
-    const autoStartTimer = this.autoStartTimers.get(roomId);
-    if (autoStartTimer) {
-      clearTimeout(autoStartTimer);
-      this.autoStartTimers.delete(roomId);
-    }
-  }
-
-  isActionStage(stage: GameStage) {
-    return (
-      stage === GameStage.PREFLOP ||
-      stage === GameStage.FLOP ||
-      stage === GameStage.TURN ||
-      stage === GameStage.RIVER
-    );
-  }
-
-  // ── Action timeout ─────────────────────────────────────────────────────
-
-  async finalizeActionTimeout(roomId: string) {
-    this.actionTimers.delete(roomId);
-    const currentTable = await this.tableManager.getTable(roomId);
-    if (!currentTable || !this.isActionStage(currentTable.currentStage)) {
-      return;
-    }
-
-    if (currentTable.isCurrentPlayerSitOut()) {
-      const processed = currentTable.foldSitOutPlayer();
-      if (!processed) {
-        if (this.isActionStage(currentTable.currentStage)) {
-          await this.scheduleActionTimeout(roomId, currentTable);
-        }
-        return;
-      }
-      const nextStage = currentTable.currentStage as GameStage;
-      await this.tableManager.persistTableState(roomId);
-      await this.tableManager.persistTableBalances(roomId);
-      if (nextStage === GameStage.SETTLEMENT) {
-        await this.schedulePostHandFlow(roomId, currentTable);
-      } else if (this.isActionStage(nextStage)) {
-        await this.scheduleActionTimeout(roomId, currentTable);
-      }
-      await this.broadcastTableState(roomId, currentTable);
-      return;
-    }
-
-    const timeoutAction = currentTable.getTimeoutAction();
-    if (!timeoutAction) {
-      return;
-    }
-
-    let processed = false;
-
-    if (timeoutAction.action === 'sitout') {
-      processed = currentTable.foldSitOutPlayer();
-    } else {
-      processed = currentTable.processAction(
-        timeoutAction.playerId,
-        timeoutAction.action,
-        0,
-      );
-    }
-
-    if (!processed) {
-      if (this.isActionStage(currentTable.currentStage)) {
-        await this.scheduleActionTimeout(roomId, currentTable);
-      }
-      return;
-    }
-
-    const nextStage = currentTable.currentStage as GameStage;
-    await this.tableManager.persistTableState(roomId);
-    await this.tableManager.persistTableBalances(roomId);
-    if (nextStage === GameStage.SETTLEMENT) {
-      await this.schedulePostHandFlow(roomId, currentTable);
-      await this.broadcastTableState(roomId, currentTable);
-      return;
-    }
-    if (this.isActionStage(nextStage)) {
-      await this.scheduleActionTimeout(roomId, currentTable);
-    }
-
-    await this.broadcastTableState(roomId, currentTable);
-  }
-
-  async scheduleActionTimeout(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-    durationMs = AppGateway.ACTION_DURATION_MS,
-    reuseExistingCountdown = false,
-  ) {
-    const existing = this.actionTimers.get(roomId);
-    if (existing) {
-      clearTimeout(existing);
-    }
-
-    if (!this.isActionStage(table.currentStage)) {
-      table.clearActionCountdown();
-      this.actionTimers.delete(roomId);
-      return;
-    }
-
-    if (!reuseExistingCountdown) {
-      table.beginActionCountdown(durationMs);
-      await this.tableManager.persistTableState(roomId);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await this.finalizeActionTimeout(roomId);
-      } catch (err) {
-        this.logger.error(
-          `scheduleActionTimeout finalize error for room ${roomId}: ${(err as Error).message}`,
-        );
-      }
-    }, durationMs);
-
-    this.actionTimers.set(roomId, timer);
-  }
-
-  // ── Ready countdown ────────────────────────────────────────────────────
-
-  async finalizeReadyCountdown(roomId: string) {
-    this.autoStartTimers.delete(roomId);
-    const currentTable = await this.tableManager.getTable(roomId);
-    if (!currentTable || currentTable.currentStage !== GameStage.WAITING) {
-      return;
-    }
-
-    currentTable.clearReadyCountdown();
-    currentTable.startHandIfReady();
-    await this.tableManager.persistTableBalances(roomId);
-    if (this.isActionStage(currentTable.currentStage)) {
-      await this.scheduleActionTimeout(roomId, currentTable);
-    } else {
-      await this.tableManager.persistTableState(roomId);
-    }
-    await this.broadcastTableState(roomId, currentTable);
-  }
-
-  async scheduleAutoStart(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-    durationMs = AppGateway.READY_COUNTDOWN_MS,
-    reuseExistingCountdown = false,
-  ) {
-    const existing = this.autoStartTimers.get(roomId);
-    if (existing) {
-      clearTimeout(existing);
-    }
-
-    if (!reuseExistingCountdown) {
-      table.beginReadyCountdown(durationMs);
-      await this.tableManager.persistTableState(roomId);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await this.finalizeReadyCountdown(roomId);
-      } catch (err) {
-        this.logger.error(
-          `scheduleAutoStart finalize error for room ${roomId}: ${(err as Error).message}`,
-        );
-      }
-    }, durationMs);
-
-    this.autoStartTimers.set(roomId, timer);
-  }
-
-  // ── Settlement ─────────────────────────────────────────────────────────
-
-  async finalizeSettlement(roomId: string) {
-    this.settlementTimers.delete(roomId);
-    const currentTable = await this.tableManager.getTable(roomId);
-    if (!currentTable || currentTable.currentStage !== GameStage.SETTLEMENT) {
-      return;
-    }
-
-    const handResult = currentTable.lastHandResult
-      ? [...currentTable.lastHandResult]
-      : [];
-
-    await this.tableManager.persistSettlementRecords(roomId);
-
-    if (handResult.length > 0) {
-      this.matchmakingService.updateElo(handResult).catch((err) => {
-        this.logger.error(`ELO update failed for room ${roomId}`, err);
-      });
-    }
-
-    currentTable.resetToWaiting();
-    await this.tableManager.persistTableState(roomId);
-    await this.tableManager.persistTableBalances(roomId);
-    await this.scheduleAutoStart(roomId, currentTable);
-    await this.broadcastTableState(roomId, currentTable);
-  }
-
-  async schedulePostHandFlow(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-    durationMs = AppGateway.SETTLEMENT_DURATION_MS,
-    reuseExistingCountdown = false,
-  ) {
-    this.clearRoundTimers(roomId);
-    if (!reuseExistingCountdown) {
-      table.beginSettlementCountdown(durationMs);
-      await this.tableManager.persistTableState(roomId);
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        await this.finalizeSettlement(roomId);
-      } catch (err) {
-        this.logger.error(
-          `schedulePostHandFlow settlement error for room ${roomId}: ${(err as Error).message}`,
-        );
-      }
-    }, durationMs);
-
-    this.settlementTimers.set(roomId, timer);
-  }
-
-  // ── Recovery ───────────────────────────────────────────────────────────
-
-  async ensureRecoveredRoundFlow(
-    roomId: string,
-    table: import('../table-engine/table').Table,
-  ) {
-    if (this.isActionStage(table.currentStage)) {
-      if (!table.actionEndsAt) {
-        if (!this.actionTimers.has(roomId)) {
-          await this.scheduleActionTimeout(roomId, table);
-        }
-        return;
-      }
-
-      const remainingMs = table.actionEndsAt - Date.now();
-      if (remainingMs <= 0) {
-        await this.finalizeActionTimeout(roomId);
-        return;
-      }
-
-      if (!this.actionTimers.has(roomId)) {
-        await this.scheduleActionTimeout(roomId, table, remainingMs, true);
-      }
-      return;
-    }
-
-    if (table.currentStage === GameStage.SETTLEMENT && table.settlementEndsAt) {
-      const remainingMs = table.settlementEndsAt - Date.now();
-      if (remainingMs <= 0) {
-        await this.finalizeSettlement(roomId);
-        return;
-      }
-
-      if (!this.settlementTimers.has(roomId)) {
-        await this.schedulePostHandFlow(roomId, table, remainingMs, true);
-      }
-      return;
-    }
-
-    if (
-      table.currentStage === GameStage.WAITING &&
-      table.readyCountdownEndsAt
-    ) {
-      const remainingMs = table.readyCountdownEndsAt - Date.now();
-      if (remainingMs <= 0) {
-        await this.finalizeReadyCountdown(roomId);
-        return;
-      }
-
-      if (!this.autoStartTimers.has(roomId)) {
-        await this.scheduleAutoStart(roomId, table, remainingMs, true);
-      }
-    }
   }
 
   // ════════════════════════════════════════════════════════════════════════

@@ -1,5 +1,6 @@
 import { AppGateway } from './app.gateway';
 import { GameStage } from '../table-engine/table';
+import { BroadcastService } from './broadcast.service';
 
 describe('AppGateway', () => {
   let tableManager: {
@@ -26,8 +27,15 @@ describe('AppGateway', () => {
   };
 
   let gateway: AppGateway;
+  let broadcastService: BroadcastService;
+  // Shared state for timer mocks — allows scheduleDisconnectCleanup and
+  // clearPendingDisconnect to operate on the same pendingDisconnects Map.
+  let connectionState: { pendingDisconnects: Map<string, NodeJS.Timeout> };
 
   beforeEach(() => {
+    connectionState = {
+      pendingDisconnects: new Map<string, NodeJS.Timeout>(),
+    };
     tableManager = {
       getUserCurrentRoomId: jest.fn(),
       leaveCurrentRoom: jest.fn(),
@@ -50,6 +58,9 @@ describe('AppGateway', () => {
     userService = {
       getUserAvatar: jest.fn().mockResolvedValue(null),
     };
+
+    // Create a real BroadcastService so socket emission works in tests
+    broadcastService = new BroadcastService();
 
     gateway = new AppGateway(
       tableManager as any,
@@ -79,6 +90,64 @@ describe('AppGateway', () => {
       } as any,
       { setServer: jest.fn() } as any,
       { getAcceptedFriends: jest.fn().mockResolvedValue([]) } as any,
+      {
+        userSockets: new Map<string, any>(),
+        pendingDisconnects: new Map<string, NodeJS.Timeout>(),
+        checkRateLimit: jest.fn().mockResolvedValue(true),
+        checkPasswordAttemptLimit: jest.fn(),
+        clearPasswordAttempts: jest.fn(),
+        hasOtherActiveSocket: jest.fn().mockResolvedValue(false),
+        clearPendingDisconnect: jest
+          .fn()
+          .mockImplementation((userId: string) => {
+            const t = connectionState.pendingDisconnects.get(userId);
+            if (t) {
+              clearTimeout(t);
+              connectionState.pendingDisconnects.delete(userId);
+            }
+          }),
+        scheduleDisconnectCleanup: jest
+          .fn()
+          .mockImplementation(
+            (
+              userId: string,
+              _getUserCurrentRoomId: any,
+              _hasOtherActiveSocketFn: any,
+              _withRoomLock: any,
+              _leaveCurrentRoom: any,
+              _getTable: any,
+              _broadcastTableState: any,
+              _clearRoundTimers: any,
+              _schedulePostHandFlow: any,
+              _isActionStage: any,
+              _scheduleActionTimeout: any,
+              DISCONNECT_GRACE_PERIOD_MS: number,
+              _logger: any,
+            ) => {
+              // Clear any existing timer for this user
+              const existing = connectionState.pendingDisconnects.get(userId);
+              if (existing) clearTimeout(existing);
+              // Store a mock timer that will be triggered by jest.runOnlyPendingTimersAsync()
+              const mockTimer = setTimeout(() => {
+                connectionState.pendingDisconnects.delete(userId);
+              }, DISCONNECT_GRACE_PERIOD_MS) as unknown as NodeJS.Timeout;
+              connectionState.pendingDisconnects.set(userId, mockTimer);
+            },
+          ),
+        clearAllPendingDisconnects: jest.fn(),
+      } as any,
+      broadcastService as any,
+      {
+        clearRoundTimers: jest.fn(),
+        scheduleActionTimeout: jest.fn().mockResolvedValue(undefined),
+        scheduleAutoStart: jest.fn().mockResolvedValue(undefined),
+        schedulePostHandFlow: jest.fn().mockResolvedValue(undefined),
+        isActionStage: jest.fn().mockReturnValue(false),
+        finalizeActionTimeout: jest.fn().mockResolvedValue(undefined),
+        finalizeReadyCountdown: jest.fn().mockResolvedValue(undefined),
+        finalizeSettlement: jest.fn().mockResolvedValue(undefined),
+        ensureRecoveredRoundFlow: jest.fn().mockResolvedValue(undefined),
+      } as any,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden
     // per-test without losing the adapter.rooms reference.
