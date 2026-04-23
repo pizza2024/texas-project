@@ -11,7 +11,7 @@
 
 ### P0 — 🔴 阻塞
 
-- [ ] **[T-009]** app.gateway.spec.ts — TimerService mock 架构问题（4/11测试失败，改善自5/11）— ❌ 待 Coding 最终修复
+- [ ] **[T-009]** app.gateway.spec.ts — TimerService 拆分后 mock 架构不兼容（5/11测试失败）— 🔧 根因已修复（方法签名不一致），commit 3f95fb0
 
 **当前进度**: 7/11 通过（新增 `syncs room state on disconnect`），4个 timer 测试仍失败：
 1. `runs settlement countdown, enters ready countdown, and then auto-starts`
