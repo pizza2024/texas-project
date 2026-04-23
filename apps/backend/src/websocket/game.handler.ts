@@ -26,8 +26,6 @@ import {
   PlayerAction,
 } from './constants';
 
-
-
 // ---------------------------------------------------------------------------
 // Handler: join_room
 // ---------------------------------------------------------------------------
@@ -44,7 +42,7 @@ export async function handleJoinRoom(
   const { roomId, password } = validated;
   const userId = client.data.user?.sub as string;
 
-  if (!await gateway.checkRateLimit(userId)) {
+  if (!(await gateway.checkRateLimit(userId))) {
     client.emit('rate_limited', {
       message: 'Too many join attempts, please slow down',
     });
@@ -94,6 +92,21 @@ export async function handleJoinRoom(
         return { event: 'error', data: 'Room not found' };
       }
 
+      // Password brute-force protection — check before verifying password
+      const rawIp = client.handshake.address ?? '0.0.0.0';
+      const ipHash = gateway.matchmakingService.hashIp(rawIp);
+      const bruteForceResult = gateway.checkPasswordAttemptLimit(
+        ipHash,
+        roomId,
+      );
+      if (bruteForceResult === 'banned') {
+        client.emit('rate_limited', {
+          message: 'Too many wrong password attempts, please try again later',
+          roomId,
+        });
+        return { event: 'rate_limited', data: { roomId } };
+      }
+
       // Password check for private rooms (skip if already seated — reconnect)
       const isAlreadySeated = table.hasPlayer(userId);
       if (!isAlreadySeated && table.roomPassword) {
@@ -105,6 +118,8 @@ export async function handleJoinRoom(
           client.emit('wrong_password', { roomId });
           return { event: 'wrong_password', data: { roomId } };
         }
+        // Successful password entry — clear brute-force counter
+        gateway.clearPasswordAttempts(ipHash, roomId);
       }
 
       await gateway.ensureRecoveredRoundFlow(roomId, table);
@@ -240,7 +255,7 @@ export async function handlePlayerAction(
     return;
   }
 
-  if (!await gateway.checkRateLimit(userId)) {
+  if (!(await gateway.checkRateLimit(userId))) {
     client.emit('rate_limited', {
       message: 'Too many actions, please slow down',
     });

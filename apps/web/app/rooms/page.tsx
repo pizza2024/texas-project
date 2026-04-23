@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import { disconnectSocket, getSocket } from '@/lib/socket';
 import { showSystemMessage } from '@/lib/system-message';
-import { UserAvatar } from '@/components/user-avatar';
+import { SearchingOverlay } from '@/components/lobby/searching-overlay';
+import { PasswordDialog } from '@/components/lobby/password-dialog';
+import { UserDropdown } from '@/components/lobby/user-dropdown';
+import { RoomCard } from '@/components/lobby/room-card';
 
 /* ---------- Quick Match Dialog ---------- */
 
@@ -574,13 +577,10 @@ export default function RoomsPage() {
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const isSearchingRef = useRef(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState<{
     roomId: string;
     roomName: string;
   } | null>(null);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -786,8 +786,6 @@ export default function RoomsPage() {
     }
 
     if (room?.isPrivate) {
-      setPasswordInput("");
-      setPasswordError("");
       setPasswordDialog({ roomId, roomName: room.name });
       return;
     }
@@ -795,12 +793,12 @@ export default function RoomsPage() {
     router.push(`/room/${roomId}`);
   };
 
-  const handlePasswordJoin = () => {
+  const handlePasswordConfirm = (password: string) => {
     if (!passwordDialog) return;
-    if (passwordInput.trim()) {
+    if (password.trim()) {
       sessionStorage.setItem(
         `room-password:${passwordDialog.roomId}`,
-        passwordInput.trim(),
+        password.trim(),
       );
     }
     router.push(`/room/${passwordDialog.roomId}`);
@@ -898,163 +896,17 @@ export default function RoomsPage() {
         />
       )}
 
-      {/* Searching overlay */}
       {isSearching && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" />
-          <div
-            className="relative flex flex-col items-center gap-6 px-10 py-9 rounded-3xl"
-            style={{
-              background:
-                "linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)",
-              border: "1px solid rgba(234,179,8,0.3)",
-              boxShadow:
-                "0 0 60px rgba(234,179,8,0.08), 0 20px 60px rgba(0,0,0,0.7)",
-            }}
-          >
-            <div
-              className="text-5xl animate-spin"
-              style={{ animationDuration: "1.5s" }}
-            >
-              ⚡
-            </div>
-            <div className="text-center space-y-1.5">
-              <p
-                className="text-xl font-black tracking-widest uppercase"
-                style={{ color: "#fcd34d" }}
-              >
-                {t("lobby.searching")}
-              </p>
-              <div className="flex gap-1 justify-center">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
-                ))}
-              </div>
-            </div>
-            <button
-              className="text-xs font-bold tracking-[0.2em] uppercase px-6 py-2.5 rounded-lg transition-colors hover:bg-white/10"
-              style={{
-                color: "rgba(245,158,11,0.6)",
-                border: "1px solid rgba(245,158,11,0.2)",
-              }}
-              onClick={handleCancelSearch}
-            >
-              {t("lobby.searchingCancel")}
-            </button>
-          </div>
-        </div>
+        <SearchingOverlay onCancel={handleCancelSearch} />
       )}
 
       {/* Password dialog for private rooms */}
       {passwordDialog && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setPasswordDialog(null)}
-          />
-          <div
-            className="relative w-full max-w-sm rounded-2xl px-6 py-6"
-            style={{
-              background:
-                "linear-gradient(160deg, rgba(12,22,16,0.98) 0%, rgba(6,12,9,1) 100%)",
-              border: "1px solid rgba(139,92,246,0.35)",
-              boxShadow:
-                "0 0 0 1px rgba(139,92,246,0.1), 0 18px 50px rgba(0,0,0,0.6)",
-            }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl leading-none">🔒</span>
-              <div>
-                <p
-                  className="text-[10px] font-bold tracking-[0.3em] uppercase"
-                  style={{ color: "rgba(167,139,250,0.7)" }}
-                >
-                  {t("lobby.private")}
-                </p>
-                <h2
-                  className="text-lg font-black tracking-wide"
-                  style={{ color: "#c4b5fd" }}
-                >
-                  {passwordDialog.roomName}
-                </h2>
-              </div>
-            </div>
-            <p
-              className="text-sm mb-4"
-              style={{ color: "rgba(229,231,235,0.7)" }}
-            >
-              {t("lobby.passwordDialog.hint")}
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label
-                  className="block text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
-                  style={{ color: "rgba(167,139,250,0.7)" }}
-                >
-                  {t("lobby.passwordDialog.label")}
-                </label>
-                <input
-                  type="password"
-                  autoFocus
-                  className="w-full h-10 rounded-lg px-3 text-sm text-white"
-                  style={{
-                    background: "rgba(0,0,0,0.4)",
-                    border: `1px solid ${passwordError ? "rgba(239,68,68,0.5)" : "rgba(139,92,246,0.3)"}`,
-                    outline: "none",
-                  }}
-                  placeholder={t("lobby.passwordDialog.placeholder")}
-                  value={passwordInput}
-                  onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    setPasswordError("");
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handlePasswordJoin()}
-                />
-                {passwordError && (
-                  <p
-                    className="text-xs mt-1"
-                    style={{ color: "rgba(239,68,68,0.85)" }}
-                  >
-                    {passwordError}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-3 pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 h-10 rounded-lg font-bold text-xs uppercase"
-                  style={{
-                    background: "transparent",
-                    border: "1px solid rgba(139,92,246,0.25)",
-                    color: "rgba(167,139,250,0.7)",
-                  }}
-                  onClick={() => setPasswordDialog(null)}
-                >
-                  {t("lobby.passwordDialog.cancel")}
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 h-10 rounded-lg font-black text-xs uppercase"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%)",
-                    color: "#fff",
-                    border: "none",
-                  }}
-                  onClick={handlePasswordJoin}
-                  disabled={!passwordInput.trim()}
-                >
-                  {t("lobby.passwordDialog.confirm")}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PasswordDialog
+          roomName={passwordDialog.roomName}
+          onClose={() => setPasswordDialog(null)}
+          onConfirm={handlePasswordConfirm}
+        />
       )}
 
       {/* Background decorative suit symbols */}
@@ -1188,172 +1040,21 @@ export default function RoomsPage() {
               👥 {t("friends.title")}
             </Button>
 
-            {/* Avatar + click dropdown */}
-            <div className="relative">
-              {/* Click-outside overlay */}
-              {showDropdown && (
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowDropdown(false)}
-                />
-              )}
-              {/* Avatar circle */}
-              <div
-                className="cursor-pointer transition-all duration-200"
-                onClick={() => setShowDropdown((v) => !v)}
-                style={{
-                  boxShadow: showDropdown
-                    ? "0 0 22px rgba(245,158,11,0.45), 0 4px 14px rgba(0,0,0,0.45)"
-                    : "0 0 10px rgba(245,158,11,0.2), 0 2px 8px rgba(0,0,0,0.4)",
-                  borderRadius: "50%",
-                  border: "2px solid rgba(245,158,11,0.35)",
-                  transform: showDropdown ? "scale(1.06)" : "scale(1)",
-                }}
-              >
-                <UserAvatar
-                  userId={userId}
-                  avatar={userAvatar}
-                  size={40}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)",
-                  }}
-                />
-              </div>
-
-              {/* Dropdown */}
-              {showDropdown && (
-                <div
-                  className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 rounded-xl overflow-hidden z-50"
-                  style={{
-                    background:
-                      "linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)",
-                    border: "1px solid rgba(234,179,8,0.22)",
-                    boxShadow:
-                      "0 12px 40px rgba(0,0,0,0.65), 0 0 20px rgba(234,179,8,0.06)",
-                  }}
-                >
-                  {/* User info row */}
-                  <div
-                    className="px-4 py-3"
-                    style={{ borderBottom: "1px solid rgba(234,179,8,0.1)" }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        userId={userId}
-                        avatar={userAvatar}
-                        size={32}
-                        style={{
-                          background:
-                            "linear-gradient(135deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)",
-                          border: "1px solid rgba(245,158,11,0.35)",
-                        }}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-white font-black text-sm truncate">
-                          {nickname || "—"}
-                        </p>
-                        <p
-                          className="text-[10px] font-bold tracking-wide"
-                          style={{ color: "rgba(245,158,11,0.6)" }}
-                        >
-                          ${currentBalance.toLocaleString()}
-                        </p>
-                        <p
-                          className="text-[10px] font-bold tracking-wide"
-                          style={{ color: "rgba(52,211,153,0.7)" }}
-                        >
-                          ⚡ {t("lobby.eloRating")}: {elo}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Menu items */}
-                  <div className="py-1">
-                    {/* Deposit & Withdraw — mobile only (shown in avatar dropdown) */}
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-green-900/20 sm:hidden"
-                      style={{ color: "rgba(74,222,128,0.9)" }}
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push("/deposit");
-                      }}
-                    >
-                      <span>💰</span>
-                      {t("common.deposit")}
-                    </button>
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-red-900/20 sm:hidden"
-                      style={{ color: "rgba(248,113,113,0.85)" }}
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push("/withdraw");
-                      }}
-                    >
-                      <span>💸</span>
-                      {t("common.withdraw")}
-                    </button>
-                    <div className="h-px mx-4 my-1 sm:hidden" style={{ background: "rgba(234,179,8,0.1)" }} />
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
-                      style={{ color: "rgba(245,158,11,0.85)" }}
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push("/stats");
-                      }}
-                    >
-                      <span>📊</span>
-                      {t("common.stats")}
-                    </button>
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
-                      style={{ color: "rgba(245,158,11,0.85)" }}
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push("/friends");
-                      }}
-                    >
-                      <span>👥</span>
-                      {t("friends.title")}
-                    </button>
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-yellow-900/20"
-                      style={{ color: "rgba(245,158,11,0.85)" }}
-                      onClick={() => {
-                        setShowDropdown(false);
-                        router.push("/settings");
-                      }}
-                    >
-                      <span>⚙️</span>
-                      {t("common.settings")}
-                    </button>
-                    <div
-                      className="h-px mx-4 my-1"
-                      style={{ background: "rgba(234,179,8,0.1)" }}
-                    />
-                    <button
-                      className="w-full px-4 py-2.5 text-left text-sm font-semibold tracking-wide flex items-center gap-3 transition-colors hover:bg-red-900/20"
-                      style={{ color: "rgba(248,113,113,0.75)" }}
-                      onClick={async () => {
-                        setShowDropdown(false);
-                        try {
-                          await api.post("/auth/logout");
-                        } catch {
-                          /* best-effort */
-                        }
-                        disconnectSocket();
-                        localStorage.removeItem("token");
-                        router.push("/login");
-                      }}
-                    >
-                      <span>🚪</span>
-                      {t("common.logout")}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <UserDropdown
+              nickname={nickname}
+              userId={userId}
+              avatar={userAvatar}
+              onLogout={async () => {
+                try {
+                  await api.post("/auth/logout");
+                } catch {
+                  /* best-effort */
+                }
+                disconnectSocket();
+                localStorage.removeItem("token");
+                router.push("/login");
+              }}
+            />
           </div>
         </header>
 
@@ -1373,178 +1074,15 @@ export default function RoomsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-            {rooms.map((room) => {
-              const status = roomStatusMap[room.id];
-              const current = status?.currentPlayers ?? 0;
-              const max = status?.maxPlayers ?? room.maxPlayers;
-              const isFull = status?.isFull ?? false;
-              const fillPct = Math.round((current / max) * 100);
-
-              return (
-                <div
-                  key={room.id}
-                  className="rounded-2xl p-4 sm:p-5 flex flex-col gap-3 sm:gap-4 transition-all duration-200 hover:scale-[1.01]"
-                  style={{
-                    background:
-                      "linear-gradient(160deg, rgba(12,22,16,0.97) 0%, rgba(6,12,9,0.99) 100%)",
-                    border: isFull
-                      ? "1px solid rgba(239,68,68,0.25)"
-                      : "1px solid rgba(234,179,8,0.2)",
-                    boxShadow: isFull
-                      ? "0 0 30px rgba(239,68,68,0.05), 0 8px 30px rgba(0,0,0,0.5)"
-                      : "0 0 30px rgba(234,179,8,0.05), 0 8px 30px rgba(0,0,0,0.5)",
-                  }}
-                >
-                  {/* Card header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="font-black text-white tracking-wide text-base flex items-center gap-2">
-                        {room.isPrivate && (
-                          <span title={t("lobby.private")}>🔒</span>
-                        )}
-                        {room.name}
-                      </h2>
-                      <p
-                        className="text-[10px] tracking-[0.2em] uppercase mt-0.5"
-                        style={{ color: "rgba(245,158,11,0.5)" }}
-                      >
-                        {t("lobby.noLimitHoldem")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {room.isPrivate && (
-                        <span
-                          className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{
-                            background: "rgba(139,92,246,0.15)",
-                            color: "rgba(167,139,250,0.9)",
-                            border: "1px solid rgba(139,92,246,0.25)",
-                          }}
-                        >
-                          {t("lobby.private")}
-                        </span>
-                      )}
-                      <span
-                        className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{
-                          background: isFull
-                            ? "rgba(239,68,68,0.15)"
-                            : "rgba(34,197,94,0.12)",
-                          color: isFull
-                            ? "rgba(239,68,68,0.9)"
-                            : "rgba(74,222,128,0.9)",
-                          border: isFull
-                            ? "1px solid rgba(239,68,68,0.25)"
-                            : "1px solid rgba(34,197,94,0.2)",
-                        }}
-                      >
-                        {isFull ? t("lobby.full") : t("lobby.open")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div
-                    className="h-px"
-                    style={{ background: "rgba(234,179,8,0.1)" }}
-                  />
-
-                  {/* Stats */}
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between items-center text-sm">
-                      <span
-                        className="text-[10px] tracking-[0.2em] uppercase font-semibold"
-                        style={{ color: "rgba(245,158,11,0.5)" }}
-                      >
-                        {t("lobby.blinds")}
-                      </span>
-                      <span className="font-bold text-white text-sm min-w-0 truncate">
-                        ${room.blindSmall}{" "}
-                        <span style={{ color: "rgba(234,179,8,0.5)" }}>/</span>{" "}
-                        ${room.blindBig}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span
-                        className="text-[10px] tracking-[0.2em] uppercase font-semibold"
-                        style={{ color: "rgba(245,158,11,0.5)" }}
-                      >
-                        {t("lobby.players")}
-                      </span>
-                      <span className="font-bold text-white text-sm">
-                        {current}
-                        <span style={{ color: "rgba(234,179,8,0.4)" }}>
-                          /{max}
-                        </span>
-                      </span>
-                    </div>
-
-                    {/* Player fill bar */}
-                    <div
-                      className="h-1 rounded-full overflow-hidden"
-                      style={{ background: "rgba(255,255,255,0.06)" }}
-                    >
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${fillPct}%`,
-                          background: isFull
-                            ? "linear-gradient(90deg, #dc2626, #ef4444)"
-                            : "linear-gradient(90deg, #b45309, #f59e0b)",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Join button */}
-                  <div className="pt-1">
-                    {isFull ? (
-                      <Button
-                        className="w-full h-10 rounded-lg font-bold tracking-widest text-xs uppercase"
-                        disabled
-                        style={{
-                          background: "rgba(239,68,68,0.1)",
-                          color: "rgba(239,68,68,0.5)",
-                          border: "1px solid rgba(239,68,68,0.15)",
-                        }}
-                      >
-                        {t("lobby.roomFull")}
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full h-10 rounded-lg font-black tracking-widest text-xs uppercase transition-opacity hover:opacity-90 active:scale-[0.98]"
-                        style={{
-                          background:
-                            currentBalance < (room.minBuyIn || room.blindBig)
-                              ? "rgba(127,29,29,0.88)"
-                              : "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
-                          color:
-                            currentBalance < (room.minBuyIn || room.blindBig)
-                              ? "#fee2e2"
-                              : "#000",
-                          border:
-                            currentBalance < (room.minBuyIn || room.blindBig)
-                              ? "1px solid rgba(248,113,113,0.28)"
-                              : "none",
-                          boxShadow:
-                            currentBalance < (room.minBuyIn || room.blindBig)
-                              ? "0 0 16px rgba(248,113,113,0.12)"
-                              : "0 0 16px rgba(245,158,11,0.2)",
-                        }}
-                        onClick={() => void handleJoinRoom(room.id)}
-                      >
-                        {currentBalance < (room.minBuyIn || room.blindBig)
-                          ? t("lobby.insufficientFunds", {
-                              amount: room.minBuyIn || room.blindBig,
-                            })
-                          : t("lobby.joinTable")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {rooms.map((room) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+                status={roomStatusMap[room.id] ?? null}
+                currentBalance={currentBalance}
+                onJoin={handleJoinRoom}
+              />
+            ))}
           </div>
         )}
       </div>

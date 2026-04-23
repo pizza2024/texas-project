@@ -103,56 +103,59 @@ export class TableManagerService implements OnModuleInit {
       return this.tables.get(roomId);
     }
     if (!this.pendingGetTable.has(roomId)) {
-      const promise = this.roomService.findOne(roomId).then(async (room) => {
-        if (room && !this.tables.has(roomId)) {
-          // Priority: Redis (fast) → SQLite (durable) → fresh table
-          let snapshot = await this.loadSnapshotFromRedis(roomId);
-          if (!snapshot) {
-            const persistedTable = await this.prisma.table.findUnique({
-              where: { id: roomId },
-              select: { stateSnapshot: true },
-            });
-            snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
-            if (snapshot) {
-              this.logger.debug(`table:${roomId} recovered from SQLite`);
+      const promise = this.roomService
+        .findOne(roomId)
+        .then(async (room) => {
+          if (room && !this.tables.has(roomId)) {
+            // Priority: Redis (fast) → SQLite (durable) → fresh table
+            let snapshot = await this.loadSnapshotFromRedis(roomId);
+            if (!snapshot) {
+              const persistedTable = await this.prisma.table.findUnique({
+                where: { id: roomId },
+                select: { stateSnapshot: true },
+              });
+              snapshot = this.parseSnapshot(persistedTable?.stateSnapshot);
+              if (snapshot) {
+                this.logger.debug(`table:${roomId} recovered from SQLite`);
+              }
+            } else {
+              this.logger.debug(`table:${roomId} recovered from Redis`);
             }
-          } else {
-            this.logger.debug(`table:${roomId} recovered from Redis`);
-          }
 
-          const minBuyIn = room.minBuyIn > 0 ? room.minBuyIn : room.blindBig;
-          const roomPassword = room.password ?? null;
-          const table = snapshot
-            ? Table.fromSnapshot(
-                snapshot,
-                room.maxPlayers,
-                room.blindSmall,
-                room.blindBig,
-                minBuyIn,
-                roomPassword,
-              )
-            : new Table(
-                room.id,
-                room.id,
-                room.maxPlayers,
-                room.blindSmall,
-                room.blindBig,
-                minBuyIn,
-                roomPassword,
-              );
-          this.tables.set(roomId, table);
+            const minBuyIn = room.minBuyIn > 0 ? room.minBuyIn : room.blindBig;
+            const roomPassword = room.password ?? null;
+            const table = snapshot
+              ? Table.fromSnapshot(
+                  snapshot,
+                  room.maxPlayers,
+                  room.blindSmall,
+                  room.blindBig,
+                  minBuyIn,
+                  roomPassword,
+                )
+              : new Table(
+                  room.id,
+                  room.id,
+                  room.maxPlayers,
+                  room.blindSmall,
+                  room.blindBig,
+                  minBuyIn,
+                  roomPassword,
+                );
+            this.tables.set(roomId, table);
 
-          // Populate userRooms index from recovered players (handles server restart).
-          for (const player of table.players) {
-            if (player) this.userRooms.set(player.id, roomId);
+            // Populate userRooms index from recovered players (handles server restart).
+            for (const player of table.players) {
+              if (player) this.userRooms.set(player.id, roomId);
+            }
           }
-        }
-        return this.tables.get(roomId);
-      }).finally(() => {
-        // Always clean up pending entry, regardless of resolve or reject,
-        // to prevent memory leaks when roomService.findOne() rejects.
-        this.pendingGetTable.delete(roomId);
-      });
+          return this.tables.get(roomId);
+        })
+        .finally(() => {
+          // Always clean up pending entry, regardless of resolve or reject,
+          // to prevent memory leaks when roomService.findOne() rejects.
+          this.pendingGetTable.delete(roomId);
+        });
       this.pendingGetTable.set(roomId, promise);
     }
     return this.pendingGetTable.get(roomId);

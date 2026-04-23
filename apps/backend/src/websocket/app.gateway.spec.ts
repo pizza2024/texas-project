@@ -63,7 +63,11 @@ describe('AppGateway', () => {
         recordPlayerLeft: jest.fn(),
         updateElo: jest.fn(),
       } as any,
-      { isAvailable: false, get: jest.fn().mockResolvedValue(null), incr: jest.fn().mockResolvedValue(null) } as any,
+      {
+        isAvailable: false,
+        get: jest.fn().mockResolvedValue(null),
+        incr: jest.fn().mockResolvedValue(null),
+      } as any,
       {
         createBot: jest.fn().mockReturnValue({
           id: 'bot-1',

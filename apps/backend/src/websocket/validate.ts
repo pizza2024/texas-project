@@ -10,7 +10,11 @@ const logger = new Logger('WsValidator');
  */
 type ZodParseResult<T> =
   | { success: true; data: T; error?: undefined }
-  | { success: false; data?: undefined; error: { issues: Array<{ path: (string | number)[]; message: string }> } };
+  | {
+      success: false;
+      data?: undefined;
+      error: { issues: Array<{ path: (string | number)[]; message: string }> };
+    };
 
 export function validate<T>(
   schema: { safeParse: (data: unknown) => ZodParseResult<T> },
@@ -20,12 +24,8 @@ export function validate<T>(
 ): T | null {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const issueMessages = result.error.issues
-      .map((e) => e.message)
-      .join('; ');
-    logger.warn(
-      `Invalid ${eventName} from ${client.id}: ${issueMessages}`,
-    );
+    const issueMessages = result.error.issues.map((e) => e.message).join('; ');
+    logger.warn(`Invalid ${eventName} from ${client.id}: ${issueMessages}`);
     client.emit('invalid_message', {
       event: eventName,
       errors: result.error.issues.map((e) => ({

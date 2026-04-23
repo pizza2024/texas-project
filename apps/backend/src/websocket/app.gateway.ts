@@ -43,10 +43,7 @@ import {
   handleQuickMatch,
   handleShowCards,
 } from './game.handler';
-import {
-  RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_ACTIONS,
-} from './constants';
+import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_ACTIONS } from './constants';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -115,10 +112,7 @@ export class AppGateway
    */
   async checkRateLimit(userId: string): Promise<boolean> {
     const windowSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);
-    const count = await this.redisService.incr(
-      `ws_rate:${userId}`,
-      windowSec,
-    );
+    const count = await this.redisService.incr(`ws_rate:${userId}`, windowSec);
 
     if (count !== null) {
       return count <= RATE_LIMIT_MAX_ACTIONS;
@@ -141,6 +135,72 @@ export class AppGateway
 
     this.rateLimits.set(userId, { count: cnt + 1, windowStart });
     return true;
+  }
+
+  // ── Password brute-force protection ─────────────────────────────────────
+  private readonly logger = new Logger(AppGateway.name);
+
+  private passwordAttempts = new Map<
+    string,
+    { count: number; windowStart: number }
+  >();
+
+  private readonly PASSWORD_ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly PASSWORD_ATTEMPT_MAX = 5; // 5 wrong passwords per window
+  private readonly PASSWORD_BAN_MS = 5 * 60 * 1000; // 5 minute ban per IP+roomId
+
+  /**
+   * Check if an IP+roomId combo is banned due to too many wrong password attempts.
+   * Returns 'banned' | 'rate_limited' | 'ok'.
+   * Logs [SECURITY-BRUTE-FORCE] events for SIEM alerting.
+   */
+  checkPasswordAttemptLimit(
+    ip: string,
+    roomId: string,
+  ): 'banned' | 'rate_limited' | 'ok' {
+    const key = `${ip}:${roomId}`;
+    const now = Date.now();
+    const entry = this.passwordAttempts.get(key);
+    const windowStart = entry?.windowStart ?? now;
+    const cnt = entry?.count ?? 0;
+
+    // Reset window if expired
+    if (now - windowStart > this.PASSWORD_ATTEMPT_WINDOW_MS) {
+      this.passwordAttempts.set(key, { count: 1, windowStart: now });
+      return 'ok';
+    }
+
+    if (cnt >= this.PASSWORD_ATTEMPT_MAX) {
+      const banRemaining = Math.ceil(
+        (this.PASSWORD_BAN_MS - (now - windowStart)) / 1000,
+      );
+      this.logger.warn(
+        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} banned for ${banRemaining}s ` +
+          `(attempt #${cnt} exceeds limit ${this.PASSWORD_ATTEMPT_MAX})`,
+      );
+      return 'banned';
+    }
+
+    this.passwordAttempts.set(key, { count: cnt + 1, windowStart });
+
+    if (cnt >= this.PASSWORD_ATTEMPT_MAX - 2) {
+      // Warn at 3rd and 4th failed attempts
+      this.logger.warn(
+        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} ` +
+          `wrong password attempt #${cnt + 1}/${this.PASSWORD_ATTEMPT_MAX}`,
+      );
+    }
+
+    return 'ok';
+  }
+
+  /**
+   * Clear password attempt counter on successful join.
+   * Call this when the user successfully joins (password correct or no password).
+   */
+  clearPasswordAttempts(ip: string, roomId: string): void {
+    const key = `${ip}:${roomId}`;
+    this.passwordAttempts.delete(key);
   }
 
   // ── Injected services ───────────────────────────────────────────────────
@@ -266,7 +326,7 @@ export class AppGateway
     this.userSockets.get(userId)?.delete(client.id);
 
     // Only notify friends if this is the user's last active socket
-    if (!await this.hasOtherActiveSocket(userId, client.id)) {
+    if (!(await this.hasOtherActiveSocket(userId, client.id))) {
       void this.notifyFriendsOfStatusChange(userId, false);
     }
 
@@ -390,7 +450,10 @@ export class AppGateway
     // Store a promise that absorbs fn's rejection so the Map entry NEVER
     // stores a rejected promise. This prevents subsequent callers from
     // seeing a rejected prev and short-circuiting the queue.
-    this.roomLocks.set(roomId, next.then(() => {}).catch(() => {}));
+    this.roomLocks.set(
+      roomId,
+      next.then(() => {}).catch(() => {}),
+    );
 
     return outer;
   }
@@ -406,7 +469,10 @@ export class AppGateway
     const prevLock = this.userLocks.get(userId) ?? Promise.resolve();
     const next = prevLock.then(() => fn()).then(resolve, reject);
     next.finally(() => this.userLocks.delete(userId));
-    this.userLocks.set(userId, next.then(() => {}).catch(() => {}));
+    this.userLocks.set(
+      userId,
+      next.then(() => {}).catch(() => {}),
+    );
 
     return outer;
   }
@@ -429,7 +495,7 @@ export class AppGateway
     // Falls back to in().fetchSockets() for environments where adapter.rooms
     // is not populated (e.g. some test mocks).
     const adapterRooms = (this.server.sockets.adapter as any)?.rooms;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     let socketList: Socket<any>[];
 
     if (adapterRooms) {
@@ -442,8 +508,10 @@ export class AppGateway
       }
     } else {
       // Fallback: use in().fetchSockets() (works with simple test mocks)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      socketList = (await this.server.in(roomId).fetchSockets()) as unknown as Socket<any>[];
+
+      socketList = (await this.server
+        .in(roomId)
+        .fetchSockets()) as unknown as Socket<any>[];
     }
 
     // Group sockets by userId so we compute masked view once per user
@@ -474,7 +542,10 @@ export class AppGateway
    * Uses the userSockets index (O(1)) when populated; falls back to
    * fetchSockets() (O(n)) for test environments where the index is empty.
    */
-  private async hasOtherActiveSocket(userId: string, socketId: string): Promise<boolean> {
+  private async hasOtherActiveSocket(
+    userId: string,
+    socketId: string,
+  ): Promise<boolean> {
     const sockets = this.userSockets.get(userId);
     if (sockets && sockets.size > 0) {
       // Index is populated — O(1) lookup
