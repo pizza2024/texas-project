@@ -26,6 +26,11 @@ export class WalletService {
       return wallet.chips;
     }
 
+    // Fallback chain: Wallet not yet provisioned (new user) → fall back to
+    // User.coinBalance. These two sources are intentionally kept in sync by
+    // setBalance() which writes to both Wallet.chips and User.coinBalance.
+    // The fallback exists for historical accounts created before the wallet
+    // migration and should not occur for new users.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { coinBalance: true },

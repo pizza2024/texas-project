@@ -62,19 +62,15 @@ describe('WithdrawService', () => {
     // multiple calls within a test. cooldowns set/cleared between tests via
     // beforeEach so each test gets fresh state.
     const redisLockState = { cooldownActive: false };
-    const mockSetNX = jest
-      .fn()
-      .mockImplementation(() => {
-        if (redisLockState.cooldownActive) return Promise.resolve(false);
-        redisLockState.cooldownActive = true;
-        return Promise.resolve(true);
-      });
-    const mockTTL = jest
-      .fn()
-      .mockImplementation(() => {
-        if (redisLockState.cooldownActive) return Promise.resolve(60);
-        return Promise.resolve(-1);
-      });
+    const mockSetNX = jest.fn().mockImplementation(() => {
+      if (redisLockState.cooldownActive) return Promise.resolve(false);
+      redisLockState.cooldownActive = true;
+      return Promise.resolve(true);
+    });
+    const mockTTL = jest.fn().mockImplementation(() => {
+      if (redisLockState.cooldownActive) return Promise.resolve(60);
+      return Promise.resolve(-1);
+    });
     const mockDel = jest.fn().mockImplementation(() => {
       redisLockState.cooldownActive = false;
       return Promise.resolve(1);

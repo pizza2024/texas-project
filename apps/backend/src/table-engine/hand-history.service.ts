@@ -13,10 +13,12 @@ export interface HandHistoryEntry {
     finalHand: string;
     winAmount: number;
     netProfit: number;
+    cardsRevealed: boolean;
   }[];
   communityCards: string[];
   pot: number;
   winnerId: string | null;
+  cardsRevealed: boolean;
 }
 
 interface ParsedPlayer {
@@ -26,6 +28,7 @@ interface ParsedPlayer {
   finalHand: string;
   winAmount: number;
   netProfit: number;
+  cardsRevealed: boolean;
 }
 
 interface HandForParsing {
@@ -109,15 +112,18 @@ export class HandHistoryService {
           finalHand,
           winAmount,
           netProfit,
+          cardsRevealed: holeCards[0] !== '??',
         };
       },
     );
 
     let communityCards: string[] = [];
+    let cardsRevealed = false;
     if (hand.table.stateSnapshot) {
       try {
         const snapshot = JSON.parse(hand.table.stateSnapshot);
         communityCards = snapshot.communityCards || [];
+        cardsRevealed = true;
       } catch {
         communityCards = [];
       }
@@ -131,6 +137,7 @@ export class HandHistoryService {
       communityCards,
       pot: hand.potSize,
       winnerId: hand.winnerId,
+      cardsRevealed,
     };
   }
 

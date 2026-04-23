@@ -173,4 +173,16 @@ export class UserService {
       },
     });
   }
+
+  async getOnlinePlayerCount(): Promise<{
+    online: number;
+    playing: number;
+    total: number;
+  }> {
+    const [online, playing] = await Promise.all([
+      this.prisma.user.count({ where: { status: 'ONLINE' } }),
+      this.prisma.user.count({ where: { status: 'PLAYING' } }),
+    ]);
+    return { online, playing, total: online + playing };
+  }
 }

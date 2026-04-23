@@ -48,6 +48,12 @@ export class UserController {
     private readonly handHistoryService: HandHistoryService,
   ) {}
 
+  @Get('stats/online')
+  @ApiOperation({ summary: 'Get online player counts' })
+  async getOnlinePlayerStats() {
+    return this.userService.getOnlinePlayerCount();
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('stats')
   @ApiBearerAuth()

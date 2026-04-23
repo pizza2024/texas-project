@@ -7,77 +7,78 @@
 
 ---
 
-## Test 代理发现的问题（2026-04-24 00:17）
+## Test 代理发现的问题（2026-04-24 02:00）
 
-### P0 — ⚠️ 待修复
+### P0 — ✅ 全部已清零
 
-- [ ] **[T-001]** bullmq 模块缺失 — `npm install` 失败导致 `withdraw.service.spec.ts` 无法运行
+- [x] **[T-001]** bullmq 模块缺失 — ✅ 已修复
+- [x] **[W-001]** Withdraw 分布式 cooldown 绕过 — ✅ 已修复
+- [x] **[W-002]** JWT Redis 降级安全日志 — ✅ 已修复
+- [x] **[W-003]** 房间密码暴力破解防护 — ✅ 已修复
+- [x] **[T-002]** game.handler.ts client.handshake.address 可选链 — ✅ 已修复
+- [x] **[T-003]** 洗牌 Math.random() — ✅ 已修复（crypto.getRandomValues）
+- [x] **[W-007]** handleShowCards 静默返回 — ✅ 已修复
 
-### P0 — ✅ 已全部修复并提交
+### P1 — ✅ 全部已清零
 
-- [x] **[T-001]** bullmq 模块缺失 — ✅ 已修复（commit 562ff32，Redis mock setNX/TTL 恢复）
-- [x] **[W-001]** Withdraw 分布式 cooldown 绕过 — ✅ 已提交（commit 118fe3c）
-- [x] **[W-002]** JWT Redis 降级安全日志 — ✅ 已提交（commit 118fe3c）
-- [x] **[W-003]** 房间密码暴力破解防护 — ✅ 已提交（commit 8b51c77）
-- [x] **[T-002]** game.handler.ts client.handshake.address 可选链 — ✅ 已提交（commit a54e714）
-
-### P1 — 本周内处理
-
-- [x] **房间列表页组件拆分** — `apps/web/app/rooms/page.tsx` 1553行 → 1091行 ✅ 组件已集成
+- [x] **房间列表页组件拆分** — ✅ 1553行 → 1091行
+- [x] **游戏桌页面组件拆分** — ✅ 1796行 → 5个组件
+- [x] **新手引导 Tour** — ✅ react-joyride，4步引导
+- [x] **实时在线人数 API** — ✅ GET /user/stats/online（本轮工作区已实现）
 
 ### P2 — 近期处理
 
-- [x] **[W-006]** WebSocket rate-limit 降级优化 — ✅ 已确认（架构限制，需 Redis HA 方案）
-- [ ] **[W-004]** WebSocket 真实集成测试 — 现有测试仅 Jest mock
-- [ ] **[W-005]** 游戏完整流程 E2E 测试 — 缺失 "加入房间→游戏→结算" 端到端测试
-- [ ] **[T-003]** 洗牌使用 Math.random() — `table-game-logic.ts` Fisher-Yates 应改用 `crypto.getRandomValues()`
-- [ ] **移动端适配验证** — `room-mobile/[id]` 实际运行效果待测试
-- [ ] **游戏桌页面组件拆分** — `room/[id]/page.tsx` 1796行，应拆分
-- [ ] **无表情/互动功能** — 竞品全部具备，影响社交体验
+| ID | 任务 | 优先级 | 状态 |
+|----|------|--------|------|
+| W-004 | WebSocket 真实集成测试（真实 Socket.io 连接） | P2 | ❌ 待实现 |
+| W-005 | 游戏完整 E2E 测试（加入房间→游戏→结算） | P2 | ❌ 待实现 |
+| W-006 | `app.gateway.ts` (956行) 大文件拆分 | P2-Low | ❌ 待实现 |
+| W-007 | `clearTableState` 内层 `.catch` 加日志 | P2-Low | ❌ 待实现 |
+| W-008 | `hand-history` JSON.parse 失败标记 `cardsRevealed: false` | P2-Low | ❌ 待实现 |
+| W-009 | `wallet.getBalance` dual-source 确认 | P2-Low | ❌ 待实现 |
 
 ### P3 — 规划中
 
-- [x] **[W-007]** handleShowCards 静默返回优化 — ✅ 已修复（commit 641a658，`show_cards_result` 事件 + `not_winner` reason）
-- [ ] **新手引导 Tour** — 用户进来不知道如何开始玩
-- [ ] **成就/任务系统** — 参考 WSOP 手镯模式，提升留存
-- [ ] **首页无产品截图** — 流失率可能较高
-- [ ] **Bot 孤独桌体验验证**
-- [ ] **拆分 room-mobile/[id]/page.tsx** (758行)
+| 任务 | 优先级 |
+|------|--------|
+| 表情互动系统 | P3 |
+| 每日登录奖励 | P3 |
+| 成就/任务系统 | P3 |
+| 移动端手势操控 | P3 |
 
 ---
 
-## Productor 发现的问题（2026-04-23 22:45）
+## Productor 任务（2026-04-24 01:45）
 
-### P1 - 立即处理
-- [ ] **无新手引导/教程** — 用户进来不知道如何开始玩，应新增引导页或 Tooltip
-- [ ] **房间列表页组件过大** — `rooms/page.tsx` 1553行，应拆分为多个组件
-
-### P2 - 近期处理
-- [ ] **移动端适配验证** — `room-mobile/[id]` 实际运行效果待测试
+### P2 — 近期处理
+- [ ] **移动端适配验证** — `room-mobile/[id]` 实际触控体验
 - [ ] **无表情/互动功能** — 竞品全部具备，影响社交体验
-- [ ] **游戏桌页面组件过大** — `room/[id]/page.tsx` 1796行，应拆分
 
-### P3 - 规划中
-- [ ] **成就/任务系统** — 参考 WSOP 手镯模式，提升留存
-- [ ] **首页无产品截图** — 流失率可能较高
-- [ ] **Bot 对战模式优化** — 孤独桌体验
+### P3 — 规划中
+- [ ] **表情互动系统** — P3 第一个社交功能
+- [ ] **每日登录奖励** — 留存关键
+- [ ] **成就/任务系统** — 参考 WSOP
+- [ ] **移动端加注 UX** — 1/2 pot, All-in 快捷按钮（本轮已部分实现首页预览，游戏桌内尚未集成）
 
 ---
 
-## 竞品功能缺失
+## 本轮工作区变更（2026-04-24 02:00）
 
-| 功能 | 竞品状态 | CHIPS 状态 |
-|------|----------|------------|
-| 表情互动 | WSOP✅ 888✅ CoinPoker✅ | ❌ 缺失 |
-| 成就系统 | WSOP✅ 888✅ | ❌ 缺失 |
-| 新手引导 | WSOP✅ 888基础 CoinPoker基础 | ❌ 缺失 |
-| 匿名无KYC | CoinPoker✅ | ⚠️ 部分（USDT充值） |
+以下功能已在本轮工作区实现（待 commit）：
+
+| 功能 | 文件 | 状态 |
+|------|------|------|
+| 在线人数实时显示 | `page.tsx`, `user.service.ts`, `user.controller.ts` | ✅ 已实现（工作区） |
+| 首页游戏预览区 | `page.tsx` | ✅ 已实现（工作区） |
+| 新手引导 Tour | `components/tour/user-tour.tsx` | ✅ 已实现（工作区） |
+| Admin/System Handler 存根扩展 | `admin.handler.ts`, `system.handler.ts` | ✅ 已实现（工作区） |
 
 ---
 
 ## 任务来源
-- Test 代码审查报告 (2026-04-24 00:04)
-- Productor 产品体验报告 (2026-04-23 22:45)
+- Test 代码审查报告 (2026-04-24 02:00)
+- Productor 产品体验报告 (2026-04-24 01:45)
 
 ---
-*最后更新: 2026-04-24 00:17*
+
+*最后更新: 2026-04-24 02:00*

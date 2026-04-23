@@ -240,7 +240,11 @@ export class TableManagerService implements OnModuleInit {
           where: { id: roomId },
           data: { stateSnapshot: null },
         })
-        .catch(() => {});
+        .catch((e) =>
+          this.logger.warn(
+            `clearTableState: fallback nullify failed for room ${roomId}: ${e}`,
+          ),
+        );
     }
   }
 
