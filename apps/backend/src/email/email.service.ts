@@ -72,14 +72,14 @@ export class EmailService {
   private logToConsole(options: SendEmailOptions) {
     const divider = '═'.repeat(60);
     const timestamp = new Date().toISOString();
-    console.log(`\n${divider}`);
-    console.log(`📧 EMAIL [${timestamp}]`);
-    console.log(`From: ${this.fromEmail}`);
-    console.log(`To: ${options.to}`);
-    console.log(`Subject: ${options.subject}`);
-    console.log(divider);
-    console.log(options.html);
-    console.log(`${divider}\n`);
+    this.logger.log(`\n${divider}`);
+    this.logger.log(`📧 EMAIL [${timestamp}]`);
+    this.logger.log(`From: ${this.fromEmail}`);
+    this.logger.log(`To: ${options.to}`);
+    this.logger.log(`Subject: ${options.subject}`);
+    this.logger.log(divider);
+    this.logger.log(options.html);
+    this.logger.log(`${divider}\n`);
   }
 
   generateOtp(): string {
