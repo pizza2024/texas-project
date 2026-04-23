@@ -37,6 +37,7 @@
 | W-007 | `clearTableState` 内层 `.catch` 加日志 | P2-Low | ✅ 已修复（commit 42f35fa） |
 | W-008 | `hand-history` JSON.parse 失败标记 `cardsRevealed: false` | P2-Low | ✅ 已修复（commit 42f35fa） |
 | W-009 | `wallet.getBalance` dual-source 确认 | P2-Low | ✅ 已修复（添加注释，commit 42f35fa） |
+| E-001 | Email Service `console.log` → Logger | P2-Low | ✅ 已修复（commit 273f8c7） |
 
 ### P3 — 规划中
 
@@ -84,4 +85,4 @@
 
 ---
 
-*最后更新: 2026-04-24 02:18*
+*最后更新: 2026-04-24 03:00*
