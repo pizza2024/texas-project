@@ -30,6 +30,7 @@ interface ActionBarProps {
   setRaiseAmount: (v: number) => void;
   handleShowCards: () => void;
   handleMuckCards: () => void;
+  myPlayerStack: number;
 }
 
 export function ActionBar({
@@ -57,8 +58,14 @@ export function ActionBar({
   setRaiseAmount,
   handleShowCards,
   handleMuckCards,
+  myPlayerStack,
 }: ActionBarProps) {
   const { t } = useTranslation();
+
+  const pot = table.pot ?? 0;
+  const effectiveMinRaiseTo = Math.min(minRaiseTo, myPlayerStack);
+  const halfPot = Math.min(Math.floor(pot * 0.5), myPlayerStack);
+  const threeQuartersPot = Math.min(Math.floor(pot * 0.75), myPlayerStack);
 
   return (
     <div
@@ -222,8 +229,94 @@ export function ActionBar({
                   boxShadow: isMyTurn ? '0 0 16px rgba(59,130,246,0.2)' : 'none',
                 }}
               >
-                {t('room.call', { amount: callAmount })}
-              </Button>
+                {t('room.call', { amount: callAmount })}</Button>
+            )}
+
+            {/* Pot-Relative Raise Presets — only on player's turn during action */}
+            {isMyTurn && (
+              <div className="flex items-center gap-1">
+                {/* Min Raise */}
+                <Button
+                  onClick={() => {
+                    setRaiseAmount(effectiveMinRaiseTo);
+                    handleAction('raise', effectiveMinRaiseTo);
+                  }}
+                  disabled={!isMyTurn || effectiveMinRaiseTo > myPlayerStack || effectiveMinRaiseTo < minRaiseTo}
+                  className="h-11 px-3 font-black tracking-wider text-[10px] uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-25"
+                  style={{
+                    background: 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(234,179,8,0.25)',
+                    color: '#fcd34d',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>{t('room.min')}</span>
+                    <span className="text-[9px] opacity-60">{effectiveMinRaiseTo}</span>
+                  </div>
+                </Button>
+
+                {/* 1/2 Pot */}
+                <Button
+                  onClick={() => {
+                    setRaiseAmount(halfPot);
+                    handleAction('raise', halfPot);
+                  }}
+                  disabled={!isMyTurn || halfPot < minRaiseTo}
+                  className="h-11 px-3 font-black tracking-wider text-[10px] uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-25"
+                  style={{
+                    background: 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(234,179,8,0.25)',
+                    color: '#fcd34d',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>½ Pot</span>
+                    <span className="text-[9px] opacity-60">{halfPot}</span>
+                  </div>
+                </Button>
+
+                {/* 3/4 Pot */}
+                <Button
+                  onClick={() => {
+                    setRaiseAmount(threeQuartersPot);
+                    handleAction('raise', threeQuartersPot);
+                  }}
+                  disabled={!isMyTurn || threeQuartersPot < minRaiseTo}
+                  className="h-11 px-3 font-black tracking-wider text-[10px] uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-25"
+                  style={{
+                    background: 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(234,179,8,0.25)',
+                    color: '#fcd34d',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>¾ Pot</span>
+                    <span className="text-[9px] opacity-60">{threeQuartersPot}</span>
+                  </div>
+                </Button>
+
+                {/* All-in */}
+                <Button
+                  onClick={() => {
+                    setRaiseAmount(myPlayerStack);
+                    handleAction('raise', myPlayerStack);
+                  }}
+                  disabled={!isMyTurn || myPlayerStack <= 0}
+                  className="h-11 px-3 font-black tracking-wider text-[10px] uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-25"
+                  style={{
+                    background: myPlayerStack > 0 && isMyTurn
+                      ? 'rgba(185,28,28,0.7)'
+                      : 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    color: myPlayerStack > 0 && isMyTurn ? '#fca5a5' : 'rgba(239,68,68,0.5)',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>{t('room.allIn')}</span>
+                    <span className="text-[9px] opacity-80">{myPlayerStack}</span>
+                  </div>
+                </Button>
+              </div>
             )}
 
             <div className="flex items-center gap-2">
@@ -235,9 +328,10 @@ export function ActionBar({
                   border: '1px solid rgba(234,179,8,0.25)',
                   color: isMyTurn ? '#fcd34d' : 'rgba(255,255,255,0.3)',
                 }}
-                value={raiseAmount || minRaiseTo}
+                value={Math.min(raiseAmount || minRaiseTo, myPlayerStack)}
                 min={minRaiseTo}
-                onChange={(e) => setRaiseAmount(Number(e.target.value))}
+                max={myPlayerStack}
+                onChange={(e) => setRaiseAmount(Math.min(Number(e.target.value), myPlayerStack))}
                 disabled={!isMyTurn}
               />
               <Button

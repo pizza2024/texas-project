@@ -576,6 +576,9 @@ export default function RoomsPage() {
   const [createDialogCount, setCreateDialogCount] = useState(0);
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState<'ALL' | 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM'>('ALL');
+  const [sortBy, setSortBy] = useState<'players' | 'blinds' | 'name'>('players');
   const isSearchingRef = useRef(false);
   const [passwordDialog, setPasswordDialog] = useState<{
     roomId: string;
@@ -846,6 +849,35 @@ export default function RoomsPage() {
     setIsSearching(false);
   };
 
+  // Compute filtered + sorted room list
+  const filteredRooms = rooms
+    .filter((room) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (q && !room.name.toLowerCase().includes(q)) return false;
+      if (tierFilter !== 'ALL') {
+        // Derive tier from blindSmall value (heuristic — mirrors TIERS definitions)
+        const tierOfRoom =
+          room.blindSmall <= 5   ? 'MICRO'  :
+          room.blindSmall <= 10  ? 'LOW'    :
+          room.blindSmall <= 25  ? 'MEDIUM' :
+          room.blindSmall <= 50  ? 'HIGH'   :
+                                    'PREMIUM';
+        if (tierOfRoom !== tierFilter) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'players') {
+        const aPlayers = roomStatusMap[a.id]?.currentPlayers ?? 0;
+        const bPlayers = roomStatusMap[b.id]?.currentPlayers ?? 0;
+        return bPlayers - aPlayers; // desc
+      }
+      if (sortBy === 'blinds') {
+        return (b.blindBig ?? 0) - (a.blindBig ?? 0); // desc
+      }
+      return a.name.localeCompare(b.name); // asc
+    });
+
   if (loading) {
     return (
       <div
@@ -1058,6 +1090,74 @@ export default function RoomsPage() {
           </div>
         </header>
 
+        {/* Search + Filter bar */}
+        <div className="flex flex-wrap items-center gap-3 pb-2">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-[160px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">🔍</span>
+            <input
+              type="text"
+              placeholder={t('lobby.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-8 pr-3 rounded-lg text-sm text-white placeholder-gray-500 outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(234,179,8,0.18)',
+              }}
+            />
+          </div>
+
+          {/* Tier filter pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(['ALL', 'MICRO', 'LOW', 'MEDIUM', 'HIGH', 'PREMIUM'] as const).map((tier) => (
+              <button
+                key={tier}
+                onClick={() => setTierFilter(tier)}
+                className="h-8 px-3 rounded-full text-[10px] font-bold tracking-wide uppercase transition-all"
+                style={{
+                  background: tierFilter === tier
+                    ? 'rgba(234,179,8,0.85)'
+                    : 'rgba(255,255,255,0.06)',
+                  color: tierFilter === tier
+                    ? '#000'
+                    : 'rgba(200,200,200,0.7)',
+                  border: tierFilter === tier
+                    ? 'none'
+                    : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {tier === 'ALL' ? t('lobby.filterAll') : tier.charAt(0) + tier.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest opacity-40" style={{ color: 'rgba(245,158,11,0.6)' }}>
+              {t('lobby.sortBy')}
+            </span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="h-8 px-2 rounded-lg text-xs font-bold text-white outline-none cursor-pointer"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(234,179,8,0.18)',
+              }}
+            >
+              <option value="players">{t('lobby.sortPlayers')}</option>
+              <option value="blinds">{t('lobby.sortBlinds')}</option>
+              <option value="name">{t('lobby.sortName')}</option>
+            </select>
+          </div>
+
+          {/* Result count */}
+          <span className="text-xs opacity-40" style={{ color: 'rgba(245,158,11,0.6)' }}>
+            {t('lobby.resultCount', { count: filteredRooms.length })}
+          </span>
+        </div>
+
         {/* Room list */}
         {rooms.length === 0 ? (
           <div className="text-center py-20 space-y-4">
@@ -1072,9 +1172,16 @@ export default function RoomsPage() {
               {t("lobby.noTablesHint")}
             </p>
           </div>
+        ) : filteredRooms.length === 0 ? (
+          <div className="text-center py-16 space-y-3">
+            <div className="text-4xl opacity-20">🔍</div>
+            <p className="text-sm font-semibold tracking-wide" style={{ color: "rgba(245,158,11,0.4)" }}>
+              {t("lobby.noMatch")}
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <RoomCard
                 key={room.id}
                 room={room}

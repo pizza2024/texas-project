@@ -820,6 +820,7 @@ export default function RoomPage() {
         setRaiseAmount={setRaiseAmount}
         handleShowCards={handleShowCards}
         handleMuckCards={handleMuckCards}
+        myPlayerStack={myPlayer?.stack ?? 0}
       />
 
       <style jsx>{`

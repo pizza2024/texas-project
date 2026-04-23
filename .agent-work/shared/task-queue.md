@@ -33,9 +33,9 @@
 | W-004 | WebSocket 真实集成测试（真实 Socket.io 连接） | P2 | ❌ 待实现 |
 | W-005 | 游戏完整 E2E 测试（加入房间→游戏→结算） | P2 | ❌ 待实现 |
 | W-006 | `app.gateway.ts` (956行) 大文件拆分 | P2-Low | ❌ 待实现 |
-| W-007 | `clearTableState` 内层 `.catch` 加日志 | P2-Low | ❌ 待实现 |
-| W-008 | `hand-history` JSON.parse 失败标记 `cardsRevealed: false` | P2-Low | ❌ 待实现 |
-| W-009 | `wallet.getBalance` dual-source 确认 | P2-Low | ❌ 待实现 |
+| W-007 | `clearTableState` 内层 `.catch` 加日志 | P2-Low | ✅ 已修复（commit 42f35fa） |
+| W-008 | `hand-history` JSON.parse 失败标记 `cardsRevealed: false` | P2-Low | ✅ 已修复（commit 42f35fa） |
+| W-009 | `wallet.getBalance` dual-source 确认 | P2-Low | ✅ 已修复（添加注释，commit 42f35fa） |
 
 ### P3 — 规划中
 
@@ -53,6 +53,7 @@
 ### P2 — 近期处理
 - [ ] **移动端适配验证** — `room-mobile/[id]` 实际触控体验
 - [ ] **无表情/互动功能** — 竞品全部具备，影响社交体验
+- [x] **Pot-Relative 加注按钮行** — Min / ½ Pot / ¾ Pot / All-in ✅ 已实现（ActionBar.tsx）
 
 ### P3 — 规划中
 - [ ] **表情互动系统** — P3 第一个社交功能
@@ -62,16 +63,17 @@
 
 ---
 
-## 本轮工作区变更（2026-04-24 02:00）
+## 本轮工作区变更（2026-04-24 02:15）
 
 以下功能已在本轮工作区实现（待 commit）：
 
-| 功能 | 文件 | 状态 |
+|| 功能 | 文件 | 状态 |
 |------|------|------|
-| 在线人数实时显示 | `page.tsx`, `user.service.ts`, `user.controller.ts` | ✅ 已实现（工作区） |
-| 首页游戏预览区 | `page.tsx` | ✅ 已实现（工作区） |
-| 新手引导 Tour | `components/tour/user-tour.tsx` | ✅ 已实现（工作区） |
-| Admin/System Handler 存根扩展 | `admin.handler.ts`, `system.handler.ts` | ✅ 已实现（工作区） |
+| Pot-Relative Raise 按钮行 | `ActionBar.tsx` (+88行) | ✅ 已实现（工作区） |
+| Min / ½ Pot / ¾ Pot / All-in 快捷按钮 | `ActionBar.tsx` | ✅ 已实现（工作区） |
+| Raise Input 上限保护 | `ActionBar.tsx` | ✅ 已实现（工作区） |
+| `room.min` i18n 键 | 6个 locale 文件 | ✅ 已添加 |
+| `myPlayerStack` 传递给 ActionBar | `page.tsx` | ✅ 已实现（工作区） |
 
 ---
 
@@ -81,4 +83,4 @@
 
 ---
 
-*最后更新: 2026-04-24 02:00*
+*最后更新: 2026-04-24 02:18*

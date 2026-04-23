@@ -1,6 +1,6 @@
 # Productor 报告
 
-> 更新时间: 2026-04-24 02:00
+> 更新时间: 2026-04-24 02:30
 
 **报告类型**: 轮询报告
 **项目**: Texas Hold'em Monorepo
@@ -13,157 +13,160 @@
 |------|------|------|
 | ✅ P0 | 全部清零 | 安全问题已全部修复 |
 | ✅ P1 | 全部清零 | 新手引导、在线人数API已实现 |
-| ⚠️ P2 | 3项待处理 | WebSocket集成测试、游戏E2E测试、移动端验证 |
-| ⚠️ P3 | 多项规划中 | 表情系统、成就系统、每日奖励 |
+| ⚠️ P2 | 2项待处理 | WebSocket集成测试、游戏E2E测试 |
+| ⚠️ P3 | 多项规划中 | 表情系统、成就系统、每日奖励、俱乐部系统 |
 
 ---
 
-## 本轮执行摘要
+## Git 状态
 
-**距上次报告 (01:45) 变化**: 无新 commit，Git 无新活动
-
-### Git 状态
 ```
+42f35fa fix(p2): clearTableState catch logging, hand-history cardsRevealed, wallet comment
 a53b7f8 refactor(room): split 1796-line page.tsx into 5 focused components
 a91aa5b fix(security): Fisher-Yates shuffle uses crypto.getRandomValues()
 ```
-无新增 commit，项目处于稳定状态。
+
+无新增 commit，距上次报告(02:15)无变化。
 
 ---
 
-## 竞品调研 — Pot-Relative Raise 系统深度分析
+## 本轮深度调研 — 俱乐部/公会系统竞品分析
 
-### 什么是 Pot-Relative Raise？
+### 竞品俱乐部功能对比
 
-主流德州扑克 App 不使用"绝对金额"作为加注预设，而是使用 **Pot-Sized Betting** — 加注金额以 pot 倍数表达：
+| 功能 | PokerStars Club | WSOP Club | 888poker | CHIPS |
+|------|----------------|-----------|----------|-------|
+| 创建俱乐部 | ✅ | ✅ | ✅ | ❌ |
+| 加入俱乐部 | ✅ | ✅ | ✅ | ❌ |
+| 俱乐部私有桌 | ✅ | ✅ | ✅ | ❌ |
+| 俱乐部排行榜 | ✅ | ✅ | ✅ | ❌ |
+| 俱乐部聊天 | ✅ | ✅ | ❌ | ❌ |
+| 俱乐部锦标赛 | ✅ | ✅ | ✅ | ❌ |
+| 俱乐部邀请制 | ✅ | ✅ | ❌ | ❌ |
+| 俱乐部勋章/等级 | ✅ | ✅ | ❌ | ❌ |
 
-| 按钮 | 含义 | 公式 |
-|------|------|------|
-| Min | 最小加注 | `minRaiseTo` |
-| 1/2 Pot | 半个底池 | `pot × 0.5` |
-| 3/4 Pot | 3/4底池 | `pot × 0.75` |
-| Pot | 底池大小 | `pot × 1.0` |
-| All-in | 全押 | 玩家全部筹码 |
+### 核心功能分析
 
-这是 **PokerStars, WSOP, 888poker, CoinPoker** 统一采用的标准 UX。
+**PokerStars Club（行业标杆）**：
+- 私有桌：俱乐部成员专享
+- 排行榜：周/月战绩排名
+- 徽章系统：Bronze/Silver/Gold/Platinum
+- 需要 VIP 等级或付费创建
 
-### CHIPS 当前实现分析
+**WSOP Championship Club**：
+- 与真实 WSOP 赛事挂钩
+- 俱乐部成员可获得真实赛事门票
+- 社交化元素最丰富
 
-通过 `ActionBar.tsx` (第 229-260 行) 代码审查：
+**888poker Club**：
+- 简化版俱乐部系统
+- 主要聚焦于私有牌桌
 
-```tsx
-<div className="flex items-center gap-2">
-  <Input
-    type="number"
-    className="h-11 w-24 text-center font-bold rounded-lg"
-    value={raiseAmount || minRaiseTo}   // ← 绝对金额输入
-    min={minRaiseTo}
-    onChange={(e) => setRaiseAmount(Number(e.target.value))}
-    disabled={!isMyTurn}
-  />
-  <Button onClick={() => handleAction('raise', raiseAmount || minRaiseTo)}>
-    {t('room.raise')}
-  </Button>
-</div>
+### 俱乐部系统 MVP 数据模型建议
+
+```prisma
+model Club {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  ownerId     String
+  inviteCode  String   @unique
+  isPublic    Boolean  @default(true)
+  members     ClubMember[]
+  rooms       ClubRoom[]
+}
+
+model ClubMember {
+  id        String   @id @default(uuid())
+  clubId    String
+  userId    String
+  role      ClubRole @default(MEMBER)
+  joinedAt  DateTime @default(now())
+}
+
+enum ClubRole { OWNER, ADMIN, MEMBER }
 ```
 
-**问题**：
-- ❌ 用户需要心算"当前 pot 是多少，我想要加注多少"
-- ❌ 移动端数字键盘输入慢，触控不友好
-- ❌ 无任何 Pot-Relative 预设按钮
-- ✅ min 值正确（`minRaiseTo`）
+---
 
-### 竞品实现对比
+## 本轮项目体验记录
 
-| App | 滑块 | 数字输入 | 1/2 Pot | 3/4 Pot | Pot | All-in | 特色 |
-|-----|------|---------|---------|---------|-----|--------|------|
-| PokerStars | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 滑块实时显示 pot 倍数 |
-| WSOP | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | 数字直接输入 |
-| 888poker | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | 5档快速选择 |
-| CoinPoker | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ | 简洁设计 |
-| **CHIPS** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | 仅手动输入 |
+### Pot-Relative Raise 实现验证 ✅
+
+Coding Agent 已在工作区实现（待 commit）：
+
+| 按钮 | 计算 | 样式 |
+|------|------|------|
+| Min | `min(minRaiseTo, myPlayerStack)` | 琥珀色边框 |
+| ½ Pot | `min(floor(pot × 0.5), myPlayerStack)` | 琥珀色边框 |
+| ¾ Pot | `min(floor(pot × 0.75), myPlayerStack)` | 琥珀色边框 |
+| All-in | `myPlayerStack` | 红色边框（激活时） |
+
+**结论**：PC 端已实现。移动端 `room-mobile/[id]` 尚未集成。
+
+### 房间列表 UX 审查
+
+**已有**：
+- 房间卡片列表（盲注、准入、在线人数）
+- tier 标签
+- 密码保护提示
+
+**缺失**（R-001）：
+1. 无房间名称搜索
+2. 无 tier 筛选
+3. 无人数/盲注排序
 
 ---
 
-## 项目体验记录
-
-### ActionBar 组件分析 (apps/web/app/room/[id]/components/ActionBar.tsx)
-
-**已实现 ✅**：
-- Fold / Check / Call / Raise 四按钮基本布局
-- Straddle 按钮（仅 UTG preflop，视觉突出金色渐变）
-- Sit-Out 按钮
-- 倒计时进度条 + 紧急状态视觉反馈
-- 结算阶段 Show/Muck 选择
-
-**缺失/可优化 ❌**：
-1. **无 Pot-Relative 预设按钮行** — 竞品标配，CHIPS 完全缺失
-2. **无 All-in 独立快捷按钮** — 高频操作，应独立于加注流程
-3. **Raise Input 无上限保护** — 当 `raiseAmount > 用户筹码` 时可能异常
-4. **Raise 按钮无 Min Raise 快捷** — 用户经常需要最小加注，当前需要手动输入
-
-### GameTable 组件分析
-
-代码审查 `GameTable.tsx`：
-- 牌桌视觉：椭圆形，绿色桌布 + 棕色边框 + 金色高光 — 视觉质量良好
-- 社区牌位置：居中显示，5张牌横向排列
-- 座位位置：`getSeatPosition` 算法 — 椭圆形桌上分布，视觉比例良好
-- Pot 金额显示：桌面上方居中，黑色背景 + 金色边框
-
----
-
-## 竞品功能缺失清单（更新）
+## 竞品功能对比
 
 | 功能 | CHIPS | PokerStars | WSOP | 888poker | CoinPoker |
 |------|-------|------------|------|----------|-----------|
-| Pot-Relative 预设 (1/2, 3/4, pot) | ❌ | ✅ | ✅ | ✅ | ✅ |
-| All-in 快捷按钮 | ❌ | ✅ | ✅ | ✅ | ✅ |
-| 左滑 Fold 手势 | ❌ | ✅ | ✅ | ❌ | ❌ |
-| 表情互动 | ❌ | ✅ | ✅ | ✅ | ✅ |
-| 成就/任务系统 | ❌ | ✅ | ✅ | ✅ | ❌ |
-| 每日登录奖励 | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Pot-Relative Raise | ✅* | ✅ | ✅ | ✅ | ✅ |
+| All-in 快捷按钮 | ✅* | ✅ | ✅ | ✅ | ✅ |
+| 移动端手势 | ❌ | ✅ | ✅ | ❌ | ❌ |
 | 俱乐部系统 | ❌ | ✅ | ✅ | ✅ | ❌ |
+| 成就系统 | ❌ | ✅ | ✅ | ✅ | ❌ |
+| 每日奖励 | ❌ | ✅ | ✅ | ✅ | ✅ |
+| 房间搜索/筛选 | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+*注：✅* = PC 端已实现（工作区），移动端未集成
 
 ---
 
 ## 改进建议
 
-### 短期改进 (P2) — 高优先级
+### P2 优先级
 
-1. **Pot-Relative 加注按钮行**
-   - 增加 `Min | 1/2 Pot | 3/4 Pot | All-in` 快捷按钮
-   - 每个按钮显示"加注金额"和"pot 倍数"
-   - 在 `table.state` 中已有 `potSize`，计算简单
+**R-001: 房间列表搜索功能**
+- 名称搜索 + tier 筛选 + 排序
+- 技术成本：低，1-2 天
 
-2. **All-in 独立醒目按钮**
-   - 当前 All-in 需要手动输入全额，应有独立红色按钮
-   - 位置：与 Fold 并列或 Raise 按钮组内
+**R-002: 移动端 Pot-Relative 按钮**
+- 移植 PC 端实现到 `room-mobile/[id]`
 
-3. **加注 Input 边界保护**
-   - 当 `raiseAmount > 用户当前筹码` 时自动裁剪
-   - 添加视觉提示"超出可加注范围"
+### P3 优先级
 
-### 中期改进 (P3)
-
-4. **Raise 滑块** — 替代纯数字输入，移动端体验更好
-5. **表情互动系统** — 首个社交功能
-6. **每日登录奖励** — 留存关键
+**R-006: 俱乐部系统 MVP**
+- 创建/加入俱乐部、俱乐部私有桌、邀请码
+- 预计工作量：5-7 天
 
 ---
 
-## 与其他代理的协作
+## 与其他代理协作
 
-- **Test Latest** (01:45): P0 清零，发现 `app.gateway.ts` 956行大文件问题 (W-006)
-- **Task Queue** (01:48): W-004/W-005 待处理 WebSocket 和 E2E 测试
+| Agent | 最新报告 | 关注点 |
+|-------|---------|--------|
+| Coding | 02:18 | Pot-Relative Raise 已实现，W-004/W-005 测试待实现 |
+| Test | 02:15 | P0/P1 清零，W-006 大文件拆分 P2-Low |
 
 ---
 
 ## 下一轮关注点
 
-1. **Pot-Relative Raise 设计方案** — 低成本高收益的 UX 改进
-2. **All-in 快捷按钮** — 单按钮实现，技术成本低
-3. **移动端触控验证** — 需要真实设备测试
+1. **R-001 房间搜索** — 低成本高价值
+2. **R-002 移动端 Pot-Relative** — 移植 PC 端实现
+3. **Club 俱乐部系统** — P3 规划详细设计
 
 ---
 
-*Productor — 2026-04-24 02:00*
+*Productor — 2026-04-24 02:30*
