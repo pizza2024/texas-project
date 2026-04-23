@@ -210,8 +210,16 @@ export class AppGateway
     server: any,
     roomId: string,
     table: import('../table-engine/table').Table,
+    durationMs?: number,
+    reuseExistingCountdown?: boolean,
   ) {
-    return this.timerService.schedulePostHandFlow(server, roomId, table);
+    return this.timerService.schedulePostHandFlow(
+      server,
+      roomId,
+      table,
+      durationMs,
+      reuseExistingCountdown,
+    );
   }
 
   async ensureRecoveredRoundFlow(

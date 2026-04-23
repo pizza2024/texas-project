@@ -32,11 +32,29 @@ describe('AppGateway', () => {
   // Shared state for timer mocks — allows scheduleDisconnectCleanup and
   // clearPendingDisconnect to operate on the same pendingDisconnects Map.
   let connectionState: { pendingDisconnects: Map<string, NodeJS.Timeout> };
+  // Shared timer refs so setTimeout closures can clean up on afterEach.
+  let timerRefs: {
+    action: Map<string, ReturnType<typeof setTimeout>>;
+    ready: Map<string, ReturnType<typeof setTimeout>>;
+    settlement: Map<string, ReturnType<typeof setTimeout>>;
+  };
+  // The current table injected into timer mocks — updated each time a
+  // schedule* function is called so finalize* mocks can act on it.
+  let timerMockTable: any;
+  // The server injected into timer mocks for broadcast calls.
+  let timerMockServer: any;
 
   beforeEach(() => {
     connectionState = {
       pendingDisconnects: new Map<string, NodeJS.Timeout>(),
     };
+    timerRefs = {
+      action: new Map<string, ReturnType<typeof setTimeout>>(),
+      ready: new Map<string, ReturnType<typeof setTimeout>>(),
+      settlement: new Map<string, ReturnType<typeof setTimeout>>(),
+    };
+    timerMockTable = null;
+    timerMockServer = null;
     tableManager = {
       getUserCurrentRoomId: jest.fn(),
       leaveCurrentRoom: jest.fn(),
@@ -172,15 +190,71 @@ describe('AppGateway', () => {
       broadcastService as any,
       {
         clearRoundTimers: jest.fn(),
+        // Timer refs so tests can verify or clear timers without affecting the
+        // mock implementation.
+        _actionTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+        _readyTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+        _settlementTimers: new Map<string, ReturnType<typeof setTimeout>>(),
         scheduleActionTimeout: jest
           .fn()
           .mockImplementation(
-            (_server: any, _roomId: string, table: any, durationMs?: number) => {
-              if (table?.beginActionCountdown) {
-                table.beginActionCountdown(
-                  durationMs ?? TimerService.ACTION_DURATION_MS,
-                );
+            (
+              _server: any,
+              _roomId: string | object,
+              _table: any,
+              _durationMs?: number,
+            ) => {
+              // Handle both calling conventions:
+              // 4-arg (normal): gateway.scheduleActionTimeout(server, roomId, table, durationMs?)
+              // 2-arg (test direct): (gateway as any).scheduleActionTimeout(roomId, table)
+              let server: any;
+              let roomId: string;
+              let table: any;
+              let durationMs: number | undefined;
+              if (typeof _server === 'string' && _roomId && typeof _roomId !== 'string') {
+                // 2-arg case: _server = roomId (string), _roomId = table (object)
+                server = timerMockServer ?? gateway.server;
+                roomId = _server as string;
+                table = _roomId as any;
+                durationMs = _table as number | undefined;
+              } else {
+                // 4-arg case: _server = server, _roomId = roomId, _table = table
+                server = _server;
+                roomId = _roomId;
+                table = _table;
+                durationMs = _durationMs;
               }
+              // Capture table/server for the timer callback
+              if (table?.beginActionCountdown) {
+                table.beginActionCountdown(durationMs ?? TimerService.ACTION_DURATION_MS);
+              }
+              timerMockTable = table;
+              timerMockServer = server;
+              // Use sync callback so jest.advanceTimersByTime* synchronously fires
+              // the body — async setTimeout makes body a microtask that runs after
+              // advanceTimersByTime returns, causing assertions to fire too early.
+              const timer = setTimeout(() => {
+                if (timerMockTable) {
+                  const action = timerMockTable.getTimeoutAction();
+                  if (!action) return;
+                  if (action.action === 'sitout') {
+                    timerMockTable.foldSitOutPlayer();
+                  } else {
+                    timerMockTable.processAction(action.playerId, action.action, 0);
+                  }
+                  if (timerMockTable.currentStage === GameStage.SETTLEMENT) {
+                    timerMockTable.beginSettlementCountdown(TimerService.SETTLEMENT_DURATION_MS);
+                  } else if (
+                    timerMockTable.currentStage === GameStage.PREFLOP ||
+                    timerMockTable.currentStage === GameStage.FLOP ||
+                    timerMockTable.currentStage === GameStage.TURN ||
+                    timerMockTable.currentStage === GameStage.RIVER
+                  ) {
+                    timerMockTable.beginActionCountdown(TimerService.ACTION_DURATION_MS);
+                  }
+                }
+              }, durationMs ?? TimerService.ACTION_DURATION_MS);
+              timerRefs.action.set(roomId, timer);
             },
           ),
         scheduleAutoStart: jest
@@ -192,27 +266,122 @@ describe('AppGateway', () => {
               table: any,
               durationMs?: number,
             ) => {
-              if (table?.beginReadyCountdown) {
-                table.beginReadyCountdown(
-                  durationMs ?? TimerService.READY_COUNTDOWN_MS,
-                );
-              }
+              // Capture table/server for the timer callback
+              timerMockTable = table;
+              timerMockServer = _server ?? gateway.server;
+              // Use sync callback — async setTimeout makes body a microtask that
+              // jest.advanceTimersByTimeAsync fires after the assertion runs.
+              const timer = setTimeout(() => {
+                if (timerMockTable) {
+                  timerMockTable.clearReadyCountdown();
+                  timerMockTable.startHandIfReady();
+                  if (
+                    timerMockTable.currentStage === GameStage.PREFLOP ||
+                    timerMockTable.currentStage === GameStage.FLOP ||
+                    timerMockTable.currentStage === GameStage.TURN ||
+                    timerMockTable.currentStage === GameStage.RIVER
+                  ) {
+                    timerMockTable.beginActionCountdown(TimerService.ACTION_DURATION_MS);
+                  }
+                }
+              }, durationMs ?? TimerService.READY_COUNTDOWN_MS);
+              timerRefs.ready.set(_roomId, timer);
             },
           ),
         schedulePostHandFlow: jest
           .fn()
-          .mockImplementation((_server: any, _roomId: string, table: any) => {
-            if (table?.beginSettlementCountdown) {
-              table.beginSettlementCountdown(
-                TimerService.SETTLEMENT_DURATION_MS,
+          .mockImplementation(
+            (
+              _server: any,
+              _roomId: string,
+              table: any,
+              _durationMs: number = TimerService.SETTLEMENT_DURATION_MS,
+              _reuseExisting?: boolean,
+            ) => {
+              console.log(
+                '[DEBUG schedulePostHandFlow] called with _durationMs=',
+                _durationMs,
+                '_reuseExisting=',
+                _reuseExisting,
+                'Date.now()=',
+                Date.now(),
               );
-            }
-          }),
-        isActionStage: jest.fn().mockReturnValue(true),
+              console.log(
+                '[DEBUG schedulePostHandFlow] isActionStage(SETTLEMENT)=',
+                (gateway as any).timerService.isActionStage(GameStage.SETTLEMENT),
+              );
+              timerMockTable = table;
+              timerMockServer = _server;
+              if (!_reuseExisting && table?.beginSettlementCountdown) {
+                table.beginSettlementCountdown(_durationMs);
+              }
+              // Use sync callback — async setTimeout makes body a microtask that
+              // jest.advanceTimersByTimeAsync fires after the assertion runs.
+              // The real schedulePostHandFlow's timer calls finalizeSettlement
+              // which calls scheduleAutoStart. We replicate that here so the
+              // ready timer (clearReadyCountdown / startHandIfReady) fires.
+              // When _durationMs <= 0, call synchronously so the timer fires
+              // immediately (simulates already-expired countdown in recovery tests).
+              const doSettlementFlow = () => {
+                console.log(
+                  '[DEBUG doSettlementFlow] called, timerMockTable=',
+                  !!timerMockTable,
+                  'Date.now()=',
+                  Date.now(),
+                );
+                if (timerMockTable) {
+                  timerMockTable.resetToWaiting();
+                  timerMockTable.beginReadyCountdown(TimerService.READY_COUNTDOWN_MS);
+                  gateway.scheduleAutoStart(
+                    timerMockServer ?? gateway.server,
+                    _roomId,
+                    timerMockTable,
+                    TimerService.READY_COUNTDOWN_MS,
+                  );
+                }
+              };
+              if (_durationMs <= 0) {
+                console.log('[DEBUG schedulePostHandFlow] _durationMs <= 0, calling sync');
+                doSettlementFlow();
+              } else {
+                console.log('[DEBUG schedulePostHandFlow] scheduling timer for', _durationMs);
+                const timer = setTimeout(doSettlementFlow, _durationMs);
+                timerRefs.settlement.set(_roomId, timer);
+              }
+            },
+          ),
+        isActionStage: jest
+          .fn()
+          .mockImplementation((stage: GameStage) =>
+            [GameStage.PREFLOP, GameStage.FLOP, GameStage.TURN, GameStage.RIVER].includes(stage),
+          ),
         finalizeActionTimeout: jest.fn().mockResolvedValue(undefined),
         finalizeReadyCountdown: jest.fn().mockResolvedValue(undefined),
         finalizeSettlement: jest.fn().mockResolvedValue(undefined),
-        ensureRecoveredRoundFlow: jest.fn().mockResolvedValue(undefined),
+        ensureRecoveredRoundFlow: jest
+          .fn()
+          .mockImplementation(
+            (
+              _server: any,
+              _roomId: string,
+              table: any,
+            ) => {
+              // Replicate the real TimerService.ensureRecoveredRoundFlow:
+              // call schedulePostHandFlow so the mock timer chain fires.
+              if (table.currentStage === GameStage.SETTLEMENT && table.settlementEndsAt) {
+                const remainingMs = table.settlementEndsAt - Date.now();
+                if (remainingMs > 0) {
+                  (gateway as any).schedulePostHandFlow(
+                    timerMockServer ?? gateway.server,
+                    _roomId,
+                    table,
+                    remainingMs,
+                    false,
+                  );
+                }
+              }
+            },
+          ),
       } as any,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden
