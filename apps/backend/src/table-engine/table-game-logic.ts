@@ -23,11 +23,13 @@ export class TableGameLogic {
     return deck;
   }
 
-  /** Fisher-Yates shuffle. */
+  /** Fisher-Yates shuffle using crypto.getRandomValues for cryptographically secure randomness. */
   shuffle(deck: string[]): string[] {
     const d = [...deck];
+    const random = new Uint32Array(1);
     for (let i = d.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      crypto.getRandomValues(random);
+      const j = random[0] % (i + 1);
       [d[i], d[j]] = [d[j], d[i]];
     }
     return d;
