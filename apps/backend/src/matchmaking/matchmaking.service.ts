@@ -173,7 +173,7 @@ export class MatchmakingService implements OnModuleInit {
     // No suitable room found — create one
     const newRoom = await this.prisma.room.create({
       data: {
-        name: `[Match] ${tier} #${Math.floor(Math.random() * 9000) + 1000}`,
+        name: `[Match] ${tier} #${crypto.randomInt(1000, 9999)}`,
         blindSmall: config.blindSmall,
         blindBig: config.blindBig,
         maxPlayers: config.maxPlayers,

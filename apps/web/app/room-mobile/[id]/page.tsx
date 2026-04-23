@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { getStoredToken, getTokenPayload, isTokenExpired } from '@/lib/auth';
@@ -128,6 +129,7 @@ const pageBg = { background: 'linear-gradient(180deg, #050d08 0%, #020405 100%)'
 export default function MobileRoomPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const [table, setTable] = useState<TableState | null>(null);
   const [myUserId] = useState<string>(getMyUserId);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
@@ -709,6 +711,62 @@ export default function MobileRoomPage() {
                 Raise
               </Button>
             </div>
+
+            {/* Pot-Relative Raise Presets */}
+            {isMyTurn && (
+              <div className="flex gap-2">
+                {/* Min Raise */}
+                <button
+                  onClick={() => setRaiseAmount(Math.min(minRaise, myPlayer?.stack ?? minRaise))}
+                  disabled={!isMyTurn || (myPlayer?.stack ?? 0) < minRaise}
+                  className="flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-wider disabled:opacity-25"
+                  style={{
+                    background: 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(234,179,8,0.25)',
+                    color: '#fcd34d',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>{t('room.min', 'Min')}</span>
+                    <span className="text-[9px] opacity-60">{Math.min(minRaise, myPlayer?.stack ?? minRaise)}</span>
+                  </div>
+                </button>
+                {/* 1/2 Pot */}
+                <button
+                  onClick={() => setRaiseAmount(Math.min(Math.floor((table.pot ?? 0) * 0.5), myPlayer?.stack ?? 0))}
+                  disabled={!isMyTurn || (table.pot ?? 0) < minRaise}
+                  className="flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-wider disabled:opacity-25"
+                  style={{
+                    background: 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(234,179,8,0.25)',
+                    color: '#fcd34d',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>½ Pot</span>
+                    <span className="text-[9px] opacity-60">{Math.min(Math.floor((table.pot ?? 0) * 0.5), myPlayer?.stack ?? 0)}</span>
+                  </div>
+                </button>
+                {/* All-in */}
+                <button
+                  onClick={() => setRaiseAmount(myPlayer?.stack ?? 0)}
+                  disabled={!isMyTurn || (myPlayer?.stack ?? 0) <= 0}
+                  className="flex-1 h-10 rounded-lg font-black text-[10px] uppercase tracking-wider disabled:opacity-25"
+                  style={{
+                    background: (myPlayer?.stack ?? 0) > 0 && isMyTurn
+                      ? 'rgba(185,28,28,0.7)'
+                      : 'rgba(20,20,20,0.8)',
+                    border: '1px solid rgba(239,68,68,0.4)',
+                    color: (myPlayer?.stack ?? 0) > 0 && isMyTurn ? '#fca5a5' : 'rgba(239,68,68,0.5)',
+                  }}
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <span>{t('room.allIn', 'All-in')}</span>
+                    <span className="text-[9px] opacity-80">{myPlayer?.stack ?? 0}</span>
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* Raise amount — touch-friendly slider + step buttons */}
             {isMyTurn && (

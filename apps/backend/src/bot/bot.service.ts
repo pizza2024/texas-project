@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
 import { Player, PlayerStatus } from '../table-engine/player';
 
 export const BOT_ID_PREFIX = 'bot_';
@@ -133,7 +133,7 @@ export class BotService {
     if (communityCards.length === 0) {
       if (currentBet === 0) {
         // Preflop: 30% chance to raise as opener
-        if (Math.random() < 0.3 && playerStack > minRaise) {
+        if (randomInt(100) < 30 && playerStack > minRaise) {
           return {
             action: 'raise',
             amount: this.randomRaise(minRaise, maxRaise),
@@ -156,7 +156,7 @@ export class BotService {
 
     // Post-flop: no outstanding bet — sometimes probe bet
     if (currentBet === 0) {
-      if (Math.random() < 0.4 && playerStack > minRaise) {
+      if (randomInt(100) < 40 && playerStack > minRaise) {
         return {
           action: 'raise',
           amount: this.randomRaise(
@@ -180,7 +180,7 @@ export class BotService {
       if (
         handStrength >= 0.6 ||
         (this.hasStrongDraw(gameState.communityCards, communityCards) &&
-          Math.random() < 0.2)
+          randomInt(100) < 20)
       ) {
         return { action: 'call' };
       }
@@ -191,7 +191,7 @@ export class BotService {
         handStrength >= 0.4 ||
         this.hasStrongDraw(gameState.communityCards, communityCards)
       ) {
-        if (Math.random() < 0.3 && playerStack > minRaise) {
+        if (randomInt(100) < 30 && playerStack > minRaise) {
           return {
             action: 'raise',
             amount: this.randomRaise(minRaise, maxRaise),
@@ -202,7 +202,7 @@ export class BotService {
       return { action: 'fold' };
     } else {
       // Good pot odds — mostly call, sometimes raise
-      if (Math.random() < 0.3 && playerStack > minRaise) {
+      if (randomInt(100) < 30 && playerStack > minRaise) {
         return {
           action: 'raise',
           amount: this.randomRaise(minRaise, maxRaise),
@@ -214,10 +214,10 @@ export class BotService {
 
   private randomRaise(minRaise: number, maxRaise: number): number {
     if (maxRaise <= minRaise) return minRaise;
-    const r = Math.random();
-    if (r < 0.5) return minRaise; // Min-raise
-    if (r < 0.8) return Math.floor((minRaise + maxRaise) / 2); // Medium
-    return maxRaise; // Max
+    const r = randomInt(100);
+    if (r < 50) return minRaise; // Min-raise 50%
+    if (r < 80) return Math.floor((minRaise + maxRaise) / 2); // Medium 30%
+    return maxRaise; // Max 20%
   }
 
   /**
