@@ -82,6 +82,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * SET if Not eXists — atomic lock acquisition with TTL.
+   * Returns true if key was set (lock acquired), false if key already existed.
+   * Returns null if Redis is unavailable.
+   */
+  async setNX(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean | null> {
+    if (!this.available || !this.client) return null;
+    try {
+      const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+      return result === 'OK';
+    } catch {
+      return null;
+    }
+  }
+
   /** Atomically increment a key and return its new value. Sets TTL on first set. Returns null if Redis unavailable. */
   async incr(key: string, ttlSeconds?: number): Promise<number | null> {
     if (!this.available || !this.client) return null;

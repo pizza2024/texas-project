@@ -21,11 +21,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.sessionId) {
       if (!this.redisService.isAvailable) {
         // Security trade-off: Redis down + reject all = total service outage.
-        // Instead we allow auth but log a HIGH-severity warning for security team to act on.
-        this.logger.warn(
-          `[SECURITY] Redis unavailable — session validation SKIPPED for user ${payload.sub}. ` +
-            `Single-device login protection is temporarily disabled.`,
+        // Instead we allow auth but log a CRITICAL-severity error for security team to act on.
+        // This event is identifiable by the [SECURITY-AUTH-BYPASS] prefix for alerting.
+        this.logger.error(
+          `[SECURITY-AUTH-BYPASS] CRITICAL: Redis unavailable — session validation SKIPPED for user ${payload.sub}. ` +
+            `Single-device login protection is temporarily disabled. ` +
+            `This is a security incident — Redis must be restored immediately. ` +
+            `Timestamp: ${new Date().toISOString()}. ` +
+            `Source: ${payload.username ?? 'unknown'}`,
         );
+        // Security incident counter (increment manually in monitoring dashboards using log search)
+        // grep '[SECURITY-AUTH-BYPASS]' | count per hour = auth_redis_bypass_total
       } else {
         const stored = await this.redisService.get(
           `user_session:${payload.sub}`,

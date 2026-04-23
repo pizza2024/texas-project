@@ -84,49 +84,63 @@ export class WithdrawService {
   }
 
   /**
-   * Check and consume cooldown. Uses Redis TTL when available; falls back to
-   * in-memory Map (for single-instance dev/test environments).
+   * Check and consume cooldown. Uses Redis SETNX as distributed lock when available;
+   * falls back to in-memory Map (single-instance dev/test only).
+   *
+   * Distributed flow (Redis available):
+   * 1. SETNX with TTL = cooldown — if acquired, cooldown is not active
+   * 2. If SETNX fails (key exists), cooldown is still active → throw
+   *
+   * In-memory flow (Redis unavailable — dev/test only):
+   * Maintains process-local Map, which is NOT safe for multi-instance production.
    */
   private async checkAndConsumeCooldown(userId: string): Promise<void> {
-    try {
-      const ttl = await this.redisService.ttl(WITHDRAW_COOLDOWN_KEY(userId));
-      if (ttl > 0) {
-        throw new BadRequestException(`请等待 ${Math.ceil(ttl)} 秒后再试`);
-      }
-      // Key absent / expired in Redis — clear any stale in-memory entry
-      this.cooldowns.delete(userId);
-      return;
-    } catch {
-      // Redis unavailable — use in-memory fallback
-    }
-    const lastUsed = this.cooldowns.get(userId) ?? 0;
-    const age = Date.now() - lastUsed;
-    if (age > WITHDRAW_COOLDOWN_MS) {
-      // Entry expired — clean it up instead of treating as active cooldown
+    // Try distributed Redis lock first
+    const lockKey = `withdraw_cooldown_lock:${userId}`;
+    const ttlSeconds = Math.ceil(WITHDRAW_COOLDOWN_MS / 1000);
+
+    const acquired = await this.redisService.setNX(
+      lockKey,
+      String(Date.now()),
+      ttlSeconds,
+    );
+    if (acquired === true) {
+      // Lock acquired — no active cooldown in Redis; clear any stale in-memory entry
       this.cooldowns.delete(userId);
       return;
     }
-    const remaining = WITHDRAW_COOLDOWN_MS - age;
-    if (remaining > 0) {
+    if (acquired === false) {
+      // Lock not acquired — cooldown still active in Redis
+      const ttl = await this.redisService.ttl(lockKey);
       throw new BadRequestException(
-        `请等待 ${Math.ceil(remaining / 1000)} 秒后再试`,
+        `请等待 ${Math.ceil(ttl > 0 ? ttl : 1)} 秒后再试`,
       );
     }
+
+    // Redis unavailable — CRITICAL security issue in multi-instance deployment.
+    // In-memory Map cooldowns are per-process only, allowing users to bypass
+    // cooldown across different server instances. We BLOCK withdrawals entirely
+    // when Redis is unavailable to enforce the cooldown globally.
+    this.logger.error(
+      `[SECURITY-WITHDRAW-BYPASS] CRITICAL: Redis unavailable — withdraw cooldown is bypassed in distributed deployment. ` +
+        `Blocking all withdrawals until Redis is restored. ` +
+        `User ${userId} attempted withdraw at ${new Date().toISOString()}`,
+    );
+    throw new BadRequestException('提现服务暂时不可用，请稍后再试');
   }
 
   /** Set cooldown timestamp after successful withdraw creation */
   private async setCooldown(userId: string): Promise<void> {
-    try {
-      await this.redisService.set(
-        WITHDRAW_COOLDOWN_KEY(userId),
-        String(Date.now()),
-        Math.ceil(WITHDRAW_COOLDOWN_MS / 1000),
-      );
-    } catch {
-      // Redis unavailable — in-memory fallback only
+    const ttlSeconds = Math.ceil(WITHDRAW_COOLDOWN_MS / 1000);
+    const acquired = await this.redisService.setNX(
+      WITHDRAW_COOLDOWN_KEY(userId),
+      String(Date.now()),
+      ttlSeconds,
+    );
+    if (acquired !== true) {
+      // Redis unavailable — only update in-memory fallback (dev/test only)
+      this.cooldowns.set(userId, Date.now());
     }
-    // Always update in-memory fallback
-    this.cooldowns.set(userId, Date.now());
   }
 
   /** Get remaining cooldown for a user */
@@ -345,7 +359,12 @@ export class WithdrawService {
 
     if (action === 'REJECT') {
       // Refund chips to user
-      await this.refundChips(request.userId, request.amountChips, id, reason ?? 'Rejected by admin');
+      await this.refundChips(
+        request.userId,
+        request.amountChips,
+        id,
+        reason ?? 'Rejected by admin',
+      );
 
       const updated = await this.prisma.withdrawRequest.update({
         where: { id },
@@ -458,11 +477,16 @@ export class WithdrawService {
           action: 'WITHDRAW_REFUND',
           targetType: 'USER',
           targetId: userId,
-          detail: JSON.stringify({ requestId, reason: reason ?? 'Rejected by admin' }),
+          detail: JSON.stringify({
+            requestId,
+            reason: reason ?? 'Rejected by admin',
+          }),
         },
       });
     } catch (e) {
-      this.logger.warn(`Failed to write WITHDRAW_REFUND admin log: ${(e as Error).message}`);
+      this.logger.warn(
+        `Failed to write WITHDRAW_REFUND admin log: ${(e as Error).message}`,
+      );
     }
   }
 
@@ -554,7 +578,12 @@ export class WithdrawService {
       },
     });
 
-    await this.refundChips(request.userId, request.amountChips, requestId, reason);
+    await this.refundChips(
+      request.userId,
+      request.amountChips,
+      requestId,
+      reason,
+    );
     this.logger.log(
       `Withdraw failed and refunded: id=${requestId}, reason=${reason}`,
     );
@@ -628,7 +657,9 @@ export class WithdrawService {
         },
       });
     } catch (e) {
-      this.logger.warn(`Failed to write WITHDRAW_CHAIN_FAILURE admin log: ${(e as Error).message}`);
+      this.logger.warn(
+        `Failed to write WITHDRAW_CHAIN_FAILURE admin log: ${(e as Error).message}`,
+      );
     }
   }
 
