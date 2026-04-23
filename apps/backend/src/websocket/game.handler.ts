@@ -431,7 +431,10 @@ export async function handleShowCards(gateway: AppGateway, client: Socket) {
     table.lastHandResult?.some(
       (e) => e.playerId === userId && e.winAmount > 0,
     ) ?? false;
-  if (!isWinner) return;
+  if (!isWinner) {
+    client.emit('show_cards_result', { success: false, reason: 'not_winner' });
+    return;
+  }
 
   table.revealFoldWinnerCards();
   await gateway.tableManager.persistTableState(roomId);
