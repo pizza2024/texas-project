@@ -93,7 +93,7 @@ export async function handleJoinRoom(
       }
 
       // Password brute-force protection — check before verifying password
-      const rawIp = client.handshake.address ?? '0.0.0.0';
+      const rawIp = client.handshake?.address ?? '0.0.0.0';
       const ipHash = gateway.matchmakingService.hashIp(rawIp);
       const bruteForceResult = gateway.checkPasswordAttemptLimit(
         ipHash,
