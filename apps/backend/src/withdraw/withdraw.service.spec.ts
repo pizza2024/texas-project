@@ -57,16 +57,38 @@ describe('WithdrawService', () => {
       setBalance: jest.fn(),
     };
 
-    // RedisService mock: all methods throw to simulate unavailable Redis,
-    // forcing the code to use the in-memory cooldown fallback.
+    // RedisService mock: simulates available Redis for SETNX/TTL.
+    // Uses closure state to properly simulate cooldown lock behavior across
+    // multiple calls within a test. cooldowns set/cleared between tests via
+    // beforeEach so each test gets fresh state.
+    const redisLockState = { cooldownActive: false };
+    const mockSetNX = jest
+      .fn()
+      .mockImplementation(() => {
+        if (redisLockState.cooldownActive) return Promise.resolve(false);
+        redisLockState.cooldownActive = true;
+        return Promise.resolve(true);
+      });
+    const mockTTL = jest
+      .fn()
+      .mockImplementation(() => {
+        if (redisLockState.cooldownActive) return Promise.resolve(60);
+        return Promise.resolve(-1);
+      });
+    const mockDel = jest.fn().mockImplementation(() => {
+      redisLockState.cooldownActive = false;
+      return Promise.resolve(1);
+    });
+
     const mockRedisService = {
-      isAvailable: true, // unused — code now uses try/catch
+      isAvailable: true,
       get: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
       set: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
-      del: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
-      ttl: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      del: mockDel,
+      ttl: mockTTL,
       incr: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
       ping: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+      setNX: mockSetNX,
     };
 
     // NotificationService mock: all methods are no-ops for testing
