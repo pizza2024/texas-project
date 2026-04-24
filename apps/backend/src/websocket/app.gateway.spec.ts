@@ -233,7 +233,7 @@ describe('AppGateway', () => {
               } else {
                 // 4-arg case: _server = server, _roomId = roomId, _table = table
                 server = _server;
-                roomId = _roomId;
+                roomId = _roomId as string;
                 table = _table;
                 durationMs = _durationMs;
               }
