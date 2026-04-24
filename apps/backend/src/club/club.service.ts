@@ -96,9 +96,7 @@ export class ClubService {
       where: { id: clubId },
       include: {
         _count: { select: { members: true } },
-        members: userId
-          ? { where: { userId }, select: { role: true } }
-          : false,
+        members: userId ? { where: { userId }, select: { role: true } } : false,
       },
     });
 
@@ -106,9 +104,7 @@ export class ClubService {
       throw new NotFoundException('Club not found');
     }
 
-    const membership = Array.isArray(club.members)
-      ? club.members[0]
-      : null;
+    const membership = Array.isArray(club.members) ? club.members[0] : null;
 
     return {
       id: club.id,
@@ -144,9 +140,7 @@ export class ClubService {
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { members: true } },
-        members: userId
-          ? { where: { userId }, select: { role: true } }
-          : false,
+        members: userId ? { where: { userId }, select: { role: true } } : false,
       },
     });
 
@@ -155,9 +149,7 @@ export class ClubService {
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
     const data: ClubInfo[] = items.map((club) => {
-      const membership = Array.isArray(club.members)
-        ? club.members[0]
-        : null;
+      const membership = Array.isArray(club.members) ? club.members[0] : null;
       return {
         id: club.id,
         name: club.name,
@@ -272,7 +264,9 @@ export class ClubService {
     }
 
     if (membership.role === MemberRole.OWNER) {
-      throw new BadRequestException('Owner cannot leave the club. Delete or transfer ownership first.');
+      throw new BadRequestException(
+        'Owner cannot leave the club. Delete or transfer ownership first.',
+      );
     }
 
     await this.prisma.clubMember.delete({
@@ -314,7 +308,9 @@ export class ClubService {
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: { joinedAt: 'asc' },
       include: {
-        user: { select: { id: true, nickname: true, avatar: true, status: true } },
+        user: {
+          select: { id: true, nickname: true, avatar: true, status: true },
+        },
       },
     });
 
@@ -367,7 +363,7 @@ export class ClubService {
     }
 
     if (targetMembership.role === MemberRole.OWNER) {
-      throw new BadRequestException('Cannot change the owner\'s role');
+      throw new BadRequestException("Cannot change the owner's role");
     }
 
     return this.prisma.clubMember.update({

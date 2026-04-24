@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ClubService } from '../club.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebSocketManager } from '../../websocket/websocket-manager';
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('ClubService', () => {
   let service: ClubService;
@@ -54,7 +59,12 @@ describe('ClubService', () => {
     it('should create a club and add creator as OWNER', async () => {
       const userId = 'user-1';
       const dto = { name: 'Test Club', description: 'A test club' };
-      const mockClub = { id: 'club-1', name: dto.name, description: dto.description, ownerId: userId };
+      const mockClub = {
+        id: 'club-1',
+        name: dto.name,
+        description: dto.description,
+        ownerId: userId,
+      };
 
       mockPrisma.club.create.mockResolvedValue(mockClub);
 
@@ -77,7 +87,9 @@ describe('ClubService', () => {
     it('should throw NotFoundException if club does not exist', async () => {
       mockPrisma.club.findUnique.mockResolvedValue(null);
 
-      await expect(service.getClub('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.getClub('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should return club info with member count', async () => {
@@ -106,25 +118,45 @@ describe('ClubService', () => {
     it('should throw NotFoundException if club does not exist', async () => {
       mockPrisma.club.findUnique.mockResolvedValue(null);
 
-      await expect(service.joinClub('user-1', 'club-1')).rejects.toThrow(NotFoundException);
+      await expect(service.joinClub('user-1', 'club-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException if already a member', async () => {
-      mockPrisma.club.findUnique.mockResolvedValue({ id: 'club-1', status: 'ACTIVE' });
-      mockPrisma.clubMember.findUnique.mockResolvedValue({ id: 'membership-1' });
+      mockPrisma.club.findUnique.mockResolvedValue({
+        id: 'club-1',
+        status: 'ACTIVE',
+      });
+      mockPrisma.clubMember.findUnique.mockResolvedValue({
+        id: 'membership-1',
+      });
 
-      await expect(service.joinClub('user-1', 'club-1')).rejects.toThrow(ConflictException);
+      await expect(service.joinClub('user-1', 'club-1')).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should create membership successfully', async () => {
-      mockPrisma.club.findUnique.mockResolvedValue({ id: 'club-1', status: 'ACTIVE' });
+      mockPrisma.club.findUnique.mockResolvedValue({
+        id: 'club-1',
+        status: 'ACTIVE',
+      });
       mockPrisma.clubMember.findUnique.mockResolvedValue(null);
-      mockPrisma.clubMember.create.mockResolvedValue({ id: 'membership-1', clubId: 'club-1', userId: 'user-1', role: 'MEMBER' });
+      mockPrisma.clubMember.create.mockResolvedValue({
+        id: 'membership-1',
+        clubId: 'club-1',
+        userId: 'user-1',
+        role: 'MEMBER',
+      });
 
       const result = await service.joinClub('user-1', 'club-1');
 
       expect(result.id).toBe('membership-1');
-      expect(mockWsManager.sendToAll).toHaveBeenCalledWith('club_member_joined', { clubId: 'club-1', userId: 'user-1' });
+      expect(mockWsManager.sendToAll).toHaveBeenCalledWith(
+        'club_member_joined',
+        { clubId: 'club-1', userId: 'user-1' },
+      );
     });
   });
 
@@ -132,21 +164,34 @@ describe('ClubService', () => {
     it('should throw NotFoundException if membership does not exist', async () => {
       mockPrisma.clubMember.findUnique.mockResolvedValue(null);
 
-      await expect(service.leaveClub('user-1', 'club-1')).rejects.toThrow(NotFoundException);
+      await expect(service.leaveClub('user-1', 'club-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if user is OWNER', async () => {
       mockPrisma.clubMember.findUnique.mockResolvedValue({ role: 'OWNER' });
 
-      await expect(service.leaveClub('user-1', 'club-1')).rejects.toThrow(BadRequestException);
+      await expect(service.leaveClub('user-1', 'club-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should allow MEMBER to leave', async () => {
-      mockPrisma.clubMember.findUnique.mockResolvedValue({ clubId: 'club-1', userId: 'user-1', role: 'MEMBER' });
+      mockPrisma.clubMember.findUnique.mockResolvedValue({
+        clubId: 'club-1',
+        userId: 'user-1',
+        role: 'MEMBER',
+      });
       mockPrisma.clubMember.delete.mockResolvedValue({});
 
-      await expect(service.leaveClub('user-1', 'club-1')).resolves.not.toThrow();
-      expect(mockWsManager.sendToAll).toHaveBeenCalledWith('club_member_left', { clubId: 'club-1', userId: 'user-1' });
+      await expect(
+        service.leaveClub('user-1', 'club-1'),
+      ).resolves.not.toThrow();
+      expect(mockWsManager.sendToAll).toHaveBeenCalledWith('club_member_left', {
+        clubId: 'club-1',
+        userId: 'user-1',
+      });
     });
   });
 
@@ -154,7 +199,9 @@ describe('ClubService', () => {
     it('should throw ForbiddenException if kicker is not admin/owner', async () => {
       mockPrisma.clubMember.findUnique.mockResolvedValue({ role: 'MEMBER' });
 
-      await expect(service.kickMember('user-1', 'club-1', 'user-2')).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.kickMember('user-1', 'club-1', 'user-2'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw BadRequestException if trying to kick OWNER', async () => {
@@ -162,7 +209,9 @@ describe('ClubService', () => {
         .mockResolvedValueOnce({ role: 'ADMIN' }) // kicker
         .mockResolvedValueOnce({ role: 'OWNER' }); // target
 
-      await expect(service.kickMember('user-1', 'club-1', 'user-2')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.kickMember('user-1', 'club-1', 'user-2'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should allow ADMIN to kick MEMBER', async () => {
@@ -171,8 +220,13 @@ describe('ClubService', () => {
         .mockResolvedValueOnce({ role: 'MEMBER' });
       mockPrisma.clubMember.delete.mockResolvedValue({});
 
-      await expect(service.kickMember('user-1', 'club-1', 'user-2')).resolves.not.toThrow();
-      expect(mockWsManager.sendToAll).toHaveBeenCalledWith('club_member_kicked', { clubId: 'club-1', kickedUserId: 'user-2' });
+      await expect(
+        service.kickMember('user-1', 'club-1', 'user-2'),
+      ).resolves.not.toThrow();
+      expect(mockWsManager.sendToAll).toHaveBeenCalledWith(
+        'club_member_kicked',
+        { clubId: 'club-1', kickedUserId: 'user-2' },
+      );
     });
   });
 
@@ -180,12 +234,21 @@ describe('ClubService', () => {
     it('should throw ForbiddenException if user is not a member', async () => {
       mockPrisma.clubMember.findUnique.mockResolvedValue(null);
 
-      await expect(service.sendMessage('user-1', 'club-1', 'Hello')).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.sendMessage('user-1', 'club-1', 'Hello'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should save and broadcast message', async () => {
-      mockPrisma.clubMember.findUnique.mockResolvedValue({ clubId: 'club-1', userId: 'user-1', role: 'MEMBER' });
-      mockPrisma.club.findUnique.mockResolvedValue({ id: 'club-1', status: 'ACTIVE' });
+      mockPrisma.clubMember.findUnique.mockResolvedValue({
+        clubId: 'club-1',
+        userId: 'user-1',
+        role: 'MEMBER',
+      });
+      mockPrisma.club.findUnique.mockResolvedValue({
+        id: 'club-1',
+        status: 'ACTIVE',
+      });
       mockPrisma.clubChat.create.mockResolvedValue({
         id: 'chat-1',
         clubId: 'club-1',
@@ -198,7 +261,10 @@ describe('ClubService', () => {
       const result = await service.sendMessage('user-1', 'club-1', 'Hello');
 
       expect(result.message).toBe('Hello');
-      expect(mockWsManager.sendToAll).toHaveBeenCalledWith('club_chat_message', expect.any(Object));
+      expect(mockWsManager.sendToAll).toHaveBeenCalledWith(
+        'club_chat_message',
+        expect.any(Object),
+      );
     });
   });
 

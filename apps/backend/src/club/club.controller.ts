@@ -58,7 +58,11 @@ export class ClubController {
   @Get()
   @ApiOperation({ summary: 'List clubs' })
   async listClubs(@Query() query: ClubListQueryDto) {
-    return this.clubService.listClubs(query.search, query.cursor, query.limit ?? 20);
+    return this.clubService.listClubs(
+      query.search,
+      query.cursor,
+      query.limit ?? 20,
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -179,7 +183,11 @@ export class ClubController {
     @Param('id') clubId: string,
     @Query() query: ClubChatListQueryDto,
   ) {
-    return this.clubService.getChatHistory(clubId, query.cursor, query.limit ?? 50);
+    return this.clubService.getChatHistory(
+      clubId,
+      query.cursor,
+      query.limit ?? 50,
+    );
   }
 
   // ── My clubs ─────────────────────────────────────────────────────────────

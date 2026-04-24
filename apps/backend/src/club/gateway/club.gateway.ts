@@ -28,7 +28,9 @@ export class ClubGateway {
    * Authenticate a socket connection using JWT from handshake query.
    * Returns { userId, username } or null if invalid.
    */
-  private authenticate(client: Socket): { userId: string; username: string } | null {
+  private authenticate(
+    client: Socket,
+  ): { userId: string; username: string } | null {
     try {
       const token = client.handshake.query.token as string;
       if (!token) return null;
@@ -64,7 +66,10 @@ export class ClubGateway {
     // Validate membership
     const isMember = await this.clubService.isClubMember(auth.userId, clubId);
     if (!isMember) {
-      client.emit('club_error', { code: 'NOT_MEMBER', message: 'You are not a member of this club' });
+      client.emit('club_error', {
+        code: 'NOT_MEMBER',
+        message: 'You are not a member of this club',
+      });
       return;
     }
 
@@ -114,12 +119,18 @@ export class ClubGateway {
 
     const dto: SendChatMessageDto = { message: data.message };
     if (!dto.message || dto.message.trim().length === 0) {
-      client.emit('club_error', { code: 'INVALID_MESSAGE', message: 'Message cannot be empty' });
+      client.emit('club_error', {
+        code: 'INVALID_MESSAGE',
+        message: 'Message cannot be empty',
+      });
       return;
     }
 
     if (dto.message.length > 500) {
-      client.emit('club_error', { code: 'MESSAGE_TOO_LONG', message: 'Message exceeds 500 characters' });
+      client.emit('club_error', {
+        code: 'MESSAGE_TOO_LONG',
+        message: 'Message exceeds 500 characters',
+      });
       return;
     }
 
