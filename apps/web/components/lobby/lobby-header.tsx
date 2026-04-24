@@ -138,6 +138,22 @@ export function LobbyHeader({
           👥 {t('friends.title')}
         </Button>
 
+        {/* Clubs button — sm+ only */}
+        <Button
+          onClick={() => router.push('/club')}
+          className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+          style={{
+            background:
+              'linear-gradient(135deg, #78350f 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
+            color: '#fff',
+            border: 'none',
+            boxShadow:
+              '0 0 20px rgba(217,119,6,0.15), 0 4px 10px rgba(0,0,0,0.4)',
+          }}
+        >
+          🏠 {t('club.title', 'Clubs')}
+        </Button>
+
         {/* User dropdown */}
         <UserDropdown
           nickname={nickname}
