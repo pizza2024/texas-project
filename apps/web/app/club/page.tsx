@@ -209,7 +209,6 @@ function CreateClubForm({ onSuccess }: CreateClubFormProps) {
   const [avatar, setAvatar] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,14 +363,13 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
   // Chat state
   const [messages, setMessages] = useState<ClubChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [chatCursor, setChatCursor] = useState<string | null>(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [chatError, setChatError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   /* ── Load club detail ── */
   useEffect(() => {
@@ -430,8 +428,6 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
       } else {
         setMessages(data.reverse());
       }
-      setChatCursor(res.data.nextCursor);
-      setHasMoreMessages(!!res.data.nextCursor);
     } catch {
       // silent
     } finally {
