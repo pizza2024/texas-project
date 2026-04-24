@@ -206,6 +206,12 @@ export function bestHandFrom(
     score.bestCards = all;
     return score;
   }
+  // When exactly 5 cards, no need to generate combinations — it's the only hand
+  if (all.length === 5) {
+    const score = evaluate5(all);
+    score.bestCards = all;
+    return score;
+  }
   const combos = combinations(all, 5);
   let best: HandScore | null = null;
   let bestCards: string[] = [];
@@ -216,6 +222,8 @@ export function bestHandFrom(
       bestCards = combo;
     }
   }
+  // This fallback is now unreachable for all.length >= 5 (combinations always returns non-empty),
+  // but kept for defensive programming.
   if (best) {
     best.bestCards = bestCards;
     return best;

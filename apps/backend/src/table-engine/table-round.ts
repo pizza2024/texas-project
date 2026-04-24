@@ -263,7 +263,11 @@ export class TableRound {
 
       if (amount > 0) {
         const eligiblePlayerIds = atThisLevel
-          .filter((p) => p.status !== PlayerStatus.FOLD)
+          .filter(
+            (p) =>
+              p.status === PlayerStatus.ACTIVE ||
+              p.status === PlayerStatus.ALLIN,
+          )
           .map((p) => p.id);
 
         if (eligiblePlayerIds.length > 0) {
@@ -296,9 +300,10 @@ export class TableRound {
       Math.floor(this.table.pot * tierConfig.rate),
       tierConfig.cap,
     );
-    const winAmount = this.table.pot - rake;
+    // Deduct rake from pot first (consistent with performShowdown pattern)
+    this.table.pot -= rake;
+    const winAmount = this.table.pot;
     winner.stack += winAmount;
-    this.table.pot = 0;
     this.table.rakeAmount = rake;
     this.table.rakePercent = tierConfig.rate;
     this.table.lastHandResult = this.table.players

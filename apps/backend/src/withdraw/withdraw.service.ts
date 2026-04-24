@@ -390,12 +390,20 @@ export class WithdrawService {
     }
 
     // APPROVE: move to PROCESSING and trigger chain transfer
-    const updated = await this.prisma.withdrawRequest.update({
-      where: { id },
-      data: {
-        status: 'PROCESSING',
-        processedAt: new Date(),
-      },
+    // Use transaction to prevent race condition — re-check status inside tx
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.withdrawRequest.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('Withdraw request not found');
+      if (current.status !== 'PENDING') {
+        throw new BadRequestException('Only PENDING requests can be processed');
+      }
+      return tx.withdrawRequest.update({
+        where: { id },
+        data: {
+          status: 'PROCESSING',
+          processedAt: new Date(),
+        },
+      });
     });
 
     await this.prisma.adminLog.create({
@@ -497,6 +505,13 @@ export class WithdrawService {
     });
 
     if (!request) throw new NotFoundException('Withdraw request not found');
+
+    // Idempotent: skip if already confirmed
+    if (request.status === 'CONFIRMED') {
+      this.logger.log(`Withdraw ${requestId} already CONFIRMED, skipping`);
+      return request.txHash ?? '';
+    }
+
     if (request.status !== 'PROCESSING') {
       throw new BadRequestException('Request must be in PROCESSING status');
     }
@@ -537,19 +552,17 @@ export class WithdrawService {
       throw new Error(`Transfer failed: ${(err as Error).message}`);
     }
 
-    // Save txHash and fromAddress immediately for audit trail
-    await this.prisma.withdrawRequest.update({
-      where: { id: requestId },
-      data: { txHash: tx.hash, fromAddress: ownerWallet.address },
-    });
-
     // Wait for 1 confirmation
     await tx.wait(1);
 
-    // Update to CONFIRMED
+    // Save txHash, fromAddress, and status together after confirmation
     await this.prisma.withdrawRequest.update({
       where: { id: requestId },
-      data: { status: 'CONFIRMED' },
+      data: {
+        txHash: tx.hash,
+        fromAddress: ownerWallet.address,
+        status: 'CONFIRMED',
+      },
     });
 
     this.logger.log(
