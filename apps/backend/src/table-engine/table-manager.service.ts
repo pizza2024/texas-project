@@ -9,6 +9,7 @@ import {
 import { WalletService } from '../wallet/wallet.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { RakebackService } from '../rakeback/rakeback.service';
 
 /** Redis key for a table snapshot; TTL = 24 h */
 const TABLE_KEY = (roomId: string) => `table:${roomId}`;
@@ -29,6 +30,7 @@ export class TableManagerService implements OnModuleInit {
     private walletService: WalletService,
     private prisma: PrismaService,
     private redis: RedisService,
+    private rakebackService: RakebackService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -339,6 +341,16 @@ export class TableManagerService implements OnModuleInit {
         ),
         ...rakeUpdates,
       ]);
+
+      // Credit rakeback for each winner based on their rake share
+      for (const settlement of settlementData) {
+        if (settlement.rakeAmount > 0) {
+          await this.rakebackService.creditRakeback(
+            settlement.userId,
+            settlement.rakeAmount,
+          );
+        }
+      }
     } catch (err) {
       // Non-fatal: log and continue — game integrity (balance updates) must not be blocked
       this.logger.error(`[persistSettlementRecords] roomId=${roomId}`, err);

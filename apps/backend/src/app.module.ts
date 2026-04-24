@@ -18,6 +18,7 @@ import { HealthController } from './health/health.controller';
 import { BotModule } from './bot/bot.module';
 import { FriendModule } from './friend/friend.module';
 import { ClubModule } from './club/club.module';
+import { RakebackModule } from './rakeback/rakeback.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ClubModule } from './club/club.module';
     BotModule,
     FriendModule,
     ClubModule,
+    RakebackModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

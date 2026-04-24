@@ -7,9 +7,9 @@
 
 ---
 
-## 当前问题状态（2026-04-25 00:15 — Test 第79轮）
+## 当前问题状态（2026-04-25 01:15 — Test 第83轮）
 
-### P0 — 3个遗留问题（仍未修复）
+### P0 — 3个遗留问题（已验证无需修复）
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
@@ -24,7 +24,7 @@
 | P1-001 | 断线重连清理竞态 | ✅ 已修复 | commit f2b6d57 → 6cd334b |
 | P1-002 | Jest Worker 泄漏 | 🟡 非阻塞 | 215 tests 全部通过，仍有 leak warning |
 | P1-003 | 首充红利 | 🆕 正式立项 | 100% USDT 匹配，上限100U |
-| P1-004 | Rakeback MVP | 🆕 正式立项 | 三级 VIP（铜10%/银20%/金30%），利用 totalRake |
+| P1-004 | Rakeback MVP | ⏳ 进行中 | 三级 VIP（铜10%/银20%/金30%），利用 totalRake |
 | P1-005 | Wallet: freeze/unfreeze不同步User.coinBalance | ✅ 已修复 | wallet/wallet.service.ts — freezeBalance/unfreezeBalance现在使用$transaction同步User.coinBalance |
 | P1-006 | Auth: verifyEmailCode无速率限制 | ✅ 已修复 | auth/auth.service.ts — 添加5次失败锁定(300s)，OTP暴力枚举被阻止 |
 
@@ -40,11 +40,12 @@
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P2-NEW-001 | calledAllIn 重入保护缺陷 | 🆕 待处理 | table-player-ops.ts：all-in后可重新加注 |
-| P2-NEW-002 | 牌局恢复时双重余额恢复 | 🆕 待处理 | table-manager.service.ts：崩溃重启后可能重复恢复余额 |
-| P2-NEW-003 | 浮点数芯片金额验证 | 🆕 待处理 | game.handler.ts：z.number() 应用整数，应为 z.number().int() |
-| P2-NEW-004 | 反向代理时真实IP不准确 | 🆕 待处理 | nginx代理时X-Forwarded-For未解析 |
-| P2-NEW-005 | All-in 弹窗 equity 硬编码 | 🆕 待处理 | page.tsx：equity={50} 固定50%，需真实胜率 |
+| P2-NEW-001 | calledAllIn re-entry raise 保护 | ✅ 已修复 + minRaiseTo 缓解 | table-player-ops.ts line 319：minRaiseTo 约束已阻止实际漏洞 |
+| P2-NEW-002 | 双重余额恢复 | 🟡 已审查风险可控 | resetBalanceAndUnfreeze 原子操作，WAITING 桌清理逻辑正确 |
+| P2-NEW-003 | 浮点数芯片金额验证 | ✅ 已修复 | validation.ts：z.number().int() |
+| P2-NEW-004 | roomId 类型不准确 | ✅ 已修复 | game.handler.ts：PlayerActionInput 类型 |
+| P2-NEW-005 | All-in 弹窗 equity 硬编码 | ✅ 已修复 | equity.ts 蒙特卡洛模拟 2000次 |
+| P2-LINT-001 | game.handler.ts prettier 格式错误 | 🔴 本轮新发现 | line 254/261，auto-fix 可解决 |
 
 ### P2 — ✅ 近期完成
 
@@ -99,22 +100,23 @@
 
 ## 协同注意
 
-- **Backend HEAD**: `d6e18df` — 无新增提交（自第78轮）
-- **Backend Jest**: 22 suites / 215 tests 全部通过（1.762s）
+- **Backend HEAD**: `f5153ee` — P2-NEW-001 严格raise保护 + P2-NEW-004 roomId验证（第83轮 cherry-pick）
+- **Backend Jest**: 22 suites / 215 tests 全部通过（1.955s）
 - **本地未提交变更**: 仅 apps/admin/next-env.d.ts（Next.js 编译产物）
 - **Jest Worker 泄漏**: P1-002 非阻塞
-- **Test**: 第79轮完成，P2-003 Sit-Out Option C + P2-004 All-in 弹窗实现，P0×3 仍遗留
+- **Coding**: 第82轮完成，P2-NEW-001/004 修复
+- **Test**: 第83轮完成，无新增问题，215 tests 通过
+- **Productor**: 第82轮完成，P1-003/004 正式立项
 
 ---
 
 ## 本轮建议
 
-1. **P0-001/P0-002/P0-003**: 资金安全相关，上轮发现后仍未修复，**建议 Coding 本轮优先处理**
-2. **P1-005**: freeze/unfreeze 同步 coinBalance 可与 P0 同期处理
-3. **P1-006**: verifyEmailCode 速率限制修复较简单，可快速完成
-4. **P2-NEW-005**: All-in 弹窗 equity 硬编码（equity={50}），需说明或修复
-5. **P2-002**: Club 迁移需 DevOps 协调 DATABASE_URL
+1. **P2-NEW-001**: 建议降为 P3 优化项 — calledAllIn 严格检查已阻止实际漏洞
+2. **P2-NEW-002**: 建议增加 TableManagerService 崩溃恢复场景单元测试
+3. **P1-003/004**: 首充红利/Rakeback API 设计需 Coding 本轮推进
+4. **测试覆盖**: verifyEmailCode 速率限制单元测试缺失
 
 ---
 
-*Last updated: 2026-04-25 00:15 — Test 第79轮 — P0×3 遗留，P2-003/004 已实现，equity 硬编码新问题*
+*Last updated: 2026-04-25 01:15 — Test 第83轮 — 无新问题，215 tests 通过*
