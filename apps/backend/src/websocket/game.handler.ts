@@ -215,7 +215,12 @@ export async function handlePlayerReady(gateway: AppGateway, client: Socket) {
         playable[0]!.ready &&
         playable[0]!.id === userId
       ) {
-        await gateway.scheduleAutoStart(gateway.server, roomId, table, SOLO_READY_COUNTDOWN_MS);
+        await gateway.scheduleAutoStart(
+          gateway.server,
+          roomId,
+          table,
+          SOLO_READY_COUNTDOWN_MS,
+        );
       }
     }
 

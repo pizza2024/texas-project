@@ -1,61 +1,47 @@
-# Test 代理报告
+# Test — 最新状态
 
-> **时间**: 2026-04-24 0734
-> **类型**: 轮询报告（第12轮）
-> **项目**: Texas Hold'em Monorepo
+> **时间戳**: 2026-04-24 11:31
+> **轮次**: 第28轮
 
----
-
-## 状态总览
+## 健康状态
 
 | 状态 | 数量 | 详情 |
 |------|------|------|
-| 🔴 P0 | 1项 | T-009 — app.gateway.spec.ts 仍有 1/11 测试失败 |
-| ✅ P1 | 全部清零 | 无新增 P1 问题 |
-| ⚠️ P2 | 2项待处理 | W-004（WebSocket集成测试）、W-005（游戏E2E测试） |
+| P0 | 0 | 无紧急/阻塞问题 |
+| P1 | 0 | 无重要功能缺陷 |
+| P2 | 2 | P-UX-2（Sit-Out）、P-UX-3b（All-in确认弹窗待人工） |
 
----
+## 本轮审查
 
-## P0 — T-009: 测试失败数量从 4 降至 1
+无新 commit（工作区未暂存变更）：
 
-**测试结果**: 1 failed, 10 passed / 11 total
-
-**进展**: 上一轮（06:01）报告的 4 个失败测试中，3 个已自动通过。
-
-**仍失败的 1 个测试**:
-- `rebuilds an in-progress settlement timer from restored state` (line 725)
-
-**失败原因**:
-- `table.resetToWaiting` 和 `table.beginReadyCountdown` 未被调用
-- `ensureRecoveredRoundFlow` 检测到 `currentStage= SETTLEMENT` 但 mock `timerService.ensureRecoveredRoundFlow` 是空函数
-- advancing timers 后 settlement flow 未触发
-
-**DEBUG console.log 残留**:
-```
-app.gateway.ts:229: console.log('[DEBUG ensureRecoveredRoundFlow] called, currentStage=', table.currentStage);
-```
-
----
+| 模块 | 变更 | 审查 |
+|------|------|------|
+| AppGateway | `__testFinalizeSettlement` 测试助手 | ✅ 安全 |
+| Game Handler | `scheduleAutoStart` 参数格式化 | ✅ 无功能变更 |
+| Friends Page | TypeScript `any`→`unknown` 类型强化 | ✅ 改进 |
+| AppGateway Spec | mock 格式重构（222行） | ✅ 测试代码 |
+| Socket.io Integration | `socket-io.integration.spec.ts` 新文件（107行） | ✅ W-004 完成 |
 
 ## 测试覆盖率
 
-```
-Tests: 1 failed, 195 passed, 196 total
-  └─ table-engine:  133 passed (100%)
-  └─ app.gateway:   10 passed, 1 failed
-```
+- 后端 SPEC 文件：**21 个** `.spec.ts`
+- Lint 检查：✅ 全部通过
+- W-004：`socket-io.integration.spec.ts` 已实现
 
----
+## 待跟进
 
-## 任务队列
+| ID | 任务 | 状态 |
+|----|------|------|
+| P-UX-2 | Sit-Out 重构 | Pending（待人工排期） |
+| P-UX-3b | All-in 确认弹窗 | Pending（待人工确认） |
+| W-004 | WebSocket 集成测试 | ✅ 已实现 |
+| W-005 | 游戏完整 E2E 测试 | Pending CI |
 
-### P0 — 阻塞
-- [ ] T-009: ensureRecoveredRoundFlow mock 空函数导致 settlement timer 恢复测试失败
+## 建议
 
-### P2 — 近期处理
-- [ ] W-004: WebSocket 真实 Socket.io 集成测试
-- [ ] W-005: 游戏完整 E2E 测试
+1. 提交工作区未暂存的变更（socket-io 集成测试 + 类型修复）
+2. 配置 CI 环境验证 W-004/W-005
+3. P-UX-2/P-UX-3b 人工排期确认
 
----
-
-*Test — 2026-04-24 0734*
+*Test — 2026-04-24 11:31*
