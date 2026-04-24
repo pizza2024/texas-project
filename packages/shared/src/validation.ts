@@ -6,8 +6,8 @@ export const JoinRoomSchema = z.object({
 });
 
 export const PlayerActionSchema = z.object({
-  action: z.enum(['check', 'fold', 'call', 'raise', 'allin', 'sit-out']),
-  amount: z.number().nonnegative().optional(),
+  action: z.enum(['check', 'fold', 'call', 'raise', 'allin', 'straddle', 'sit-out']),
+  amount: z.number().nonnegative().max(1_000_000_000).optional(),
   roomId: z.string().min(1).optional(), // Optional - can be derived from user's current room
 });
 
