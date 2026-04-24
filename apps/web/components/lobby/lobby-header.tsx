@@ -118,6 +118,22 @@ export function LobbyHeader({
           💸 {t('common.withdraw')}
         </Button>
 
+        {/* Rakeback button — sm+ only */}
+        <Button
+          onClick={() => router.push('/rakeback')}
+          className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+          style={{
+            background:
+              'linear-gradient(135deg, #1c1a10 0%, #2d2405 40%, #a16207 100%)',
+            color: '#fef3c7',
+            border: 'none',
+            boxShadow:
+              '0 0 20px rgba(234,179,8,0.15), 0 4px 10px rgba(0,0,0,0.4)',
+          }}
+        >
+          🎁 {t('rakeback.navButton', 'Rakeback')}
+        </Button>
+
         {/* Friends button — sm+ only */}
         <Button
           onClick={() => router.push('/friends')}

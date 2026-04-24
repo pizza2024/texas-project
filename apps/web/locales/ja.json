@@ -247,5 +247,52 @@
   "auth.invalidCode": "コードが無効または期限切れです",
   "auth.emailRequired": "先にメールの確認を完了してください",
   "room.straddle": "Straddle",
-  "room.sitOut": "Sit Out"
+  "room.sitOut": "Sit Out",
+  "withdraw": {
+    "availableBalance": "引出し可能残高",
+    "minWithdraw": "最低引出し額",
+    "newRequest": "新規引出しリクエスト",
+    "receiveAddress": "USDT 受取アドレス (Sepolia)",
+    "amountChips": "数量 (Chips)",
+    "invalidAddress": "無効なETHアドレス",
+    "invalidAmount": "有効な金額を入力してください",
+    "minAmount": "最低 {{chips}} chips（{{usdt}} USDT）",
+    "insufficientBalance": "残高不足、利用可能：{{available}}",
+    "submitButton": "引出しを申請",
+    "submitting": "申請中...",
+    "cooldown": "クールダウン中",
+    "submitSuccess": "引出しを申請しました：{{chips}} chips（{{usdt}} USDT）— 管理者承認待ち",
+    "submitError": "引出しに失敗しました。もう一度お試しください",
+    "history": "引出し履歴",
+    "noHistory": "引出し履歴なし",
+    "statusPending": "保留中",
+    "statusProcessing": "処理中",
+    "statusConfirmed": "確認済み",
+    "statusFailed": "失敗",
+    "failedReason": "失敗理由",
+    "loadError": "引出し情報の読み込みに失敗しました"
+  },
+  "rakeback": {
+    "navButton": "リバベート",
+    "title": "リバベート",
+    "availableBalance": "利用可能残高",
+    "chips": "チップ",
+    "rakebackRate": "リバベート率",
+    "totalRake": "累計レイク",
+    "progressToNextTier": "次のティアへの進捗",
+    "rake": "レイク",
+    "rakeToNextTier": "あと {{amount}} のレイクで解除",
+    "maxTierReached": "最高ティア達成",
+    "maxTierDesc": "最高のリベート率を獲得中",
+    "claimButton": "チップに変換",
+    "claiming": "変換中…",
+    "loadError": "リバベート情報の読み込みに失敗しました",
+    "claimSuccess": "{{amount}} チップを獲得しました！",
+    "claimError": "変換に失敗しました。もう一度お試しください",
+    "tierBenefits": "ティア特典",
+    "rakeback": "リバベート"
+  },
+  "friends": {
+    "title": "フレンド"
+  }
 }

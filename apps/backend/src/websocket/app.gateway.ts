@@ -119,11 +119,11 @@ export class AppGateway
     return this.connectionState.checkRateLimit(userId);
   }
 
-  checkPasswordAttemptLimit(ip: string, roomId: string) {
+  async checkPasswordAttemptLimit(ip: string, roomId: string) {
     return this.connectionState.checkPasswordAttemptLimit(ip, roomId);
   }
 
-  clearPasswordAttempts(ip: string, roomId: string) {
+  async clearPasswordAttempts(ip: string, roomId: string) {
     return this.connectionState.clearPasswordAttempts(ip, roomId);
   }
 
@@ -539,7 +539,18 @@ export class AppGateway
   async handlePlayerAction(
     @ConnectedSocket() client: Socket,
     @MessageBody()
-    data: { action: 'check' | 'fold' | 'call' | 'raise' | 'allin' | 'straddle' | 'sit-out'; amount?: number; roomId?: string },
+    data: {
+      action:
+        | 'check'
+        | 'fold'
+        | 'call'
+        | 'raise'
+        | 'allin'
+        | 'straddle'
+        | 'sit-out';
+      amount?: number;
+      roomId?: string;
+    },
   ) {
     return handlePlayerAction(this, client, data);
   }

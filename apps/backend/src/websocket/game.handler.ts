@@ -96,7 +96,7 @@ export async function handleJoinRoom(
       // Password brute-force protection — check before verifying password
       const rawIp = client.handshake?.address ?? '0.0.0.0';
       const ipHash = gateway.matchmakingService.hashIp(rawIp);
-      const bruteForceResult = gateway.checkPasswordAttemptLimit(
+      const bruteForceResult = await gateway.checkPasswordAttemptLimit(
         ipHash,
         roomId,
       );
@@ -120,7 +120,7 @@ export async function handleJoinRoom(
           return { event: 'wrong_password', data: { roomId } };
         }
         // Successful password entry — clear brute-force counter
-        gateway.clearPasswordAttempts(ipHash, roomId);
+        await gateway.clearPasswordAttempts(ipHash, roomId);
       }
 
       await gateway.ensureRecoveredRoundFlow(roomId, table);

@@ -320,6 +320,7 @@ describe('WithdrawService', () => {
     };
 
     beforeEach(() => {
+      prisma.$transaction.mockImplementation(async (fn) => fn(prisma));
       prisma.withdrawRequest.findUnique.mockResolvedValue(
         mockPendingRequest as any,
       );

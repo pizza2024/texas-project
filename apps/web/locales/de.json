@@ -227,5 +227,52 @@
   "auth.invalidCode": "Code ungültig oder abgelaufen",
   "auth.emailRequired": "Bitte verifizieren Sie zuerst Ihre E-Mail",
   "room.straddle": "Straddle",
-  "room.sitOut": "Sit Out"
+  "room.sitOut": "Sit Out",
+  "withdraw": {
+    "availableBalance": "Auszahlbares Guthaben",
+    "minWithdraw": "Min. Auszahlung",
+    "newRequest": "Neue Auszahlungsanfrage",
+    "receiveAddress": "USDT-Empfangsadresse (Sepolia)",
+    "amountChips": "Betrag (Chips)",
+    "invalidAddress": "Ungültige ETH-Adresse",
+    "invalidAmount": "Bitte geben Sie einen gültigen Betrag ein",
+    "minAmount": "Mindestens {{chips}} Chips ({{usdt}} USDT)",
+    "insufficientBalance": "Unzureichendes Guthaben, verfügbar: {{available}}",
+    "submitButton": "Auszahlung anfordern",
+    "submitting": "Wird gesendet...",
+    "cooldown": "Abkühlphase",
+    "submitSuccess": "Auszahlung eingereicht: {{chips}} Chips ({{usdt}} USDT) — wartet auf Admin-Genehmigung",
+    "submitError": "Auszahlung fehlgeschlagen. Bitte versuchen Sie es erneut",
+    "history": "Auszahlungsverlauf",
+    "noHistory": "Noch keine Auszahlungen",
+    "statusPending": "Ausstehend",
+    "statusProcessing": "In Bearbeitung",
+    "statusConfirmed": "Bestätigt",
+    "statusFailed": "Fehlgeschlagen",
+    "failedReason": "Fehlergrund",
+    "loadError": "Auszahlungsinformationen konnten nicht geladen werden"
+  },
+  "rakeback": {
+    "navButton": "Rakeback",
+    "title": "Rakeback",
+    "availableBalance": "Verfügbares Guthaben",
+    "chips": "CHIPS",
+    "rakebackRate": "Rakeback-Satz",
+    "totalRake": "Gesamter Rake",
+    "progressToNextTier": "Fortschritt zur nächsten Stufe",
+    "rake": "Rake",
+    "rakeToNextTier": "Noch {{amount}} Rake zum Freischalten",
+    "maxTierReached": "Höchste Stufe erreicht",
+    "maxTierDesc": "Sie erhalten den höchsten Rakeback-Satz",
+    "claimButton": "In Chips umwandeln",
+    "claiming": "Wird umgewandelt…",
+    "loadError": "Rakeback-Informationen konnten nicht geladen werden",
+    "claimSuccess": "{{amount}} Chips erhalten!",
+    "claimError": "Umwandlung fehlgeschlagen. Bitte versuchen Sie es erneut",
+    "tierBenefits": "Stufenvorteile",
+    "rakeback": "Rakeback"
+  },
+  "friends": {
+    "title": "Freunde"
+  }
 }

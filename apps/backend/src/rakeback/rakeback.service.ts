@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Rakeback tier thresholds and rates */
@@ -45,6 +45,101 @@ export class RakebackService {
   }
 
   /**
+   * Gets the user's rakeback info including balance, tier, rate, and progress to next tier.
+   */
+  async getRakeback(userId: string): Promise<{
+    rakebackBalance: number;
+    tier: RakebackTier;
+    rate: number;
+    totalRake: number;
+    minRakeForNextTier: number | null;
+    rakeToNextTier: number | null;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { rakebackBalance: true, totalRake: true },
+    });
+
+    if (!user) {
+      return {
+        rakebackBalance: 0,
+        tier: 'BRONZE',
+        rate: TIER_THRESHOLDS.BRONZE.rate,
+        totalRake: 0,
+        minRakeForNextTier: TIER_THRESHOLDS.SILVER.minRake,
+        rakeToNextTier: TIER_THRESHOLDS.SILVER.minRake,
+      };
+    }
+
+    const { rakebackBalance, totalRake } = user;
+    const { rate, tier } = await this.getRakebackRate(userId);
+
+    let minRakeForNextTier: number | null = null;
+    let rakeToNextTier: number | null = null;
+
+    if (tier === 'BRONZE') {
+      minRakeForNextTier = TIER_THRESHOLDS.SILVER.minRake;
+      rakeToNextTier = TIER_THRESHOLDS.SILVER.minRake - totalRake;
+    } else if (tier === 'SILVER') {
+      minRakeForNextTier = TIER_THRESHOLDS.GOLD.minRake;
+      rakeToNextTier = TIER_THRESHOLDS.GOLD.minRake - totalRake;
+    }
+
+    return {
+      rakebackBalance,
+      tier,
+      rate,
+      totalRake,
+      minRakeForNextTier,
+      rakeToNextTier,
+    };
+  }
+
+  /**
+   * Claims the user's rakeback balance by transferring it to their wallet chips.
+   * Uses atomic transaction to prevent race conditions.
+   */
+  async claimRakeback(userId: string): Promise<{
+    claimedAmount: number;
+    newChipsBalance: number;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { rakebackBalance: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const rakebackBalance = user.rakebackBalance;
+
+    if (rakebackBalance <= 0) {
+      throw new BadRequestException('No rakeback balance to claim');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.update({
+        where: { userId },
+        data: { chips: { increment: rakebackBalance } },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { rakebackBalance: 0 },
+      });
+
+      return { claimedAmount: rakebackBalance, newChipsBalance: wallet.chips };
+    });
+
+    this.logger.debug(
+      `[claimRakeback] userId=${userId} claimed=${result.claimedAmount} newChips=${result.newChipsBalance}`,
+    );
+
+    return result;
+  }
+
+  /**
    * Credits rakeback to a user's rakebackBalance based on their current tier.
    * The rakeback is calculated from the rakeAmount contributed in this hand.
    * Uses atomic transaction to update User.rakebackBalance.
@@ -62,12 +157,12 @@ export class RakebackService {
     }
 
     try {
-      await this.prisma.$transaction([
-        this.prisma.user.update({
+      await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({
           where: { id: userId },
           data: { rakebackBalance: { increment: rakebackAmount } },
-        }),
-      ]);
+        });
+      });
 
       this.logger.debug(
         `[creditRakeback] userId=${userId} tier=${tier} ` +

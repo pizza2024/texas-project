@@ -113,7 +113,7 @@ describe('AppGateway', () => {
         userSockets: new Map<string, any>(),
         pendingDisconnects: new Map<string, NodeJS.Timeout>(),
         checkRateLimit: jest.fn().mockResolvedValue(true),
-        checkPasswordAttemptLimit: jest.fn(),
+        checkPasswordAttemptLimit: jest.fn().mockResolvedValue('ok'),
         clearPasswordAttempts: jest.fn(),
         hasOtherActiveSocket: jest.fn().mockResolvedValue(false),
         clearPendingDisconnect: jest

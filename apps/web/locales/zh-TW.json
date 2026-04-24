@@ -246,5 +246,52 @@
   "deposit.confirmed": "已確認",
   "deposit.loadError": "載入充值資訊失敗，請稍後重試",
   "room.straddle": "Straddle",
-  "room.sitOut": "Sit Out"
+  "room.sitOut": "Sit Out",
+  "withdraw": {
+    "availableBalance": "可提現餘額",
+    "minWithdraw": "最低提現",
+    "newRequest": "新建提現請求",
+    "receiveAddress": "USDT 收款地址 (Sepolia)",
+    "amountChips": "提現數量 (Chips)",
+    "invalidAddress": "無效的 ETH 地址",
+    "invalidAmount": "請輸入有效金額",
+    "minAmount": "最低 {{chips}} chips（{{usdt}} USDT）",
+    "insufficientBalance": "餘額不足，目前可用：{{available}}",
+    "submitButton": "提交提現",
+    "submitting": "提交中...",
+    "cooldown": "冷卻中",
+    "submitSuccess": "提現已提交：{{chips}} chips（{{usdt}} USDT）— 等待管理員審批",
+    "submitError": "提現失敗，請稍後重試",
+    "history": "提現記錄",
+    "noHistory": "暫無提現記錄",
+    "statusPending": "待處理",
+    "statusProcessing": "處理中",
+    "statusConfirmed": "已確認",
+    "statusFailed": "已失敗",
+    "failedReason": "失敗原因",
+    "loadError": "載入提現資訊失敗，請稍後重試"
+  },
+  "rakeback": {
+    "navButton": "回饋",
+    "title": "回饋",
+    "availableBalance": "可領取餘額",
+    "chips": "籌碼",
+    "rakebackRate": "回饋比例",
+    "totalRake": "累計抽水",
+    "progressToNextTier": "距下一檔位",
+    "rake": "抽水",
+    "rakeToNextTier": "再貢獻 {{amount}} 抽水即可解鎖",
+    "maxTierReached": "已達到最高檔位",
+    "maxTierDesc": "您正在享受最高回饋比例",
+    "claimButton": "領取至籌碼",
+    "claiming": "領取中…",
+    "loadError": "載入回饋資訊失敗，請稍後重試",
+    "claimSuccess": "已領取 {{amount}} 籌碼！",
+    "claimError": "領取失敗，請稍後重試",
+    "tierBenefits": "檔位權益",
+    "rakeback": "回饋"
+  },
+  "friends": {
+    "title": "好友"
+  }
 }

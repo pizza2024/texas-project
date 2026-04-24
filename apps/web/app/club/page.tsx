@@ -74,6 +74,7 @@ function ClubAvatar({ avatar, name, size = 'md' }: { avatar: string | null; name
   const sz = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-16 h-16 text-2xl' : 'w-12 h-12 text-sm';
   if (avatar) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img src={avatar} alt={name} className={`${sz} rounded-xl object-cover`} />
     );
   }
@@ -606,6 +607,7 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
                     >
                       {member.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={member.avatar} className="w-8 h-8 rounded-lg object-cover" alt={member.nickname} />
                       ) : (
                         <div
@@ -656,6 +658,7 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
                   messages.map(msg => (
                     <div key={msg.id} className="flex gap-2.5">
                       {msg.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={msg.avatar} className="w-7 h-7 rounded-lg object-cover mt-0.5 flex-shrink-0" alt={msg.nickname} />
                       ) : (
                         <div

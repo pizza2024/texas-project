@@ -227,5 +227,52 @@
   "auth.invalidCode": "Hindi wasto o-expired ang code",
   "auth.emailRequired": "Muna, i-verify ang email",
   "room.straddle": "Straddle",
-  "room.sitOut": "Sit Out"
+  "room.sitOut": "Sit Out",
+  "withdraw": {
+    "availableBalance": "Available sa Withdraw",
+    "minWithdraw": "Min Withdraw",
+    "newRequest": "Bagong Withdraw Request",
+    "receiveAddress": "USDT Receive Address (Sepolia)",
+    "amountChips": "Halaga (Chips)",
+    "invalidAddress": "Hindi wasto ang ETH address",
+    "invalidAmount": "Magpasok ng wasto na halaga",
+    "minAmount": "Minimum {{chips}} chips ({{usdt}} USDT)",
+    "insufficientBalance": "Hindi sapat ang balance, available: {{available}}",
+    "submitButton": "Mag-Withdraw",
+    "submitting": "I-submit...",
+    "cooldown": "Cooldown",
+    "submitSuccess": "Na-submit ang withdraw: {{chips}} chips ({{usdt}} USDT) — naghihintay ng admin approval",
+    "submitError": "Nabigo ang withdraw. Subukang muli",
+    "history": "History ng Withdraw",
+    "noHistory": "Wala pang withdraw record",
+    "statusPending": "Pending",
+    "statusProcessing": "Process",
+    "statusConfirmed": "Confirmed",
+    "statusFailed": "Failed",
+    "failedReason": "Dahilan ng failure",
+    "loadError": "Hindi ma-load ang withdraw info"
+  },
+  "rakeback": {
+    "navButton": "Rakeback",
+    "title": "Rakeback",
+    "availableBalance": "Available na Balance",
+    "chips": "CHIPS",
+    "rakebackRate": "Rakeback Rate",
+    "totalRake": "Total Rake",
+    "progressToNextTier": "Progress sa Next Tier",
+    "rake": "rake",
+    "rakeToNextTier": "{{amount}} pa ang rake para ma-unlock",
+    "maxTierReached": "Nakarating sa Highest Tier",
+    "maxTierDesc": "Nag-eearn ka na ng highest rakeback rate",
+    "claimButton": "I-claim sa Chips",
+    "claiming": "Ine-claim...",
+    "loadError": "Hindi ma-load ang rakeback info",
+    "claimSuccess": "Na-claim ang {{amount}} chips!",
+    "claimError": "Nabigo mag-claim. Subukang muli",
+    "tierBenefits": "Tier Benefits",
+    "rakeback": "Rakeback"
+  },
+  "friends": {
+    "title": "Mga kaibigan"
+  }
 }
