@@ -41,6 +41,10 @@ model User {
   sentFriends     Friend[]    @relation("FriendRequester")
   receivedFriends Friend[]    @relation("FriendAddressee")
 
+  clubMemberships ClubMember[]
+  ownedClubs      Club[]      @relation("ClubOwner")
+  clubChats       ClubChat[]
+
   @@map("users")
 }
 
@@ -83,6 +87,8 @@ model Room {
   createdAt     DateTime @default(now())
   
   tables      Table[]
+  clubId      String?
+  club        Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
 
   @@map("rooms")
 }
@@ -232,4 +238,50 @@ model Friend {
 
   @@unique([requesterId, addresseeId])
   @@map("friends")
+}
+
+model Club {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String
+  avatar      String?
+  status      String   @default("ACTIVE") // ACTIVE, BANNED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User         @relation("ClubOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     ClubMember[]
+  rooms       Room[]
+  chats       ClubChat[]
+
+  @@map("clubs")
+}
+
+model ClubMember {
+  id        String   @id @default(uuid())
+  clubId    String
+  userId    String
+  role      String   @default("MEMBER") // OWNER, ADMIN, MEMBER
+  joinedAt  DateTime @default(now())
+
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@map("club_members")
+}
+
+model ClubChat {
+  id        String   @id @default(uuid())
+  clubId    String
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, createdAt])
+  @@map("club_chats")
 }

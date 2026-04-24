@@ -17,6 +17,7 @@ import { WithdrawModule } from './withdraw/withdraw.module';
 import { HealthController } from './health/health.controller';
 import { BotModule } from './bot/bot.module';
 import { FriendModule } from './friend/friend.module';
+import { ClubModule } from './club/club.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { FriendModule } from './friend/friend.module';
     WithdrawModule,
     BotModule,
     FriendModule,
+    ClubModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
