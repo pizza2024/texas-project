@@ -302,6 +302,41 @@ export class DepositService {
         data: { userId, amount: chips.toNumber(), type: 'DEPOSIT' },
       });
 
+      // First Deposit Bonus: 100% match up to 100 USDT (10000 chips)
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { hasReceivedFirstDepositBonus: true },
+      });
+
+      if (user && !user.hasReceivedFirstDepositBonus) {
+        const bonusUsdt = Math.min(amount.toNumber(), 100);
+        const bonusChips = bonusUsdt * USDT_TO_CHIPS_RATE; // 100 chips per USDT
+
+        const currentBalanceAfterDeposit =
+          await this.walletService.getBalance(userId);
+        const newBalanceWithBonus = new BigNumber(
+          currentBalanceAfterDeposit,
+        ).plus(bonusChips);
+
+        await this.walletService.setBalance(
+          userId,
+          newBalanceWithBonus.toNumber(),
+        );
+
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { hasReceivedFirstDepositBonus: true },
+        });
+
+        await this.prisma.transaction.create({
+          data: { userId, amount: bonusChips, type: 'BONUS' },
+        });
+
+        this.logger.log(
+          `First Deposit Bonus: ${bonusUsdt.toFixed()} USDT → ${bonusChips.toFixed()} chips for user ${userId}`,
+        );
+      }
+
       this.logger.log(
         `Deposit processed: ${amount.toFixed()} USDT → ${chips.toFixed()} chips for user ${userId} (tx: ${txHash})`,
       );

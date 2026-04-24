@@ -31,6 +31,7 @@ model User {
   emailVerificationCode     String?
   emailVerificationExpiry  DateTime?
   
+  hasReceivedFirstDepositBonus Boolean  @default(false)
   wallet         Wallet?
   handsWon       Hand[]
   actions        HandAction[]

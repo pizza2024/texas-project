@@ -119,6 +119,7 @@ describe('TableManagerService', () => {
   });
 
   it('restores a table from a persisted snapshot', async () => {
+    prisma.table.findMany.mockResolvedValue([]); // No WAITING tables to clean
     prisma.table.findUnique.mockResolvedValue({
       stateSnapshot: JSON.stringify({
         id: room.id,
@@ -164,6 +165,135 @@ describe('TableManagerService', () => {
     expect(table?.players[0]?.stack).toBe(900);
     expect(table?.currentStage).toBe('FLOP');
     expect(table?.actionEndsAt).toBe(123456);
+  });
+
+  it('recovers mid-hand table from SQLite snapshot on server restart', async () => {
+    // Setup: SQLite has a FLOP-stage table with 2 players
+    prisma.table.findMany.mockResolvedValue([]); // No WAITING tables to clean
+    prisma.table.findUnique.mockResolvedValue({
+      stateSnapshot: JSON.stringify({
+        id: room.id,
+        roomId: room.id,
+        players: [
+          {
+            id: 'user-1',
+            nickname: 'alice',
+            avatar: '',
+            stack: 900,
+            bet: 100,
+            totalBet: 100,
+            status: 'ACTIVE',
+            cards: ['As', 'Kd'],
+            position: 0,
+            isButton: true,
+            isSmallBlind: false,
+            isBigBlind: false,
+            hasActed: true,
+            ready: false,
+          },
+          {
+            id: 'user-2',
+            nickname: 'bob',
+            avatar: '',
+            stack: 800,
+            bet: 0,
+            totalBet: 200,
+            status: 'ACTIVE',
+            cards: ['Jh', 'Qc'],
+            position: 1,
+            isButton: false,
+            isSmallBlind: false,
+            isBigBlind: true,
+            hasActed: false,
+            ready: false,
+          },
+          null,
+        ],
+        deck: [],
+        communityCards: ['Ah', 'Kh', 'Qh'],
+        pot: 300,
+        currentBet: 100,
+        currentStage: 'FLOP',
+        activePlayerIndex: 1,
+        dealerIndex: 0,
+        minBet: 20,
+        actionEndsAt: Date.now() + 30000,
+      }),
+    });
+
+    // Act
+    const table = await service.getTable(room.id);
+
+    // Assert: table recovered with correct FLOP state
+    expect(table?.currentStage).toBe('FLOP');
+    expect(table?.pot).toBe(300);
+    expect(table?.communityCards).toEqual(['Ah', 'Kh', 'Qh']);
+    expect(table?.players[0]?.stack).toBe(900);
+    expect(table?.players[1]?.stack).toBe(800);
+    expect(table?.players[0]?.cards).toEqual(['As', 'Kd']);
+    expect(table?.players[1]?.cards).toEqual(['Jh', 'Qc']);
+    expect(walletService.resetBalanceAndUnfreeze).not.toHaveBeenCalled(); // Mid-hand, don't release chips
+  });
+
+  it('does not call resetBalanceAndUnfreeze for mid-hand recovery (FLOP)', async () => {
+    // Setup: SQLite has a FLOP-stage table with 2 players
+    prisma.table.findMany.mockResolvedValue([]); // No WAITING tables to clean
+    prisma.table.findUnique.mockResolvedValue({
+      stateSnapshot: JSON.stringify({
+        id: room.id,
+        roomId: room.id,
+        players: [
+          {
+            id: 'user-1',
+            nickname: 'alice',
+            avatar: '',
+            stack: 900,
+            bet: 100,
+            totalBet: 100,
+            status: 'ACTIVE',
+            cards: ['As', 'Kd'],
+            position: 0,
+            isButton: true,
+            isSmallBlind: false,
+            isBigBlind: false,
+            hasActed: true,
+            ready: false,
+          },
+          {
+            id: 'user-2',
+            nickname: 'bob',
+            avatar: '',
+            stack: 800,
+            bet: 0,
+            totalBet: 200,
+            status: 'ACTIVE',
+            cards: ['Jh', 'Qc'],
+            position: 1,
+            isButton: false,
+            isSmallBlind: false,
+            isBigBlind: true,
+            hasActed: false,
+            ready: false,
+          },
+          null,
+        ],
+        deck: [],
+        communityCards: ['Ah', 'Kh', 'Qh'],
+        pot: 300,
+        currentBet: 100,
+        currentStage: 'FLOP',
+        activePlayerIndex: 1,
+        dealerIndex: 0,
+        minBet: 20,
+        actionEndsAt: Date.now() + 30000,
+      }),
+    });
+
+    // Act
+    await service.getTable(room.id);
+
+    // Assert: resetBalanceAndUnfreeze was NOT called because players are in FLOP stage (not WAITING)
+    expect(walletService.resetBalanceAndUnfreeze).not.toHaveBeenCalled();
   });
 
   it('clears stale WAITING seats on startup and releases frozen chips', async () => {
