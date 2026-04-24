@@ -11,6 +11,7 @@ export interface Room {
   maxPlayers: number;
   minBuyIn: number;
   isPrivate?: boolean;
+  tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
 }
 
 export interface RoomStatus {
@@ -36,6 +37,15 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
 
   const fillPercent = maxPlayers > 0 ? (currentPlayers / maxPlayers) * 100 : 0;
 
+  const tierColors: Record<string, string> = {
+    MICRO: 'rgba(52,211,153)',
+    LOW: 'rgba(45,212,191)',
+    MEDIUM: 'rgba(245,158,11)',
+    HIGH: 'rgba(249,115,22)',
+    PREMIUM: 'rgba(168,85,247)',
+  };
+  const tierColor = room.tier ? tierColors[room.tier] ?? 'rgba(200,200,200,0.5)' : 'rgba(200,200,200,0.5)';
+
   return (
     <div
       className="rounded-2xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] cursor-pointer"
@@ -53,11 +63,23 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {room.isPrivate && <span className="text-sm">🔒</span>}
             <h3 className="font-black text-white text-base truncate tracking-wide">
               {room.name}
             </h3>
+            {room.tier && (
+              <span
+                className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
+                style={{
+                  background: `${tierColor}20`,
+                  color: tierColor,
+                  border: `1px solid ${tierColor}40`,
+                }}
+              >
+                {room.tier}
+              </span>
+            )}
           </div>
           <p
             className="text-[10px] tracking-[0.2em] uppercase mt-0.5"

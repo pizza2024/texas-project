@@ -546,6 +546,7 @@ interface Room {
   maxPlayers: number;
   minBuyIn: number;
   isPrivate?: boolean;
+  tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
 }
 
 interface RoomStatus {
@@ -881,20 +882,77 @@ export default function RoomsPage() {
   if (loading) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
+        className="min-h-screen"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 35%, #0d2818 0%, #060e10 55%, #020406 100%)",
+            "radial-gradient(ellipse at 50% 20%, #0d2818 0%, #060e10 55%, #020406 100%)",
         }}
       >
-        <div className="text-center space-y-3">
-          <div className="text-5xl animate-pulse">🃏</div>
-          <p
-            className="text-sm tracking-[0.3em] uppercase font-semibold"
-            style={{ color: "rgba(245,158,11,0.7)" }}
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 space-y-8">
+          {/* Header skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6"
+            style={{ borderBottom: "1px solid rgba(234,179,8,0.15)" }}
           >
-            {t("lobby.loadingTables")}
-          </p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg animate-pulse" style={{ background: "rgba(245,158,11,0.15)" }} />
+                <div className="w-32 h-8 rounded animate-pulse" style={{ background: "rgba(245,158,11,0.1)" }} />
+              </div>
+              <div className="w-24 h-3 rounded animate-pulse ml-13" style={{ background: "rgba(245,158,11,0.06)" }} />
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-24 h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+              ))}
+              <div className="w-10 h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+            </div>
+          </div>
+
+          {/* Filter bar skeleton */}
+          <div className="flex flex-wrap items-center gap-3 pb-2">
+            <div className="w-48 h-9 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="w-16 h-8 rounded-full animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+              ))}
+            </div>
+            <div className="w-20 h-8 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+          </div>
+
+          {/* Room card grid skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-4 flex flex-col gap-3"
+                style={{
+                  background: "linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)",
+                  border: "1px solid rgba(234,179,8,0.15)",
+                  animationDelay: `${i * 100}ms`,
+                }}
+              >
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 space-y-2">
+                    <div className="w-3/4 h-5 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)" }} />
+                    <div className="w-1/2 h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.05)" }} />
+                  </div>
+                  <div className="w-14 h-7 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+                </div>
+
+                {/* Progress bar skeleton */}
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <div className="h-full rounded-full animate-pulse" style={{ width: "60%", background: "rgba(255,255,255,0.1)" }} />
+                </div>
+
+                {/* Footer row */}
+                <div className="flex items-center justify-between">
+                  <div className="w-1/3 h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <div className="w-16 h-7 rounded-lg animate-pulse" style={{ background: "rgba(245,158,11,0.12)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
