@@ -129,14 +129,22 @@ export class WalletService {
   /**
    * Lock a player's chips when they sit at a table.
    * The entire stack is frozen so they cannot join a second table.
+   * Also decrements User.coinBalance by the frozen amount so that the
+   * user's reported balance accurately reflects the frozen state.
    */
   async freezeBalance(userId: string, amount: number): Promise<void> {
     const normalized = Math.max(0, amount);
-    await this.prisma.wallet.upsert({
-      where: { userId },
-      update: { frozenChips: normalized },
-      create: { userId, chips: normalized, frozenChips: normalized },
-    });
+    await this.prisma.$transaction([
+      this.prisma.wallet.upsert({
+        where: { userId },
+        update: { frozenChips: normalized },
+        create: { userId, chips: normalized, frozenChips: normalized },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { coinBalance: { decrement: normalized } },
+      }),
+    ]);
   }
 
   /**
@@ -166,12 +174,27 @@ export class WalletService {
     ]);
   }
 
-  /** Release frozen chips when a player leaves a table. */
+  /**
+   * Release frozen chips when a player leaves a table.
+   * Increments User.coinBalance by the wallet's frozenChips amount so that
+   * the user's reported balance is restored. Uses $transaction for atomicity.
+   */
   async unfreezeBalance(userId: string): Promise<void> {
-    await this.prisma.wallet.updateMany({
+    const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
-      data: { frozenChips: 0 },
+      select: { frozenChips: true },
     });
+    const frozenAmount = wallet?.frozenChips ?? 0;
+    await this.prisma.$transaction([
+      this.prisma.wallet.updateMany({
+        where: { userId },
+        data: { frozenChips: 0 },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { coinBalance: { increment: frozenAmount } },
+      }),
+    ]);
   }
 
   /**

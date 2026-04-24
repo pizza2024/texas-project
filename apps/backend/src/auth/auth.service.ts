@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  TooManyRequestsException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -27,6 +28,9 @@ export class AuthService {
   private static readonly OTP_TTL_SECONDS = 600; // 10 minutes
   private static readonly OTP_RATE_LIMIT_PREFIX = 'otp_rate:';
   private static readonly OTP_RATE_LIMIT_SECONDS = 60; // 1 per 60 seconds
+  private static readonly OTP_ATTEMPTS_PREFIX = 'otp_attempts:';
+  private static readonly OTP_MAX_ATTEMPTS = 5;
+  private static readonly OTP_ATTEMPTS_TTL_SECONDS = 300; // 5 minutes
 
   constructor(
     private userService: UserService,
@@ -173,11 +177,22 @@ export class AuthService {
     code: string,
   ): Promise<{ emailVerifyToken: string }> {
     const normalizedEmail = email.toLowerCase();
+    const attemptsKey = AuthService.OTP_ATTEMPTS_PREFIX + normalizedEmail;
+
+    // Check failed attempt count
+    const attempts = await this.redisService.get(attemptsKey);
+    if (attempts && parseInt(attempts, 10) >= AuthService.OTP_MAX_ATTEMPTS) {
+      throw new TooManyRequestsException(
+        'Too many failed attempts. Please try again after 5 minutes.',
+      );
+    }
 
     const stored = await this.redisService.get(
       `email_verify:${normalizedEmail}`,
     );
     if (!stored) {
+      // Delete attempts counter on expiry
+      await this.redisService.del(attemptsKey);
       throw new BadRequestException(
         'No verification code found. Please request a new one.',
       );
@@ -185,17 +200,32 @@ export class AuthService {
 
     const { code: storedCode, expiresAt } = JSON.parse(stored);
     if (storedCode !== code) {
-      throw new BadRequestException('Invalid verification code');
+      // Increment failed attempts counter
+      await this.redisService.incr(
+        attemptsKey,
+        AuthService.OTP_ATTEMPTS_TTL_SECONDS,
+      );
+      const currentAttempts = (await this.redisService.get(attemptsKey)) || '1';
+      const remaining =
+        AuthService.OTP_MAX_ATTEMPTS - parseInt(currentAttempts, 10);
+      throw new BadRequestException(
+        remaining > 0
+          ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+          : 'Invalid verification code.',
+      );
     }
 
     if (new Date(expiresAt) < new Date()) {
+      // Delete attempts counter on expiry
+      await this.redisService.del(attemptsKey);
       throw new BadRequestException(
         'Verification code has expired. Please request a new one.',
       );
     }
 
-    // Invalidate the code
+    // Invalidate the code and clear attempts counter
     await this.redisService.del(`email_verify:${normalizedEmail}`);
+    await this.redisService.del(attemptsKey);
 
     // Generate a short-lived token for registration
     const emailVerifyToken = randomUUID();

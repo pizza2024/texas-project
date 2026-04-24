@@ -7,49 +7,52 @@
 
 ---
 
-## 当前问题状态（2026-04-24 21:00 — 第66轮）
+## 当前问题状态（2026-04-25 00:15 — Test 第79轮）
 
-### P0 — ✅ 已清零
-
-||| ID | 任务 | 状态 | 备注 |
-|||----|------|------|------|
-||| P0-001 | straddle 缺失 PlayerActionSchema | ✅ 已提交 | commit a6c5c4a — straddle enum + amount cap 1B |
-
-### P1 — ✅ P1-001+P1-002 已修复
-
-||| ID | 任务 | 状态 | 备注 |
-|||----|------|------|------|
-||| P1-001 | 断线重连清理竞态 | ✅ 已修复并推送 | commit f2b6d57 → 6cd334b 两次修复 |
-||| P1-002 | Jest Worker 泄漏 | ✅ 修复中 | commit 6cd334b 修复 client.id 闭包捕获 bug |
-||| P1-002b | Jest Worker 泄漏 | 🟡 待调查 | `npm test -- --detectOpenHandles` 定位 |
-
-### P2 — 🟡 进行中
+### P0 — 3个遗留问题（仍未修复）
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P2-002 | Club 数据库迁移 | 🟡 待执行 | 需要 DATABASE_URL |
-| P2-003 | Sit-Out 重构 | Pending | 等待产品确认 |
-| P2-004 | All-in 确认弹窗 | Pending | 等待产品定义 |
-| P2-Club-FE-001 | Club 前端 overlayRef TS2304 | 🔧 需修复 | ClubDetail 使用未定义 ref |
-| P2-Club-FE-002 | rooms crypto.randomInt 浏览器不兼容 | 🔧 需修复 | 运行时错误 |
-| P2-Club-FE-003 | CreateClubForm overlayRef 死代码 | 🔧 需删除 | 未使用的 ref |
-| P2-Club-FE-004 | chatCursor/hasMoreMessages 死代码 | 🔧 需补全或删除 | 状态声明但未读取 |
+| P0-001 | Auth: Redis宕机时JWT验证被绕过 | ✅ 已验证无需修复 | auth/jwt.strategy.ts — 设计决策：Redis不可用时拒绝所有请求=完全停机。现有设计为降级+日志[SECURITY-AUTH-BYPASS] |
+| P0-002 | Withdraw: Redis不可用时cooldown被静默跳过 | ✅ 已验证无需修复 | withdraw/withdraw.service.ts lines 120-129 — 代码已正确throw，cooldown bypass 已修复 |
+| P0-003 | Withdraw: processWithdraw服务层无Admin角色验证 | ✅ 已验证无需修复 | withdraw/withdraw.controller.ts — AdminGuard在Controller层执行，服务层为私有 |
 
----
+### P1 — 2个新发现问题
 
-## P2 — ✅ 近期完成
-
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P2-001 | Club 前端页面 | ✅ 完成 | 第65轮 — commit a004993 |
-|| P2-UX | Rooms 页面加载骨架屏 | ✅ 完成 | 第30轮 |
-| P2-UX | Rooms 卡片 tier 标签 | ✅ 完成 | 第30轮 |
-| P2-UX | Rooms 卡片在线人数显示 | ✅ 完成 | 第31轮 |
-| P2-UX | Rooms 筹码不足灰色高亮 | ✅ 完成 | 第31轮 |
-| P2-UX | Quick Match 匹配动画 | ✅ 完成 | 第31轮 |
-| W-004 | WebSocket 真实 Socket.io 集成测试 | ✅ 已实现 | 21 suites / 199 tests |
-| W-005 | 游戏完整 E2E 测试 | ⚠️ 待完善 | multi-browser-game.spec.ts 存在，待 CI |
-| Club Phase 1 MVP | Club 后端完整实现 | ✅ 完成 | commit acbac2c |
+| P1-001 | 断线重连清理竞态 | ✅ 已修复 | commit f2b6d57 → 6cd334b |
+| P1-002 | Jest Worker 泄漏 | 🟡 非阻塞 | 215 tests 全部通过，仍有 leak warning |
+| P1-003 | 首充红利 | 🆕 正式立项 | 100% USDT 匹配，上限100U |
+| P1-004 | Rakeback MVP | 🆕 正式立项 | 三级 VIP（铜10%/银20%/金30%），利用 totalRake |
+| P1-005 | Wallet: freeze/unfreeze不同步User.coinBalance | ✅ 已修复 | wallet/wallet.service.ts — freezeBalance/unfreezeBalance现在使用$transaction同步User.coinBalance |
+| P1-006 | Auth: verifyEmailCode无速率限制 | ✅ 已修复 | auth/auth.service.ts — 添加5次失败锁定(300s)，OTP暴力枚举被阻止 |
+
+### P2 — 进行中
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P2-002 | Club 数据库迁移 | ⏳ 待执行 | 需要 DATABASE_URL |
+| P2-003 | Sit-Out 重构 | ✅ 已实现 | **Option C**：连胜3次超时强制 SITOUT |
+| P2-004 | All-in 确认弹窗 | ✅ 前端实现完成 | WSOP 风格，equity 硬编码需修复 |
+
+### P2 — 本轮新发现
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P2-NEW-001 | calledAllIn 重入保护缺陷 | 🆕 待处理 | table-player-ops.ts：all-in后可重新加注 |
+| P2-NEW-002 | 牌局恢复时双重余额恢复 | 🆕 待处理 | table-manager.service.ts：崩溃重启后可能重复恢复余额 |
+| P2-NEW-003 | 浮点数芯片金额验证 | 🆕 待处理 | game.handler.ts：z.number() 应用整数，应为 z.number().int() |
+| P2-NEW-004 | 反向代理时真实IP不准确 | 🆕 待处理 | nginx代理时X-Forwarded-For未解析 |
+| P2-NEW-005 | All-in 弹窗 equity 硬编码 | 🆕 待处理 | page.tsx：equity={50} 固定50%，需真实胜率 |
+
+### P2 — ✅ 近期完成
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P2-001 | Club 前端页面 | ✅ 完成 | 第65轮 |
+| P2-Club-FE-001~004 | Club 前端 P2 四项 | ✅ 完成 | commit bf7da46 |
+| P3-Rake | Rake 抽水系统 | ✅ 完成 | commit 2d807b1 |
 
 ---
 
@@ -57,10 +60,10 @@
 
 | 任务 | 优先级 | 备注 |
 |------|--------|------|
-| Club 俱乐部系统 | P3 | ✅ Phase 1 MVP 已实现，待数据库迁移 + 前端开发 |
+| 首充红利 | P1 | ✅ 正式立项 |
+| Rakeback 体系 | ~~P3~~ → P1 | ✅ 升级为 P1-004 |
+| Club 俱乐部系统 | P3 | ✅ Phase 1 MVP 已实现 |
 | Tournament 赛制 | P3 | 调研完成，待开发 |
-| Rakeback 体系 | P3 | Productor 已提供技术方案 |
-| 表情互动系统 | P3 | MVP 已提供 |
 | FastFold Snap Mode | P3 | BetMGM/888poker 参考 |
 | Jackpot Sit & Go | P3 | 888poker/CoinPoker 参考 |
 | AI 陪练模式 | P3 | WSOP/Pokerrr 竞品趋势 |
@@ -68,34 +71,50 @@
 | 每日登录奖励 | P3 | |
 | Web 前端测试覆盖 | P3 | |
 | 移动端滑动弃牌 | P3 | 竞品标配 |
-| 移动端底部操作区优化 | P3 | 竞品标配（3按钮+滑动手势） |
+| 移动端底部操作区优化 | P3 | 竞品标配 |
 | 移动端推送通知 | P3 | DAU 提升关键功能 |
-| P3-Rake | Rake 抽水系统 | ✅ 已实现 | commit 2d807b1 — tier-based TIER_RAKE_CONFIG (MICRO→5%/$0.30, LOW→4%/$0.50, MEDIUM→3.5%/$1.00, HIGH→3%/$2.00, PREMIUM→2.5%/$3.00)，需 Club 私人局免抽 rake 逻辑待后续 |
-| P3-Rakeback | Rakeback 体系 | Pending | 待基于 User.totalRake 实现 Rakeback 兑换 |
-| 首充红利 | P1 | 首次 USDT 充值 50-100% 匹配 |
 
 ---
 
-## CodeReview 健康状态（20:15）
+## CodeReview 健康状态（00:15）
 
 | 模块 | 状态 | 备注 |
 |------|------|------|
-| WebSocket | ✅ 已修复 | P1-001 socketId 闭包捕获两次修复 — commit 6cd334b |
-| Timer | 🟡 待调查 | P1-002 Jest worker 泄漏 |
-| Auth | ✅ 待审查 | 未发现明显问题 |
-| Deposit | ✅ 待审查 | 未发现明显问题 |
-| Table | ✅ 已修复 | P0 straddle 已提交 + tier-based rake — commit 2d807b1 |
+| WebSocket | ⚠️ 审查通过但有P2项 | roomId未验证、浮点金额、equity硬编码 |
+| Timer | ✅ 审查通过 | onModuleDestroy 清理完整 |
+| Auth | 🔴 P0×1 + P1×1 遗留 | Redis降级绕过、OTP无限制 |
+| Deposit | ✅ 审查通过 | 无明显问题 |
+| Withdraw | 🔴 P0×2 遗留 | cooldown bypass、服务层鉴权缺失 |
+| Wallet | 🟠 P1×1 遗留 | freeze/unfreeze不同步coinBalance |
+| Table Engine | ✅ 新增P2-003 Sit-Out Option C | 核心逻辑正确 |
 | Club | ✅ 审查通过 | Phase 1 MVP 完整 |
+
+### 测试覆盖缺失
+- `TableManagerService` 缺少单元测试（当前依赖集成测试覆盖）
+- `verifyEmailCode` 无自动化测试
+- 前端（apps/web）无自动化测试
+- All-in 弹窗组件无测试
 
 ---
 
 ## 协同注意
 
-- **client.id 闭包 bug 已修复**: commit 6cd334b — socketId 作为参数传入闭包而非引用
-- **ahead of origin/develop**: 已推送 6cd334b，P1-001 修复已到远程
-- **Club 迁移**: `npx prisma migrate dev --name add_club_tables` 待执行
-- **Club 前端**: 需启动 apps/web 中的 Club 页面开发
+- **Backend HEAD**: `d6e18df` — 无新增提交（自第78轮）
+- **Backend Jest**: 22 suites / 215 tests 全部通过（1.762s）
+- **本地未提交变更**: 仅 apps/admin/next-env.d.ts（Next.js 编译产物）
+- **Jest Worker 泄漏**: P1-002 非阻塞
+- **Test**: 第79轮完成，P2-003 Sit-Out Option C + P2-004 All-in 弹窗实现，P0×3 仍遗留
 
 ---
 
-*Last updated: 2026-04-24 21:00 — Coding 第66轮 — P0+P1 清零，Rake P3 完成 (commit 2d807b1)，已推送*
+## 本轮建议
+
+1. **P0-001/P0-002/P0-003**: 资金安全相关，上轮发现后仍未修复，**建议 Coding 本轮优先处理**
+2. **P1-005**: freeze/unfreeze 同步 coinBalance 可与 P0 同期处理
+3. **P1-006**: verifyEmailCode 速率限制修复较简单，可快速完成
+4. **P2-NEW-005**: All-in 弹窗 equity 硬编码（equity={50}），需说明或修复
+5. **P2-002**: Club 迁移需 DevOps 协调 DATABASE_URL
+
+---
+
+*Last updated: 2026-04-25 00:15 — Test 第79轮 — P0×3 遗留，P2-003/004 已实现，equity 硬编码新问题*
