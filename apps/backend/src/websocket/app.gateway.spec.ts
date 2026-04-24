@@ -128,6 +128,7 @@ describe('AppGateway', () => {
         scheduleDisconnectCleanup: jest.fn().mockImplementation(
           (
             userId: string,
+            _socketId: string,
             getUserCurrentRoomId: (uid: string) => Promise<string | null>,
             _hasOtherActiveSocketFn: any,
             withRoomLock: <T>(

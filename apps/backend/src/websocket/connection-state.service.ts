@@ -159,6 +159,7 @@ export class ConnectionStateService {
 
   scheduleDisconnectCleanup(
     userId: string,
+    socketId: string,
     getUserCurrentRoomId: (userId: string) => Promise<string | null>,
     hasOtherActiveSocketFn: (
       userId: string,
@@ -181,7 +182,7 @@ export class ConnectionStateService {
       try {
         this.pendingDisconnects.delete(userId);
 
-        if (await hasOtherActiveSocketFn(userId, client.id)) {
+        if (await hasOtherActiveSocketFn(userId, socketId)) {
           return;
         }
 

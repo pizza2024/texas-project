@@ -140,9 +140,10 @@ export class AppGateway
     return this.connectionState.clearPendingDisconnect(userId);
   }
 
-  scheduleDisconnectCleanup(userId: string) {
+  scheduleDisconnectCleanup(userId: string, socketId: string) {
     return this.connectionState.scheduleDisconnectCleanup(
       userId,
+      socketId,
       (uid) => this.tableManager.getUserCurrentRoomId(uid),
       (uid, sid) => this.hasOtherActiveSocket(uid, sid),
       <T>(roomId: string, fn: () => Promise<T>) =>
@@ -366,6 +367,7 @@ export class AppGateway
 
     this.connectionState.scheduleDisconnectCleanup(
       userId,
+      client.id,
       (uid) => this.tableManager.getUserCurrentRoomId(uid),
       (uid, sid) =>
         this.connectionState.hasOtherActiveSocket(
