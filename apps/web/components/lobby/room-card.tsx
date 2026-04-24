@@ -46,16 +46,25 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
   };
   const tierColor = room.tier ? tierColors[room.tier] ?? 'rgba(200,200,200,0.5)' : 'rgba(200,200,200,0.5)';
 
+  // Grey out card when user doesn't have enough chips
+  const isChipsInsufficient = !canJoin && !isFull;
+
   return (
     <div
-      className="rounded-2xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.01] cursor-pointer"
+      className={`rounded-2xl p-4 flex flex-col gap-3 transition-all ${!isFull && canJoin ? 'hover:scale-[1.01] cursor-pointer' : ''} ${isChipsInsufficient ? 'opacity-60' : ''}`}
       style={{
-        background: 'linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)',
+        background: isChipsInsufficient
+          ? 'linear-gradient(160deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.98) 100%)'
+          : 'linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)',
         border: isFull
           ? '1px solid rgba(248,113,113,0.2)'
+          : isChipsInsufficient
+          ? '1px solid rgba(107,114,128,0.15)'
           : '1px solid rgba(234,179,8,0.15)',
         boxShadow: isFull
           ? '0 0 20px rgba(248,113,113,0.05)'
+          : isChipsInsufficient
+          ? 'none'
           : '0 0 20px rgba(234,179,8,0.05)',
       }}
       onClick={() => !isFull && canJoin && onJoin(room.id)}
@@ -126,24 +135,35 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
 
       {/* Footer row */}
       <div className="flex items-center justify-between">
-        <p
-          className="text-[10px] text-gray-500"
-        >
-          {t('lobby.table.minBuyIn', { amount: room.minBuyIn })}
-        </p>
+        <div className="flex items-center gap-2">
+          {/* Online player count */}
+          <span
+            className="text-[10px] font-semibold"
+            style={{ color: 'rgba(156,163,175,0.65)' }}
+          >
+            👥 {currentPlayers}/{maxPlayers}
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.1)' }}>·</span>
+          <p
+            className="text-[10px]"
+            style={{ color: isChipsInsufficient ? 'rgba(245,158,11,0.6)' : 'rgba(156,163,175,0.5)' }}
+          >
+            {t('lobby.table.minBuyIn', { amount: room.minBuyIn.toLocaleString() })}
+          </p>
+        </div>
         {isFull ? (
           <span
             className="text-[10px] font-bold tracking-wider uppercase"
             style={{ color: 'rgba(248,113,113,0.7)' }}
           >
-            {t('lobby.table.full')}
+            🔒 {t('lobby.table.full')}
           </span>
-        ) : !canJoin ? (
+        ) : isChipsInsufficient ? (
           <span
             className="text-[10px] font-bold tracking-wider uppercase"
-            style={{ color: 'rgba(245,158,11,0.6)' }}
+            style={{ color: 'rgba(245,158,11,0.7)' }}
           >
-            {t('lobby.table.insufficientChips')}
+            🔒 {t('lobby.table.insufficientChips')}
           </span>
         ) : (
           <button

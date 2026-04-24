@@ -210,6 +210,7 @@
   "lobby.tierBlinds": "盲注 {{blinds}}",
   "lobby.tierMaxSeats": "{{seats}} 人桌",
   "lobby.searching": "正在为您寻找桌位...",
+  "lobby.searchingHint": "正在扫描活跃房间，为您匹配最佳桌位",
   "lobby.searchingCancel": "取消",
   "lobby.matchFound": "找到桌位！",
   "lobby.searchPlaceholder": "搜索牌桌...",

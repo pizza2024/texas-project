@@ -210,6 +210,7 @@
   "lobby.tierBlinds": "Blinds {{blinds}}",
   "lobby.tierMaxSeats": "{{seats}} seats",
   "lobby.searching": "Finding a table...",
+  "lobby.searchingHint": "Scanning active rooms for best match",
   "lobby.searchingCancel": "Cancel",
   "lobby.matchFound": "Match found!",
   "lobby.searchPlaceholder": "Search tables...",

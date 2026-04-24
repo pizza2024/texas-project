@@ -180,6 +180,7 @@
   "lobby.tierBlinds": "ブラインド {{blinds}}",
   "lobby.tierMaxSeats": "{{seats}} 席",
   "lobby.searching": "テーブルを探しています...",
+  "lobby.searchingHint": "雰囲いているテーブルを検索中",
   "lobby.searchingCancel": "キャンセル",
   "lobby.matchFound": "マッチが見つかりました！",
   "lobby.searchPlaceholder": "テーブルを検索...",
