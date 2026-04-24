@@ -115,6 +115,10 @@ describe('DepositService - First Deposit Bonus', () => {
           args: ['0xfrom', ADDRESS, BigInt('50000000')],
         },
       ]);
+      // First getBalance = 0 (initial), second getBalance = 5000 (after deposit credited)
+      mockWalletService.getBalance
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(5000);
 
       await service.pollDeposits();
 
@@ -174,6 +178,10 @@ describe('DepositService - First Deposit Bonus', () => {
           args: ['0xfrom', ADDRESS, BigInt('200000000')],
         },
       ]);
+      // First getBalance = 0 (initial), second getBalance = 20000 (after deposit credited)
+      mockWalletService.getBalance
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(20000);
 
       await service.pollDeposits();
 
