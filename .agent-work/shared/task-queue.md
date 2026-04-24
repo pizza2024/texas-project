@@ -7,7 +7,7 @@
 
 ---
 
-## 当前问题状态（2026-04-24 20:30 — 第64轮）
+## 当前问题状态（2026-04-24 21:00 — 第66轮）
 
 ### P0 — ✅ 已清零
 
@@ -23,13 +23,17 @@
 ||| P1-002 | Jest Worker 泄漏 | ✅ 修复中 | commit 6cd334b 修复 client.id 闭包捕获 bug |
 ||| P1-002b | Jest Worker 泄漏 | 🟡 待调查 | `npm test -- --detectOpenHandles` 定位 |
 
-### P2 — 🟢 计划中
+### P2 — 🟡 进行中
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P2-002 | Club 数据库迁移 | 🟡 待执行 | 需要 DATABASE_URL |
-|| P2-003 | Sit-Out 重构 | Pending | 等待产品确认 |
-|| P2-004 | All-in 确认弹窗 | Pending | 等待产品定义 |
+| P2-002 | Club 数据库迁移 | 🟡 待执行 | 需要 DATABASE_URL |
+| P2-003 | Sit-Out 重构 | Pending | 等待产品确认 |
+| P2-004 | All-in 确认弹窗 | Pending | 等待产品定义 |
+| P2-Club-FE-001 | Club 前端 overlayRef TS2304 | 🔧 需修复 | ClubDetail 使用未定义 ref |
+| P2-Club-FE-002 | rooms crypto.randomInt 浏览器不兼容 | 🔧 需修复 | 运行时错误 |
+| P2-Club-FE-003 | CreateClubForm overlayRef 死代码 | 🔧 需删除 | 未使用的 ref |
+| P2-Club-FE-004 | chatCursor/hasMoreMessages 死代码 | 🔧 需补全或删除 | 状态声明但未读取 |
 
 ---
 
@@ -66,7 +70,8 @@
 | 移动端滑动弃牌 | P3 | 竞品标配 |
 | 移动端底部操作区优化 | P3 | 竞品标配（3按钮+滑动手势） |
 | 移动端推送通知 | P3 | DAU 提升关键功能 |
-| Rake 抽水系统 | P1 | 每局 3-5%，需服务端实现 |
+| P3-Rake | Rake 抽水系统 | ✅ 已实现 | commit 2d807b1 — tier-based TIER_RAKE_CONFIG (MICRO→5%/$0.30, LOW→4%/$0.50, MEDIUM→3.5%/$1.00, HIGH→3%/$2.00, PREMIUM→2.5%/$3.00)，需 Club 私人局免抽 rake 逻辑待后续 |
+| P3-Rakeback | Rakeback 体系 | Pending | 待基于 User.totalRake 实现 Rakeback 兑换 |
 | 首充红利 | P1 | 首次 USDT 充值 50-100% 匹配 |
 
 ---
@@ -79,7 +84,7 @@
 | Timer | 🟡 待调查 | P1-002 Jest worker 泄漏 |
 | Auth | ✅ 待审查 | 未发现明显问题 |
 | Deposit | ✅ 待审查 | 未发现明显问题 |
-| Table | ✅ 已修复 | P0 straddle 已提交 |
+| Table | ✅ 已修复 | P0 straddle 已提交 + tier-based rake — commit 2d807b1 |
 | Club | ✅ 审查通过 | Phase 1 MVP 完整 |
 
 ---
@@ -93,4 +98,4 @@
 
 ---
 
-*Last updated: 2026-04-24 20:15 — Coding 第63轮 — P0+P1-001+P1-002 闭包bug已修复，已推送*
+*Last updated: 2026-04-24 21:00 — Coding 第66轮 — P0+P1 清零，Rake P3 完成 (commit 2d807b1)，已推送*
