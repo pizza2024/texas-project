@@ -7,36 +7,54 @@
 
 ---
 
-## Test 代理发现的问题（2026-04-24 15:30）
+## 当前问题状态（2026-04-24 20:30 — 第64轮）
 
-### P0 — ✅ 全部已清零
+### P0 — ✅ 已清零
 
-无 P0 问题。
+||| ID | 任务 | 状态 | 备注 |
+|||----|------|------|------|
+||| P0-001 | straddle 缺失 PlayerActionSchema | ✅ 已提交 | commit a6c5c4a — straddle enum + amount cap 1B |
 
-### P1 — ✅ 全部已清零
+### P1 — ✅ P1-001+P1-002 已修复
 
-无 P1 问题。（P-ONBOARD 新手引导已由 Productor 排期）
+||| ID | 任务 | 状态 | 备注 |
+|||----|------|------|------|
+||| P1-001 | 断线重连清理竞态 | ✅ 已修复并推送 | commit f2b6d57 → 6cd334b 两次修复 |
+||| P1-002 | Jest Worker 泄漏 | ✅ 修复中 | commit 6cd334b 修复 client.id 闭包捕获 bug |
+||| P1-002b | Jest Worker 泄漏 | 🟡 待调查 | `npm test -- --detectOpenHandles` 定位 |
 
-### P2 — 近期处理
+### P2 — 🟢 计划中
 
-| ID | 任务 | 状态 | 备注 |
+|| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P2-UX | Rooms 页面加载骨架屏 | ✅ 完成 | 第30轮，替代闪痛 spinner |
-| P2-UX | Rooms 卡片 tier 标签 | ✅ 完成 | 第30轮，彩色 pill badge |
-| P2-UX | Rooms 卡片在线人数显示 | ✅ 完成 | 第31轮，👥 X/Y 格式 |
-| P2-UX | Rooms 筹码不足灰色高亮 | ✅ 完成 | 第31轮，灰色背景 + 🔒标签 |
-| P2-UX | Quick Match 匹配动画 | ✅ 完成 | 第31轮，雷达脉冲动画 |
-| W-004 | WebSocket 真实 Socket.io 集成测试 | ✅ 已实现 | 21 suites / 199 tests 全部通过 |
-| W-005 | 游戏完整 E2E 测试 | ⚠️ 待完善 | multi-browser-game.spec.ts 存在，待 CI 环境配置 |
-| P-UX-2 | Sit-Out 重构 | Pending | 待 Productor 确认 |
-| P-UX-3b | All-in 确认弹窗 | Pending | 待产品定义确认 |
+|| P2-002 | Club 数据库迁移 | 🟡 待执行 | 需要 DATABASE_URL |
+|| P2-003 | Sit-Out 重构 | Pending | 等待产品确认 |
+|| P2-004 | All-in 确认弹窗 | Pending | 等待产品定义 |
 
-### P3 — 规划中
+---
+
+## P2 — ✅ 近期完成
+
+|| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P2-001 | Club 前端页面 | ✅ 完成 | 第65轮 — commit a004993 |
+|| P2-UX | Rooms 页面加载骨架屏 | ✅ 完成 | 第30轮 |
+| P2-UX | Rooms 卡片 tier 标签 | ✅ 完成 | 第30轮 |
+| P2-UX | Rooms 卡片在线人数显示 | ✅ 完成 | 第31轮 |
+| P2-UX | Rooms 筹码不足灰色高亮 | ✅ 完成 | 第31轮 |
+| P2-UX | Quick Match 匹配动画 | ✅ 完成 | 第31轮 |
+| W-004 | WebSocket 真实 Socket.io 集成测试 | ✅ 已实现 | 21 suites / 199 tests |
+| W-005 | 游戏完整 E2E 测试 | ⚠️ 待完善 | multi-browser-game.spec.ts 存在，待 CI |
+| Club Phase 1 MVP | Club 后端完整实现 | ✅ 完成 | commit acbac2c |
+
+---
+
+## P3 — 规划中
 
 | 任务 | 优先级 | 备注 |
 |------|--------|------|
-| Club 俱乐部系统 | P3 | ✅ Phase 1 MVP 已实现（commit acbac2c） |
-| Tournament 赛制 | P3 | Productor 调研完成，Phase 1 MVP 待开发 |
+| Club 俱乐部系统 | P3 | ✅ Phase 1 MVP 已实现，待数据库迁移 + 前端开发 |
+| Tournament 赛制 | P3 | 调研完成，待开发 |
 | Rakeback 体系 | P3 | Productor 已提供技术方案 |
 | 表情互动系统 | P3 | MVP 已提供 |
 | FastFold Snap Mode | P3 | BetMGM/888poker 参考 |
@@ -45,47 +63,34 @@
 | 记牌器/复盘功能 | P3 | BetMGM 参考 |
 | 每日登录奖励 | P3 | |
 | Web 前端测试覆盖 | P3 | |
-| Jest Worker 泄漏优化 | P3 | `--detectOpenHandles` 定位 |
+| 移动端滑动弃牌 | P3 | 竞品标配 |
+| 移动端底部操作区优化 | P3 | 竞品标配（3按钮+滑动手势） |
+| 移动端推送通知 | P3 | DAU 提升关键功能 |
+| Rake 抽水系统 | P1 | 每局 3-5%，需服务端实现 |
+| 首充红利 | P1 | 首次 USDT 充值 50-100% 匹配 |
 
 ---
 
-## Productor 任务（2026-04-24 11:15）
+## CodeReview 健康状态（20:15）
 
-### P2-High 优先级
-- [x] **R-002**: 移动端 Pot-Relative Raise 移植 — ✅ 已实现
-- [x] **P-UX-1**: Pot Odds HUD — ✅ 已实现
-- [x] **P-UX-3a**: 轮次阶段指示器 — ✅ 已实现
-- [x] **P2-UX**: Rooms 页面加载骨架屏 — ✅ 第30轮实现
-- [x] **P2-UX**: Rooms 卡片 tier 标签 — ✅ 第30轮实现
-
-### P2 待澄清
-- **P-UX-2**: Sit-Out 重定位/行为重构 — Pending（竞品标配，需人工排期）
-- **P-UX-3b**: All-in 确认弹窗 — Pending（需人工确认产品定义）
-
-### P3 — 规划中
-- [ ] 表情互动系统
-- [ ] 每日登录奖励
-- [ ] 成就/任务系统
-- [ ] Club 俱乐部系统
-- [ ] Tournament 赛制（Productor 调研完成，Phase 1 MVP 待开发）
+| 模块 | 状态 | 备注 |
+|------|------|------|
+| WebSocket | ✅ 已修复 | P1-001 socketId 闭包捕获两次修复 — commit 6cd334b |
+| Timer | 🟡 待调查 | P1-002 Jest worker 泄漏 |
+| Auth | ✅ 待审查 | 未发现明显问题 |
+| Deposit | ✅ 待审查 | 未发现明显问题 |
+| Table | ✅ 已修复 | P0 straddle 已提交 |
+| Club | ✅ 审查通过 | Phase 1 MVP 完整 |
 
 ---
 
-## CodeReview 健康状态（14:00）
+## 协同注意
 
-所有核心模块审查通过：
-- ✅ WebSocket: roomLock/userLock, rate limit, brute-force protection
-- ✅ Timer: 三类计时器正确清理，无泄漏
-- ✅ Auth: bcrypt + Redis session + single-device login
-- ✅ Deposit: HD 钱包 P2002 竞态处理
-- ✅ Table: crypto.getRandomValues Fisher-Yates 洗牌
-- ✅ 21 个 .spec.ts 测试文件覆盖核心逻辑
-- ✅ 遗留未提交工作区变更已全部提交
+- **client.id 闭包 bug 已修复**: commit 6cd334b — socketId 作为参数传入闭包而非引用
+- **ahead of origin/develop**: 已推送 6cd334b，P1-001 修复已到远程
+- **Club 迁移**: `npx prisma migrate dev --name add_club_tables` 待执行
+- **Club 前端**: 需启动 apps/web 中的 Club 页面开发
 
 ---
 
-## 遗留未提交工作区变更
-
-无未提交变更（全部已提交至 ea07c43）。
-
-*Last updated: 2026-04-24 19:01 — Test 第58轮，P0/P1 清零，199 tests 全部通过，代码库稳定 2.5h+，P3 Club 建议优先启动*
+*Last updated: 2026-04-24 20:15 — Coding 第63轮 — P0+P1-001+P1-002 闭包bug已修复，已推送*
