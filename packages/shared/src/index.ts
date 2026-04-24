@@ -4,3 +4,4 @@ export * from './types/club';
 export * from './api';
 export * from './socket';
 export * from './auth';
+export * from './equity';

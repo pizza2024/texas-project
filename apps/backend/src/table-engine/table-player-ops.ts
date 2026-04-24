@@ -3,6 +3,9 @@ import { Player, PlayerStatus } from './player';
 import { Table } from './table';
 import { TableRound } from './table-round';
 
+/** Option C: Max consecutive action timeouts before forced sit-out (per seat). */
+const MAX_CONSECUTIVE_TIMEOUTS = 3;
+
 export class TablePlayerOps {
   constructor(
     private table: Table,
@@ -46,6 +49,7 @@ export class TablePlayerOps {
       hasActed: false,
       // Preserve ready=true for bots (auto-ready), default to false for humans
       ready: player.ready ?? false,
+      consecutiveTimeouts: 0,
     };
 
     this.table.players[seatIndex] = newPlayer;
@@ -176,6 +180,12 @@ export class TablePlayerOps {
    * If so, auto-folds them, starts the sit-out timeout countdown, and records the event.
    * Called at the end of each action resolution in processAction.
    * Returns true if a sit-out player was auto-folded (hand did not end).
+   *
+   * Option C (折中): Increments consecutive timeout counter each time a player is
+   * auto-folded due to timing out (hasn't acted when actionEndsAt expires).
+   * After MAX_CONSECUTIVE_TIMEOUTS (3) consecutive timeouts, the player is
+   * forcibly moved to SITOUT status for the remainder of the session and their
+   * counter is reset.
    */
   checkAndAutoFoldSittingOut(): boolean {
     if (!this.round.isActionStage()) return false;
@@ -192,7 +202,22 @@ export class TablePlayerOps {
       seatIndex: this.table.activePlayerIndex,
     };
 
-    // Auto-fold: mark player as folded
+    // Increment consecutive timeout counter (Option C)
+    player.consecutiveTimeouts += 1;
+
+    // Option C: Force SITOUT after 3 consecutive timeouts
+    if (player.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+      // Player is forcibly moved to sit-out; they keep the SITOUT status.
+      // They will be skipped in future hands until they interact again.
+      // Reset counter so they start fresh if they manually return.
+      player.consecutiveTimeouts = 0;
+      // Keep status as SITOUT — player stays sat out until they manually re-engage.
+      player.hasActed = true; // so they don't auto-fold again this hand
+      this.table.actionEndsAt = null;
+      return false;
+    }
+
+    // Auto-fold: mark player as folded (normal case, under limit)
     player.status = PlayerStatus.FOLD;
     player.hasActed = true;
     this.table.actionEndsAt = null;
@@ -235,6 +260,8 @@ export class TablePlayerOps {
       case 'fold':
         activePlayer.status = PlayerStatus.FOLD;
         activePlayer.hasActed = true;
+        // Option C: reset consecutive timeout counter on any player action
+        activePlayer.consecutiveTimeouts = 0;
         handled = true;
         break;
 
@@ -257,6 +284,8 @@ export class TablePlayerOps {
         // Only legal when no outstanding bet to call
         if (this.table.currentBet > activePlayer.bet) return false;
         activePlayer.hasActed = true;
+        // Option C: reset consecutive timeout counter on any player action
+        activePlayer.consecutiveTimeouts = 0;
         handled = true;
         break;
 
@@ -271,6 +300,8 @@ export class TablePlayerOps {
         activePlayer.totalBet += callAmount;
         this.table.pot += callAmount;
         activePlayer.hasActed = true;
+        // Option C: reset consecutive timeout counter on any player action
+        activePlayer.consecutiveTimeouts = 0;
         if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
         if (
           this.table.calledAllIn === null &&
@@ -285,7 +316,7 @@ export class TablePlayerOps {
       case 'raise': {
         if (
           this.table.calledAllIn !== null &&
-          activePlayer.bet >= this.table.calledAllIn
+          amount >= this.table.calledAllIn
         ) {
           return false;
         }
@@ -300,6 +331,8 @@ export class TablePlayerOps {
         this.table.pot += toAdd;
         this.table.currentBet = activePlayer.bet;
         activePlayer.hasActed = true;
+        // Option C: reset consecutive timeout counter on any player action
+        activePlayer.consecutiveTimeouts = 0;
         if (activePlayer.stack === 0) activePlayer.status = PlayerStatus.ALLIN;
         this.table.calledAllIn = null;
         this.table.players.forEach((p) => {
@@ -320,6 +353,8 @@ export class TablePlayerOps {
         activePlayer.stack = 0;
         activePlayer.status = PlayerStatus.ALLIN;
         activePlayer.hasActed = true;
+        // Option C: reset consecutive timeout counter on any player action
+        activePlayer.consecutiveTimeouts = 0;
         if (activePlayer.bet > this.table.currentBet) {
           this.table.minBet = activePlayer.bet - this.table.currentBet;
           this.table.currentBet = activePlayer.bet;

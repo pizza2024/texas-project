@@ -74,6 +74,8 @@ export class TableGameLogic {
         p.hasActed = false;
         p.status = p.stack > 0 ? PlayerStatus.ACTIVE : PlayerStatus.SITOUT;
         p.ready = false;
+        // Option C: reset consecutive timeout counter each new hand
+        p.consecutiveTimeouts = 0;
       });
 
     // Reset board state

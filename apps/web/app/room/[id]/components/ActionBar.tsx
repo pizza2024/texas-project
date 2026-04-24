@@ -27,6 +27,10 @@ interface ActionBarProps {
   handleShowCards: () => void;
   handleMuckCards: () => void;
   myPlayerStack: number;
+  /** Consecutive timeouts for Sit-Out Option C (0-3) */
+  consecutiveTimeouts?: number;
+  /** Called when player clicks All-in; page shows confirmation modal */
+  onRequestAllIn?: (allInAmount: number) => void;
 }
 
 export function ActionBar({
@@ -51,6 +55,8 @@ export function ActionBar({
   handleShowCards,
   handleMuckCards,
   myPlayerStack,
+  consecutiveTimeouts = 0,
+  onRequestAllIn,
 }: ActionBarProps) {
   const { t } = useTranslation();
 
@@ -301,10 +307,10 @@ export function ActionBar({
 
                 {/* All-in */}
                 <Button
-                  onClick={() => {
+                  onClick={() => onRequestAllIn ? onRequestAllIn(myPlayerStack) : (() => {
                     setRaiseAmount(myPlayerStack);
                     handleAction('raise', myPlayerStack);
-                  }}
+                  })()}
                   disabled={!isMyTurn || myPlayerStack <= 0}
                   className="h-11 px-3 font-black tracking-wider text-[10px] uppercase rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] disabled:opacity-25"
                   style={{
@@ -368,7 +374,9 @@ export function ActionBar({
                   color: 'rgba(156,163,175,0.9)',
                 }}
               >
-                {t('room.sitOut')}
+                {consecutiveTimeouts > 0
+                  ? t('room.sitOutWithCount', { count: consecutiveTimeouts })
+                  : t('room.sitOut')}
               </Button>
             )}
           </div>

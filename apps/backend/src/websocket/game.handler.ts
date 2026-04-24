@@ -15,6 +15,7 @@ import { AppGateway } from './app.gateway';
 import { validate } from './validate';
 import {
   JoinRoomSchema,
+  PlayerActionInput,
   PlayerActionSchema,
   QuickMatchSchema,
 } from '@texas/shared/validation';
@@ -237,7 +238,7 @@ export async function handlePlayerReady(gateway: AppGateway, client: Socket) {
 export async function handlePlayerAction(
   gateway: AppGateway,
   client: Socket,
-  data: { action: unknown; amount?: unknown; roomId?: unknown },
+  data: PlayerActionInput,
 ) {
   const validated = validate(PlayerActionSchema, data, client, 'player_action');
   if (!validated) {

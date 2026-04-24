@@ -23,6 +23,8 @@ import { TableState, Player, ChipFlight, PayoutFlight, DEAL_ANIMATION_MS, DEAL_S
 import { GameHeader } from './components/GameHeader';
 import { GameTable } from './components/GameTable';
 import { ActionBar } from './components/ActionBar';
+import { AllInConfirmModal } from './components/AllInConfirmModal';
+import { calculateEquity } from '@texas/shared';
 
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
 const confetti = hasConfetti ? confettiLib : null;
@@ -64,6 +66,8 @@ export default function RoomPage() {
   const [winnerHighlights, setWinnerHighlights] = useState<string[]>([]);
   const [loserHighlights, setLoserHighlights] = useState<string[]>([]);
   const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
+  const [showAllInConfirm, setShowAllInConfirm] = useState(false);
+  const [allInConfirmAmount, setAllInConfirmAmount] = useState(0);
   const previousTableRef = useRef<TableState | null>(null);
   const dealCleanupRef = useRef<number | null>(null);
   const chipCleanupRef = useRef<number | null>(null);
@@ -669,6 +673,14 @@ export default function RoomPage() {
   const canCheck = callAmount === 0;
   const minRaiseTo = (table.currentBet ?? 0) + (table.bigBlind ?? 0);
 
+  // Calculate real equity for all-in confirmation
+  const myHoleCards = myPlayer?.cards ?? [];
+  const communityCards = table?.communityCards ?? [];
+  const opponentCount = seatedPlayers.length - 1;
+  const equity = myHoleCards.length === 2 && opponentCount >= 1
+    ? calculateEquity(myHoleCards, communityCards, opponentCount)
+    : 50;
+
   const winnerBestCardsMap = new Map<string, Set<string>>();
   const highlightedCommunityCardsSet = new Set<string>();
   if (isSettlement && !(table?.isFoldWin)) {
@@ -806,6 +818,23 @@ export default function RoomPage() {
         handleShowCards={handleShowCards}
         handleMuckCards={handleMuckCards}
         myPlayerStack={myPlayer?.stack ?? 0}
+        consecutiveTimeouts={myPlayer?.consecutiveTimeouts ?? 0}
+        onRequestAllIn={(amount) => {
+          setAllInConfirmAmount(amount);
+          setShowAllInConfirm(true);
+        }}
+      />
+
+      <AllInConfirmModal
+        open={showAllInConfirm}
+        amount={allInConfirmAmount}
+        potOdds={callAmount > 0 ? (myPlayer?.stack ?? 0) / (callAmount + (myPlayer?.stack ?? 0)) : 1}
+        equity={equity}
+        onConfirm={() => {
+          handleAction('all_in');
+          setShowAllInConfirm(false);
+        }}
+        onCancel={() => setShowAllInConfirm(false)}
       />
 
       <style jsx>{`

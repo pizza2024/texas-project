@@ -12,6 +12,8 @@ export interface Player {
   isButton: boolean;
   isSmallBlind: boolean;
   isBigBlind: boolean;
+  /** Consecutive action timeouts for Sit-Out Option C */
+  consecutiveTimeouts?: number;
 }
 
 export interface HandResultEntry {
