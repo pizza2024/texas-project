@@ -106,6 +106,19 @@ export function GameHeader({
           </span>
         ) : activePlayer ? (
           <div className="flex flex-col items-center gap-1">
+            {/* P-UX-3: Stage indicator — FLOP / TURN / RIVER label */}
+            {isActionStage && table.currentStage !== 'PREFLOP' && (
+              <span
+                className="text-[9px] font-black tracking-[0.2em] uppercase px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'rgba(234,179,8,0.12)',
+                  border: '1px solid rgba(234,179,8,0.3)',
+                  color: 'rgba(251,191,36,0.85)',
+                }}
+              >
+                {table.currentStage === 'FLOP' ? '🌱 FLOP' : table.currentStage === 'TURN' ? '🔄 TURN' : table.currentStage === 'RIVER' ? '🎴 RIVER' : table.currentStage}
+              </span>
+            )}
             <span
               className="text-xs font-semibold tracking-wider"
               style={{ color: isMyTurn ? '#fcd34d' : 'rgba(156,163,175,0.8)' }}

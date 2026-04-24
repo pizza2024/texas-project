@@ -67,6 +67,11 @@ export function ActionBar({
   const halfPot = Math.min(Math.floor(pot * 0.5), myPlayerStack);
   const threeQuartersPot = Math.min(Math.floor(pot * 0.75), myPlayerStack);
 
+  // Pot Odds — P-UX-1: displayed next to Call button (竞品标配)
+  const potOddsPercent = canCheck ? null : callAmount > 0
+    ? Math.round((callAmount / (pot + callAmount)) * 100)
+    : null;
+
   return (
     <div
       className="fixed bottom-0 left-0 w-full px-6 py-4 flex justify-center gap-3 items-center z-20"
@@ -218,6 +223,7 @@ export function ActionBar({
                 {isMyTurn ? t('room.checkCountdown', { seconds: actionCountdown }) : t('room.check')}
               </Button>
             ) : (
+              <div className="flex flex-col items-center gap-1">
               <Button
                 onClick={() => handleAction('call')}
                 disabled={!isMyTurn}
@@ -230,6 +236,12 @@ export function ActionBar({
                 }}
               >
                 {t('room.call', { amount: callAmount })}</Button>
+              {potOddsPercent !== null && isMyTurn && (
+                <span className="text-[9px] font-bold tracking-wider uppercase" style={{ color: 'rgba(96,165,250,0.7)' }}>
+                  Odds {potOddsPercent}%
+                </span>
+              )}
+              </div>
             )}
 
             {/* Pot-Relative Raise Presets — only on player's turn during action */}
