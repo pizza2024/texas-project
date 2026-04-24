@@ -42,6 +42,8 @@ export class Table {
   bigBlind: number;
   minBuyIn: number;
   roomPassword: string | null;
+  /** Room tier used for tier-based rake calculation (MICRO | LOW | MEDIUM | HIGH | PREMIUM). */
+  tier: string;
   minBet: number;
   lastHandResult: import('./table-state').HandResultEntry[] | null;
   settlementEndsAt: number | null;
@@ -60,6 +62,10 @@ export class Table {
   calledAllIn: number | null;
   /** Milliseconds to wait before auto-folding a sitting-out player whose turn it is. */
   sittingOutTimeout: number;
+  /** Rake deducted in the current hand (used for DB persistence). */
+  rakeAmount: number;
+  /** Rake percentage applied in the current hand. */
+  rakePercent: number;
 
   /** True if a straddle has been placed this hand. */
   get hasStraddle(): boolean {
@@ -100,6 +106,7 @@ export class Table {
     this.bigBlind = bigBlind;
     this.minBuyIn = minBuyIn ?? bigBlind;
     this.roomPassword = roomPassword ?? null;
+    this.tier = 'LOW'; // default; updated by TableManagerService from Room.tier
     this.minBet = bigBlind;
     this.lastHandResult = null;
     this.settlementEndsAt = null;
@@ -111,6 +118,8 @@ export class Table {
     this.calledAllIn = null;
     this.sittingOutTimeout = config?.sittingOutTimeout ?? 30000;
     this.lastSitoutAutoFold = null;
+    this.rakeAmount = 0;
+    this.rakePercent = 0;
 
     // Initialise composed modules (they hold no state of their own)
     this._gameLogic = new TableGameLogic(this);
@@ -158,6 +167,9 @@ export class Table {
     table.calledAllIn = snapshot.calledAllIn ?? null;
     table.sittingOutTimeout = config?.sittingOutTimeout ?? 30000;
     table.lastSitoutAutoFold = null;
+    table.tier = (snapshot as any).tier ?? 'LOW';
+    table.rakeAmount = (snapshot as any).rakeAmount ?? 0;
+    table.rakePercent = (snapshot as any).rakePercent ?? 0;
     return table;
   }
 
@@ -185,6 +197,9 @@ export class Table {
       straddle: this.straddle,
       calledAllIn: this.calledAllIn,
       sittingOutTimeout: this.sittingOutTimeout,
+      tier: this.tier,
+      rakeAmount: this.rakeAmount,
+      rakePercent: this.rakePercent,
     };
   }
 

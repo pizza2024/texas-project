@@ -87,6 +87,8 @@ export class TableGameLogic {
     this.table.straddle = null;
     this.table.calledAllIn = null;
     this.table.lastSitoutAutoFold = null;
+    this.table.rakeAmount = 0;
+    this.table.rakePercent = 0;
 
     // Assign positions
     const dealerIdx = this.isPlayablePlayer(

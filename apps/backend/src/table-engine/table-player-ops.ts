@@ -1,11 +1,7 @@
-import { GameStage, PlayerInput, RAKE_RATE, RAKE_CAP } from './table-state';
+import { GameStage, PlayerInput } from './table-state';
 import { Player, PlayerStatus } from './player';
 import { Table } from './table';
 import { TableRound } from './table-round';
-
-/** Rake for fold-wins (reduced since no showdown). */
-const FOLD_RAKE_RATE = RAKE_RATE;
-const FOLD_RAKE_CAP = RAKE_CAP;
 
 export class TablePlayerOps {
   constructor(

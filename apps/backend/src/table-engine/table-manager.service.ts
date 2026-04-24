@@ -142,6 +142,8 @@ export class TableManagerService implements OnModuleInit {
                   minBuyIn,
                   roomPassword,
                 );
+            // Set tier from room for tier-based rake
+            table.tier = room.tier ?? 'LOW';
             this.tables.set(roomId, table);
 
             // Populate userRooms index from recovered players (handles server restart).
@@ -284,14 +286,30 @@ export class TableManagerService implements OnModuleInit {
           tableId: roomId,
           winnerId: primaryWinner.winAmount > 0 ? primaryWinner.playerId : null,
           potSize: totalPot,
+          rake: table.rakeAmount,
+          rakePercent: table.rakePercent,
         },
       });
 
-      const settlementData = handResult.map((r) => ({
-        handId: hand.id,
-        userId: r.playerId,
-        amount: r.winAmount,
-      }));
+      // Calculate each winner's proportional share of the rake
+      const totalWinAmount = handResult.reduce(
+        (sum, r) => sum + r.winAmount,
+        0,
+      );
+
+      const settlementData = handResult.map((r) => {
+        // Proportional rake share = (winAmount / totalWinAmount) * totalRake
+        const rakeShare =
+          totalWinAmount > 0
+            ? Math.floor((r.winAmount / totalWinAmount) * table.rakeAmount)
+            : 0;
+        return {
+          handId: hand.id,
+          userId: r.playerId,
+          amount: r.winAmount,
+          rakeAmount: rakeShare,
+        };
+      });
 
       const transactionData = handResult
         .filter((r) => r.totalBet > 0 || r.winAmount > 0)
@@ -304,11 +322,22 @@ export class TableManagerService implements OnModuleInit {
           };
         });
 
+      // Update each winner's totalRake
+      const rakeUpdates = settlementData
+        .filter((s) => s.rakeAmount > 0)
+        .map((s) =>
+          this.prisma.user.update({
+            where: { id: s.userId },
+            data: { totalRake: { increment: s.rakeAmount } },
+          }),
+        );
+
       await this.prisma.$transaction([
         this.prisma.settlement.createMany({ data: settlementData }),
         ...transactionData.map((t) =>
           this.prisma.transaction.create({ data: t }),
         ),
+        ...rakeUpdates,
       ]);
     } catch (err) {
       // Non-fatal: log and continue — game integrity (balance updates) must not be blocked

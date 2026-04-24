@@ -1,11 +1,12 @@
-import { GameStage, RAKE_RATE, RAKE_CAP } from './table-state';
+import {
+  GameStage,
+  RAKE_RATE,
+  RAKE_CAP,
+  TIER_RAKE_CONFIG,
+} from './table-state';
 import { Player, PlayerStatus } from './player';
 import { determineWinners } from './hand-evaluator';
 import { Table } from './table';
-
-/** Rake for fold-wins (reduced since no showdown). */
-const FOLD_RAKE_RATE = RAKE_RATE;
-const FOLD_RAKE_CAP = RAKE_CAP;
 
 export class TableRound {
   constructor(private table: Table) {}
@@ -160,9 +161,19 @@ export class TableRound {
       return;
     }
 
-    // --- Rake: deduct before distribution ---
-    const rake = Math.min(Math.floor(this.table.pot * RAKE_RATE), RAKE_CAP);
+    // --- Tier-based Rake: deduct before distribution ---
+    const tierConfig = TIER_RAKE_CONFIG[this.table.tier] ?? {
+      rate: RAKE_RATE,
+      cap: RAKE_CAP,
+    };
+    const rake = Math.min(
+      Math.floor(this.table.pot * tierConfig.rate),
+      tierConfig.cap,
+    );
+    const rakePercent = tierConfig.rate;
     this.table.pot -= rake;
+    this.table.rakeAmount = rake;
+    this.table.rakePercent = rakePercent;
 
     // --- Build pots (handles Side Pots for All-in players) ---
     const pots = this.buildPots(allPlayers);
@@ -276,13 +287,20 @@ export class TableRound {
    * deduct rake, and transition to SETTLEMENT.
    */
   resolveFoldWin(winner: Player): void {
+    // Use tier-based rake (fold wins get same rate, same cap)
+    const tierConfig = TIER_RAKE_CONFIG[this.table.tier] ?? {
+      rate: RAKE_RATE,
+      cap: RAKE_CAP,
+    };
     const rake = Math.min(
-      Math.floor(this.table.pot * FOLD_RAKE_RATE),
-      FOLD_RAKE_CAP,
+      Math.floor(this.table.pot * tierConfig.rate),
+      tierConfig.cap,
     );
     const winAmount = this.table.pot - rake;
     winner.stack += winAmount;
     this.table.pot = 0;
+    this.table.rakeAmount = rake;
+    this.table.rakePercent = tierConfig.rate;
     this.table.lastHandResult = this.table.players
       .filter((p) => p !== null)
       .map((p) => ({

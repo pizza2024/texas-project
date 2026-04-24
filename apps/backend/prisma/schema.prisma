@@ -20,6 +20,8 @@ model User {
   status        String    @default("OFFLINE") // OFFLINE, ONLINE, PLAYING
   coinBalance   Float     @default(0)
   elo           Int       @default(1000) // Matchmaking ELO rating
+  totalRake     Float     @default(0)    // Lifetime rake contributed (for Rakeback)
+  rakebackBalance Float   @default(0)    // Accumulated Rakeback credits
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
 
@@ -111,6 +113,8 @@ model Hand {
   tableId   String
   winnerId  String?
   potSize   Float    @default(0)
+  rake      Float    @default(0)     // Total rake deducted this hand
+  rakePercent Float  @default(0)     // Rake percentage applied
   createdAt DateTime @default(now())
   
   table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
@@ -145,6 +149,7 @@ model Settlement {
   handId    String
   userId    String
   amount    Float
+  rakeAmount Float   @default(0)   // User's share of the rake (for Rakeback tracking)
   createdAt DateTime @default(now())
 
   hand      Hand     @relation(fields: [handId], references: [id], onDelete: Cascade)

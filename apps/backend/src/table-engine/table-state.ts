@@ -24,6 +24,18 @@ export const RAKE_RATE = 0.03;
 /** Maximum rake deducted per pot. */
 export const RAKE_CAP = 30;
 
+/**
+ * Tier-based rake configuration (blind level → { rate, capPerHand })
+ * Aligned with Productor's industry standard recommendations.
+ */
+export const TIER_RAKE_CONFIG: Record<string, { rate: number; cap: number }> = {
+  MICRO: { rate: 0.05, cap: 0.3 },
+  LOW: { rate: 0.04, cap: 0.5 },
+  MEDIUM: { rate: 0.035, cap: 1.0 },
+  HIGH: { rate: 0.03, cap: 2.0 },
+  PREMIUM: { rate: 0.025, cap: 3.0 },
+};
+
 // ─── Exported interfaces & types ───────────────────────────────────────────
 
 export interface HandResultEntry {
@@ -86,6 +98,12 @@ export interface TableSnapshot {
   straddle: StraddleInfo | null;
   calledAllIn: number | null;
   sittingOutTimeout: number;
+  /** Room tier for rake calculation. */
+  tier?: string;
+  /** Rake deducted in the current hand. */
+  rakeAmount?: number;
+  /** Rake percentage applied. */
+  rakePercent?: number;
 }
 
 export enum GameStage {
