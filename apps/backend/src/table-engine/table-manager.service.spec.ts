@@ -77,6 +77,7 @@ describe('TableManagerService', () => {
       walletService as any,
       prisma as any,
       redis as any,
+      {} as any, // rakebackService
     );
   });
 

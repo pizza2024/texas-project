@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
-  TooManyRequestsException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -182,7 +181,7 @@ export class AuthService {
     // Check failed attempt count
     const attempts = await this.redisService.get(attemptsKey);
     if (attempts && parseInt(attempts, 10) >= AuthService.OTP_MAX_ATTEMPTS) {
-      throw new TooManyRequestsException(
+      throw new BadRequestException(
         'Too many failed attempts. Please try again after 5 minutes.',
       );
     }

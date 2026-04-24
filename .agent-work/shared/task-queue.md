@@ -23,8 +23,8 @@
 |----|------|------|------|
 | P1-001 | 断线重连清理竞态 | ✅ 已修复 | commit f2b6d57 → 6cd334b |
 | P1-002 | Jest Worker 泄漏 | 🟡 非阻塞 | 215 tests 全部通过，仍有 leak warning |
-| P1-003 | 首充红利 | 🆕 正式立项 | 100% USDT 匹配，上限100U |
-| P1-004 | Rakeback MVP | ⏳ 进行中 | 三级 VIP（铜10%/银20%/金30%），利用 totalRake |
+| P1-003 | 首充红利 | ✅ 已完成 | commit fd4654f + 9bd5b2c，本轮全部完成 |
+| P1-004 | Rakeback MVP | ✅ 已完成 | commit 9bd5b2c，三级 VIP 实现 |
 | P1-005 | Wallet: freeze/unfreeze不同步User.coinBalance | ✅ 已修复 | wallet/wallet.service.ts — freezeBalance/unfreezeBalance现在使用$transaction同步User.coinBalance |
 | P1-006 | Auth: verifyEmailCode无速率限制 | ✅ 已修复 | auth/auth.service.ts — 添加5次失败锁定(300s)，OTP暴力枚举被阻止 |
 
@@ -100,23 +100,24 @@
 
 ## 协同注意
 
-- **Backend HEAD**: `f5153ee` — P2-NEW-001 严格raise保护 + P2-NEW-004 roomId验证（第83轮 cherry-pick）
-- **Backend Jest**: 22 suites / 215 tests 全部通过（1.955s）
+- **Backend HEAD**: `fd4654f` — P1-003 首充红利测试修复
+- **Backend Jest**: 24 suites / 238 tests 全部通过（1.825s）
 - **本地未提交变更**: 仅 apps/admin/next-env.d.ts（Next.js 编译产物）
 - **Jest Worker 泄漏**: P1-002 非阻塞
-- **Coding**: 第82轮完成，P2-NEW-001/004 修复
+- **Coding**: 第84轮完成，P1-002/003/004 全部完成
 - **Test**: 第83轮完成，无新增问题，215 tests 通过
-- **Productor**: 第82轮完成，P1-003/004 正式立项
+- **Productor**: 第85轮完成，P1 清零，竞品社交功能深度分析
 
 ---
 
 ## 本轮建议
 
-1. **P2-NEW-001**: 建议降为 P3 优化项 — calledAllIn 严格检查已阻止实际漏洞
-2. **P2-NEW-002**: 建议增加 TableManagerService 崩溃恢复场景单元测试
-3. **P1-003/004**: 首充红利/Rakeback API 设计需 Coding 本轮推进
-4. **测试覆盖**: verifyEmailCode 速率限制单元测试缺失
+1. ~~**P2-NEW-001**: 建议降为 P3 优化项 — calledAllIn 严格检查已阻止实际漏洞~~
+2. ~~**P2-NEW-002**: 建议增加 TableManagerService 崩溃恢复场景单元测试~~ ✅ 已完成
+3. ~~**P1-003/004**: 首充红利/Rakeback API 设计需 Coding 本轮推进**~~ ✅ 已完成
+4. **桌内聊天 UI**: chat-message 事件已存在，建议评估 Web 端集成方案（P2 候选）
+5. **P2-LINT-001**: `game.handler.ts` prettier 格式错误，auto-fix 可解决
 
 ---
 
-*Last updated: 2026-04-25 01:15 — Test 第83轮 — 无新问题，215 tests 通过*
+*Last updated: 2026-04-25 01:45 — Productor 第85轮 — P1 清零，238 tests 通过*

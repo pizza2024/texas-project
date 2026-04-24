@@ -27,7 +27,7 @@ describe('Settlement Flow Debug', () => {
       currentStage: GameStage.PREFLOP,
       actionEndsAt: null as number | null,
       readyCountdownEndsAt: null as number | null,
-      processAction: jest.fn(() => {
+      processAction: jest.fn((_userId: string, _action: string, _amount: number) => {
         table.currentStage = GameStage.SETTLEMENT;
         table.actionEndsAt = null;
         return true;

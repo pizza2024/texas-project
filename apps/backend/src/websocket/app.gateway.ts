@@ -539,7 +539,7 @@ export class AppGateway
   async handlePlayerAction(
     @ConnectedSocket() client: Socket,
     @MessageBody()
-    data: { action: unknown; amount?: unknown; roomId?: unknown },
+    data: { action: 'check' | 'fold' | 'call' | 'raise' | 'allin' | 'straddle' | 'sit-out'; amount?: number; roomId?: string },
   ) {
     return handlePlayerAction(this, client, data);
   }
