@@ -181,7 +181,7 @@ export class ConnectionStateService {
       try {
         this.pendingDisconnects.delete(userId);
 
-        if (await hasOtherActiveSocketFn(userId, '')) {
+        if (await hasOtherActiveSocketFn(userId, client.id)) {
           return;
         }
 
