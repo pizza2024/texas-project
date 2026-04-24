@@ -314,10 +314,8 @@ export class TablePlayerOps {
       }
 
       case 'raise': {
-        if (
-          this.table.calledAllIn !== null &&
-          amount >= this.table.calledAllIn
-        ) {
+        // After calledAllIn is set (someone went all-in and was called), no further raises allowed this street
+        if (this.table.calledAllIn !== null) {
           return false;
         }
         const minRaiseTo = this.table.currentBet + this.table.minBet;

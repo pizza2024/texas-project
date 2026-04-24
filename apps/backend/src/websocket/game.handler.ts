@@ -251,9 +251,15 @@ export async function handlePlayerAction(
   const action = validated.action;
   const amount = validated.amount ?? 0;
   // roomId is optional in schema - derive from user's current room if not provided
+  const userCurrentRoomId = await gateway.tableManager.getUserCurrentRoomId(userId);
   let roomId: string | null = validated.roomId ?? null;
   if (!roomId) {
-    roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+    roomId = userCurrentRoomId;
+  }
+  // Security: if client provides a roomId, verify they are actually in that room
+  // (only check if userRooms index has been populated; null means newly joined or index not yet set)
+  if (validated.roomId && userCurrentRoomId != null && validated.roomId !== userCurrentRoomId) {
+    return { event: 'error', data: { message: 'Invalid roomId' } };
   }
 
   if (!action || !roomId) {
