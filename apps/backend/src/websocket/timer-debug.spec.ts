@@ -55,7 +55,11 @@ describe('Settlement Flow Debug', () => {
     const ACTION_DURATION_MS = 20000;
 
     // ---- Mock schedulePostHandFlow ----
-    const mockSchedulePostHandFlow = (_server: any, _roomId: string, _table: any) => {
+    const mockSchedulePostHandFlow = (
+      _server: any,
+      _roomId: string,
+      _table: any,
+    ) => {
       if (_table?.beginSettlementCountdown) {
         _table.beginSettlementCountdown(SETTLEMENT_DURATION_MS);
       }

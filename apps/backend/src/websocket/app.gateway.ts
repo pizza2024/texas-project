@@ -233,6 +233,14 @@ export class AppGateway
     );
   }
 
+  /**
+   * Test helper — exposes timerService.finalizeSettlement for spec mocks.
+   * Not for use in production code.
+   */
+  async __testFinalizeSettlement(roomId: string, server: any) {
+    return this.timerService.finalizeSettlement(roomId, server);
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   // Lifecycle methods
   // ════════════════════════════════════════════════════════════════════════

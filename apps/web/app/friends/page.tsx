@@ -94,8 +94,8 @@ function AddFriendModal({ onClose, onSent }: AddFriendModalProps) {
       await api.post('/friends/request', { usernameOrEmail: value.trim() });
       onSent();
       onClose();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message;
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
       if (Array.isArray(msg)) setError(msg[0]);
       else setError(msg || 'Failed to send request');
     } finally {
