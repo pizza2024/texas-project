@@ -2,7 +2,7 @@
 
 import { useTranslation } from 'react-i18next';
 import '@/lib/i18n';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
@@ -91,16 +91,16 @@ export default function RoomPage() {
 
   const roomPath = `/room/${id}`;
 
-  const redirectToLogin = () => {
+  const redirectToLogin = useCallback(() => {
     handleExpiredSession({ returnTo: roomPath });
-  };
+  }, [roomPath]);
 
-  const redirectForExpiredToken = () => {
+  const redirectForExpiredToken = useCallback(() => {
     handleExpiredSession({
       alertMessage: t('auth.sessionExpiredGameMsg'),
       returnTo: roomPath,
     });
-  };
+  }, [t, roomPath]);
 
   const getAuthorizedSocket = () => {
     const token = getStoredToken();
@@ -518,7 +518,7 @@ export default function RoomPage() {
         const losers = table.lastHandResult.filter((entry) => entry.winAmount <= 0);
         const myResult = table.lastHandResult.find((entry) => entry.playerId === myUserId);
         const didIFold = myResult?.handName === '弃牌';
-        winners.forEach((entry, winnerIndex) => {
+        winners.forEach((entry) => {
           const playerIndex = table.players.findIndex((player) => player?.id === entry.playerId);
           if (playerIndex === -1) return;
           const seat = {
@@ -776,18 +776,9 @@ export default function RoomPage() {
         winnerBestCardsMap={winnerBestCardsMap}
         highlightedCommunityCardsSet={highlightedCommunityCardsSet}
         getDealAnimationStyle={getDealAnimationStyle}
-        getSeatPosition={(i: number) => {
-          const angle = (i / 9) * 2 * Math.PI;
-          const radius = 44;
-          return {
-            top: 50 + radius * Math.sin(angle),
-            left: 50 + radius * Math.cos(angle),
-          };
-        }}
         isWaiting={isWaiting}
         isActionStage={isActionStage}
         isSettlement={isSettlement}
-        isMyTurn={isMyTurn}
         isUrgentCountdown={isUrgentCountdown}
         actionCountdown={actionCountdown}
       />
@@ -795,19 +786,15 @@ export default function RoomPage() {
       {/* Bottom Action Bar */}
       <ActionBar
         table={table}
-        myUserId={myUserId}
         isWaiting={isWaiting}
         isReady={isReady}
         isAutoReadyCountdown={isAutoReadyCountdown}
         readyCountdown={readyCountdown}
         isSettlement={isSettlement}
         settlementCountdown={settlementCountdown}
-        isActionStage={isActionStage}
-        activeCountdown={activeCountdown}
         isMyTurn={isMyTurn}
         isUrgentCountdown={isUrgentCountdown}
         actionCountdown={actionCountdown}
-        countdownLabel={countdownLabel}
         callAmount={callAmount}
         minRaiseTo={minRaiseTo}
         canCheck={canCheck}

@@ -25,7 +25,6 @@ interface GameHeaderProps {
 
 export function GameHeader({
   table,
-  myUserId,
   activeCountdown,
   isSettlement,
   isAutoReadyCountdown,

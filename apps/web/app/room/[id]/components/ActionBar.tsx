@@ -3,23 +3,19 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TableState, Player } from './types';
+import { TableState } from './types';
 
 interface ActionBarProps {
   table: TableState;
-  myUserId: string;
   isWaiting: boolean;
   isReady: boolean;
   isAutoReadyCountdown: boolean;
   readyCountdown: number;
   isSettlement: boolean;
   settlementCountdown: number;
-  isActionStage: boolean;
-  activeCountdown: number;
   isMyTurn: boolean;
   isUrgentCountdown: boolean;
   actionCountdown: number;
-  countdownLabel: string;
   callAmount: number;
   minRaiseTo: number;
   canCheck: boolean;
@@ -35,19 +31,15 @@ interface ActionBarProps {
 
 export function ActionBar({
   table,
-  myUserId,
   isWaiting,
   isReady,
   isAutoReadyCountdown,
   readyCountdown,
   isSettlement,
   settlementCountdown,
-  isActionStage,
-  activeCountdown,
   isMyTurn,
   isUrgentCountdown,
   actionCountdown,
-  countdownLabel,
   callAmount,
   minRaiseTo,
   canCheck,

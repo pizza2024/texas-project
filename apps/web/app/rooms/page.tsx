@@ -568,7 +568,6 @@ export default function RoomsPage() {
     Record<string, RoomStatus>
   >({});
   const [currentBalance, setCurrentBalance] = useState<number>(0);
-  const [elo, setElo] = useState<number>(1000);
   const [nickname, setNickname] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -627,9 +626,6 @@ export default function RoomsPage() {
             Number.isFinite(profileRes.data.coinBalance)
             ? profileRes.data.coinBalance
             : 0,
-        );
-        setElo(
-          typeof profileRes.data?.elo === "number" ? profileRes.data.elo : 1000,
         );
         setNickname(
           typeof profileRes.data?.nickname === "string"

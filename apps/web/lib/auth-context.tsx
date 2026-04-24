@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const { data } = await api.get('/auth/profile');
           setUser(data);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('token');
         }
       }

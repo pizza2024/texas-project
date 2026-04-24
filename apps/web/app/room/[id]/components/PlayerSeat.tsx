@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { Player, getSeatPosition, TABLE_SEAT_COUNT, CHIP_FLIGHT_MS, CHIP_FLIGHT_STAGGER_MS } from './types';
+import { Player, getSeatPosition } from './types';
 import { CardDisplay } from './CardDisplay';
 import { UserAvatar } from '@/components/user-avatar';
 
@@ -35,7 +35,6 @@ export function PlayerSeat({
   winnerBestCardsMap,
   winnerHighlightPlayerIds,
   loserHighlightPlayerIds,
-  table,
   getDealAnimationStyle,
 }: PlayerSeatProps) {
   const { t } = useTranslation();

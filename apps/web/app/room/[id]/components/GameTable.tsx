@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { TableState, Player, ChipFlight, PayoutFlight, DEAL_ANIMATION_MS, DEAL_STAGGER_MS, CHIP_FLIGHT_MS, CHIP_FLIGHT_STAGGER_MS, getSeatPosition } from './types';
+import { TableState, ChipFlight, PayoutFlight, CHIP_FLIGHT_MS } from './types';
 import { CardDisplay } from './CardDisplay';
 import { PlayerSeat } from './PlayerSeat';
 
@@ -15,11 +15,9 @@ interface GameTableProps {
   winnerBestCardsMap: Map<string, Set<string>>;
   highlightedCommunityCardsSet: Set<string>;
   getDealAnimationStyle: (slotKey: string) => React.CSSProperties | undefined;
-  getSeatPosition: (index: number) => { top: number; left: number };
   isWaiting: boolean;
   isActionStage: boolean;
   isSettlement: boolean;
-  isMyTurn: boolean;
   isUrgentCountdown: boolean;
   actionCountdown: number;
 }
@@ -34,11 +32,9 @@ export function GameTable({
   winnerBestCardsMap,
   highlightedCommunityCardsSet,
   getDealAnimationStyle,
-  getSeatPosition: _getSeatPosition,
-  isWaiting,
   isActionStage,
   isSettlement,
-  isMyTurn,
+  isWaiting,
   isUrgentCountdown,
   actionCountdown,
 }: GameTableProps) {

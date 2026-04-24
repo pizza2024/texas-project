@@ -90,7 +90,6 @@ export default function WithdrawPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [cooldown, setCooldown] = useState<CooldownInfo | null>(null);
-  const [lastCreated, setLastCreated] = useState<WithdrawRecord | null>(null);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -194,7 +193,6 @@ export default function WithdrawPage() {
         amountChips: parseFloat(amountChips),
       });
       const record = res.data;
-      setLastCreated(record);
       setSubmitMsg({
         type: 'success',
         text: t('withdraw.submitSuccess', { chips: record.amountChips, usdt: record.amountUsdt }),

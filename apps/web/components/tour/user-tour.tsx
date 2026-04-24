@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Joyride, type EventHandler, type EventData, type Controls, type Step } from 'react-joyride';
+import { Joyride, type EventHandler, type EventData, type Step } from 'react-joyride';
 
 const steps: Step[] = [
   {
@@ -164,7 +164,7 @@ export default function UserTour() {
     typeof window !== 'undefined' && !localStorage.getItem('tour_completed');
 
   const handleEvent: EventHandler = useCallback(
-    (data: EventData, _controls: Controls) => {
+    (data: EventData) => {
       const { type, index, status } = data;
 
       if (type === 'step:after') {

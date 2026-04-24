@@ -11,8 +11,6 @@ interface LobbyHeaderProps {
   userId: string;
   avatar: string | null;
   onLogout: () => void;
-  onQuickMatch: () => void;
-  onCreateTable: () => void;
   currentBalance: number;
 }
 
@@ -21,8 +19,6 @@ export function LobbyHeader({
   userId,
   avatar,
   onLogout,
-  onQuickMatch,
-  onCreateTable,
 }: LobbyHeaderProps) {
   const { t } = useTranslation();
   const router = useRouter();
