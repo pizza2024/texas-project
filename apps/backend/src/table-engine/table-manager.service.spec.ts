@@ -297,6 +297,48 @@ describe('TableManagerService', () => {
     expect(walletService.resetBalanceAndUnfreeze).not.toHaveBeenCalled();
   });
 
+  it('deduplicates concurrent getTable calls — only one Table instance created', async () => {
+    // Arrange: defer roomService.findOne so we can capture concurrent calls before resolution
+    type RoomMock = {
+      id: string;
+      name: string;
+      maxPlayers: number;
+      blindSmall: number;
+      blindBig: number;
+    };
+    let resolveFindOne: (room: RoomMock) => void;
+    const findOneDeferred = new Promise<RoomMock>((resolve) => {
+      resolveFindOne = resolve;
+    });
+    roomService.findOne.mockReturnValue(findOneDeferred as any);
+
+    // Act: fire 5 concurrent getTable calls for the same roomId
+    const getTablePromises = [
+      service.getTable(room.id),
+      service.getTable(room.id),
+      service.getTable(room.id),
+      service.getTable(room.id),
+      service.getTable(room.id),
+    ];
+
+    // Resolve findOne so the shared pending promise proceeds
+    resolveFindOne!(room);
+
+    // Wait for all concurrent calls to resolve
+    const results = await Promise.all(getTablePromises);
+
+    // Assert 1: all 5 calls returned the same Table instance
+    const firstResult = results[0];
+    expect(firstResult).not.toBeUndefined();
+    for (const result of results) {
+      expect(result).toBe(firstResult);
+    }
+
+    // Assert 2: only ONE Table was added to the tables Map
+    expect((service as any).tables.size).toBe(1);
+    expect((service as any).tables.has(room.id)).toBe(true);
+  });
+
   it('clears stale WAITING seats on startup and releases frozen chips', async () => {
     prisma.table.findMany.mockResolvedValue([
       {

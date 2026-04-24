@@ -14,14 +14,10 @@ export class ConnectionStateService {
   rateLimits = new Map<string, { count: number; windowStart: number }>();
 
   // ── Password brute-force protection ─────────────────────────────────────
-  private passwordAttempts = new Map<
-    string,
-    { count: number; windowStart: number }
-  >();
-
+  // Redis-backed (multi-instance safe); fail-closed if Redis unavailable.
   private readonly PASSWORD_ATTEMPT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
   private readonly PASSWORD_ATTEMPT_MAX = 5; // 5 wrong passwords per window
-  private readonly PASSWORD_BAN_MS = 5 * 60 * 1000; // 5 minute ban per IP+roomId
+  private readonly PASSWORD_BAN_MS = 30 * 60 * 1000; // 30 minute ban per IP+roomId
 
   // ── Pending disconnects ──────────────────────────────────────────────────
   pendingDisconnects = new Map<string, NodeJS.Timeout>();
@@ -43,23 +39,14 @@ export class ConnectionStateService {
       return count <= RATE_LIMIT_MAX_ACTIONS;
     }
 
-    // Redis unavailable — fall back to in-memory Map (original behaviour)
-    const now = Date.now();
-    const entry = this.rateLimits.get(userId);
-    const windowStart = entry?.windowStart ?? now;
-    const cnt = entry?.count ?? 0;
-
-    if (now - windowStart > RATE_LIMIT_WINDOW_MS) {
-      this.rateLimits.set(userId, { count: 1, windowStart: now });
-      return true;
-    }
-
-    if (cnt >= RATE_LIMIT_MAX_ACTIONS) {
-      return false;
-    }
-
-    this.rateLimits.set(userId, { count: cnt + 1, windowStart });
-    return true;
+    // Redis unavailable — DENY all requests rather than bypass via in-memory fallback.
+    // In-memory fallback was a security gap: multi-instance deployments could bypass
+    // rate limits by routing requests to instances with no prior record.
+    // Blocking all requests when Redis is down is the safe default (fail-closed).
+    this.logger.warn(
+      `[RATE-LIMIT] Redis unavailable for user=${userId} — denying request (fail-closed)`,
+    );
+    return false;
   }
 
   // ── Password brute-force check ──────────────────────────────────────────
@@ -67,42 +54,46 @@ export class ConnectionStateService {
   /**
    * Check if an IP+roomId combo is banned due to too many wrong password attempts.
    * Returns 'banned' | 'rate_limited' | 'ok'.
-   * Logs [SECURITY-BRUTE-FORCE] events for SIEM alerting.
+   * Uses Redis for multi-instance safety; fail-closed (deny) if Redis unavailable.
+   * Redis key: brute:{ip}:{roomId}, TTL = PASSWORD_ATTEMPT_WINDOW_MS.
    */
-  checkPasswordAttemptLimit(
+  async checkPasswordAttemptLimit(
     ip: string,
     roomId: string,
-  ): 'banned' | 'rate_limited' | 'ok' {
-    const key = `${ip}:${roomId}`;
-    const now = Date.now();
-    const entry = this.passwordAttempts.get(key);
-    const windowStart = entry?.windowStart ?? now;
-    const cnt = entry?.count ?? 0;
+  ): Promise<'banned' | 'rate_limited' | 'ok'> {
+    const key = `brute:${ip}:${roomId}`;
+    const windowSec = Math.ceil(this.PASSWORD_ATTEMPT_WINDOW_MS / 1000);
+    const count = await this.redisService.incr(key, windowSec);
 
-    // Reset window if expired
-    if (now - windowStart > this.PASSWORD_ATTEMPT_WINDOW_MS) {
-      this.passwordAttempts.set(key, { count: 1, windowStart: now });
-      return 'ok';
-    }
-
-    if (cnt >= this.PASSWORD_ATTEMPT_MAX) {
-      const banRemaining = Math.ceil(
-        (this.PASSWORD_BAN_MS - (now - windowStart)) / 1000,
-      );
+    // Redis unavailable — fail-closed (deny access) since we cannot safely
+    // track attempts across multiple instances without Redis.
+    if (count === null) {
       this.logger.warn(
-        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} banned for ${banRemaining}s ` +
-          `(attempt #${cnt} exceeds limit ${this.PASSWORD_ATTEMPT_MAX})`,
+        `[SECURITY-BRUTE-FORCE] Redis unavailable for IP=${ip} roomId=${roomId} — denying request (fail-closed)`,
       );
       return 'banned';
     }
 
-    this.passwordAttempts.set(key, { count: cnt + 1, windowStart });
+    const now = Date.now();
 
-    if (cnt >= this.PASSWORD_ATTEMPT_MAX - 2) {
+    if (count > this.PASSWORD_ATTEMPT_MAX) {
+      const ttl = await this.redisService.ttl(key);
+      const banRemaining = Math.ceil(
+        Math.max(0, ttl) +
+          (this.PASSWORD_BAN_MS - this.PASSWORD_ATTEMPT_WINDOW_MS) / 1000,
+      );
+      this.logger.warn(
+        `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} banned for ${banRemaining}s ` +
+          `(attempt #${count} exceeds limit ${this.PASSWORD_ATTEMPT_MAX})`,
+      );
+      return 'banned';
+    }
+
+    if (count >= this.PASSWORD_ATTEMPT_MAX - 2) {
       // Warn at 3rd and 4th failed attempts
       this.logger.warn(
         `[SECURITY-BRUTE-FORCE] IP=${ip} roomId=${roomId} ` +
-          `wrong password attempt #${cnt + 1}/${this.PASSWORD_ATTEMPT_MAX}`,
+          `wrong password attempt #${count}/${this.PASSWORD_ATTEMPT_MAX}`,
       );
     }
 
@@ -113,9 +104,9 @@ export class ConnectionStateService {
    * Clear password attempt counter on successful join.
    * Call this when the user successfully joins (password correct or no password).
    */
-  clearPasswordAttempts(ip: string, roomId: string): void {
-    const key = `${ip}:${roomId}`;
-    this.passwordAttempts.delete(key);
+  async clearPasswordAttempts(ip: string, roomId: string): Promise<void> {
+    const key = `brute:${ip}:${roomId}`;
+    await this.redisService.del(key);
   }
 
   // ── Socket registration ────────────────────────────────────────────────
