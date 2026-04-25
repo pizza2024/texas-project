@@ -62,7 +62,7 @@
 |----|------|------|------|
 | P1-RAKEBACK-001 | E2E `passwordHash` → `password` TSC 编译错误 | ✅ 已修复 | commit 6ec6c3a 已修复 |
 | P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
-| P1-CHAT-001 | 房间内聊天 UI | 📋 规格已就绪 | WebSocket chat-message 事件后端已实现，前端缺 ChatPanel 组件 |
+| P1-CHAT-001 | 房间内聊天 UI | ✅ 后端已完成 | 后端: chat-message WS事件 + 1msg/5s速率限制; 前端: ChatPanel fire-and-forget emit |
 | P1-SCHEDULE-001 | 赛事日历/时间表 | 📋 规格已就绪 | 888poker Beat the Clock 类赛事日程 |
 
 ## P1 — 规格就绪（待 Coding 实施）
@@ -94,10 +94,17 @@
 ## P2 — 进行中
 
 | ID | 任务 | 状态 | 备注 |
-|----|------|------|------|
+|----|------|------|-------|
 | P2-EMOJI-001 | 表情反应系统 | 📋 规格已就绪 | WSOP SnapCam 类低成本互动功能 |
 | P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
 | P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
+| P2-CHAT-001 | 前端 chat-message 监听器完整性 | 🟡 待验证 | Coding 报告需确认前端是否在 room_update 中渲染聊天 |
+
+## P2 — 已完成（本轮更新）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-CHAT-001 | chat-message rate limit | ✅ 已实现 | commit cfb5851 — 1 msg/5s via Redis |
 
 ## P2 — 已完成
 
