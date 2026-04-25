@@ -70,7 +70,7 @@
 | ID | 任务 | 规格来源 | 关键参数 |
 |----|------|---------|---------|
 | P1-HANDREPLAY-002 | Hand Replay Phase 2 | ✅ 已实现 | commit e7e8f1a — 5组件全部实现，270 tests pass |
-| P1-TOURNAMENT-001 | Tournament SNG Phase 1 | 本轮 Productor | 8人/500-5000 buyin/60-30-10%/每3分钟涨盲 |
+| P1-TOURNAMENT-001 | Tournament SNG Phase 1 | ✅ 已修复 | commit 0a7687d — WS集成: handleJoinRoom→8人触发tournament_start+scheduleTournamentStart; backend骨架+tournament.service.spec.ts 21 tests pass |
 
 ## P1 — 已完成
 
@@ -98,7 +98,10 @@
 | P2-EMOJI-001 | 表情反应系统 | 📋 规格已就绪 | WSOP SnapCam 类低成本互动功能 |
 | P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
 | P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
-| P2-CHAT-001 | 前端 chat-message 监听器完整性 | 🟡 待验证 | Coding 报告需确认前端是否在 room_update 中渲染聊天 |
+| P2-CHAT-001 | 前端 chat-message 监听器完整性 | ✅ 已验证 | ChatPanel.tsx:73 已注册 socket.on('chat-message') |
+| P2-TOURNAMENT-001 | `calculateFinalRankings()` 返回空数组 | ✅ 已修复 | WD — `table.getPersistentBalances()` 已正确实现 |
+| P2-TOURNAMENT-002 | `TournamentService` 0 tests | ✅ 已修复 | WD — 21 tests in tournament.service.spec.ts |
+| P2-TOURNAMENT-WS-001 | Tournament WS 事件 `@SubscribeMessage` 未绑定 | ✅ 已修复 | commit 0a7687d — AppGateway.scheduleTournamentStart() + game.handler.ts tournament_start emit |
 
 ## P2 — 已完成（本轮更新）
 
@@ -179,4 +182,4 @@
 
 | P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1+2 完成 | commit e7e8f1a — EquityCurveChart/PotOddsTooltip/PlaybackControls/SpeedSelector/AutoPlayPanel |
 
-*最后更新: 2026-04-25 18:20 — Coding 第152轮 — commit 713a075，P1-BACKEND-003 已修复*
+*最后更新: 2026-04-26 22:45 — Coding 第165轮 — P1-TOURNAMENT-001 WS集成完成，commit 0a7687d，21 tests pass*
