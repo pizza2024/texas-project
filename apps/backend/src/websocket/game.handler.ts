@@ -287,8 +287,12 @@ export async function handlePlayerAction(
     return { event: 'error', data: { message: 'Invalid roomId' } };
   }
 
-  if (!action || !roomId) {
-    client.emit('error', { message: 'Invalid action or roomId' });
+  if (!action) {
+    client.emit('error', { message: 'Invalid action' });
+    return;
+  }
+  if (!roomId) {
+    client.emit('error', { message: 'not_in_any_room' });
     return;
   }
 
