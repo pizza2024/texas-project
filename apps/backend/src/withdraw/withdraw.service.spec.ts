@@ -383,4 +383,89 @@ describe('WithdrawService', () => {
       expect(result.data[0].user.nickname).toBe('Player1');
     });
   });
+
+  describe('handleWithdrawFailure', () => {
+    const mockFailedRequest = {
+      id: 'req-fail-1',
+      userId: mockUserId,
+      amountChips: 3000,
+      amountUsdt: 30,
+      toAddress: mockAddress,
+      status: 'PROCESSING',
+      createdAt: new Date(),
+    };
+
+    beforeEach(() => {
+      // refundChips uses array-style $transaction (non-interactive Prisma transaction)
+      prisma.$transaction.mockImplementation(async (operations: any) => {
+        if (Array.isArray(operations)) {
+          return Promise.all(operations.map((op: any) => op));
+        }
+        return operations(prisma);
+      });
+
+      prisma.withdrawRequest.findUnique.mockResolvedValue(
+        mockFailedRequest as any,
+      );
+      prisma.withdrawRequest.update.mockResolvedValue({
+        ...mockFailedRequest,
+        status: 'FAILED',
+        failureReason: 'Chain transfer failed',
+      } as any);
+      prisma.wallet.findUnique.mockResolvedValue({
+        userId: mockUserId,
+        chips: 53000,
+      } as any);
+      prisma.wallet.upsert.mockResolvedValue({
+        userId: mockUserId,
+        chips: 56000,
+      } as any);
+      prisma.user.update.mockResolvedValue({} as any);
+      prisma.transaction.create.mockResolvedValue({} as any);
+    });
+
+    it('should set status to FAILED and refund chips', async () => {
+      await service.handleWithdrawFailure('req-fail-1', 'Chain transfer failed');
+
+      expect(prisma.withdrawRequest.update).toHaveBeenCalledWith({
+        where: { id: 'req-fail-1' },
+        data: {
+          status: 'FAILED',
+          failureReason: 'Chain transfer failed',
+        },
+      });
+      // Verifies refundChips was called (wallet updated)
+      expect(prisma.wallet.upsert).toHaveBeenCalled();
+    });
+
+    it('should early return if request not found', async () => {
+      prisma.withdrawRequest.findUnique.mockResolvedValue(null);
+
+      await service.handleWithdrawFailure('non-existent', 'Chain transfer failed');
+
+      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+    });
+
+    it('should early return if already CONFIRMED', async () => {
+      prisma.withdrawRequest.findUnique.mockResolvedValue({
+        ...mockFailedRequest,
+        status: 'CONFIRMED',
+      } as any);
+
+      await service.handleWithdrawFailure('req-fail-1', 'Chain transfer failed');
+
+      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+    });
+
+    it('should early return if already FAILED', async () => {
+      prisma.withdrawRequest.findUnique.mockResolvedValue({
+        ...mockFailedRequest,
+        status: 'FAILED',
+      } as any);
+
+      await service.handleWithdrawFailure('req-fail-1', 'Already failed');
+
+      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+    });
+  });
 });
