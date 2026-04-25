@@ -132,7 +132,7 @@ export class HandHistoryService {
       ([pid, pa]) => {
         const actionUser = hand.actions.find((a) => a.userId === pid)?.user;
         const settlement = hand.settlements.find((s) => s.userId === pid);
-        const netProfit = (settlement?.amount ?? 0) - pa.totalBet;
+        const netProfit = (settlement?.amount ?? 0) - pa.bet;
 
         let holeCards: string[] = [];
         let finalHand = '弃牌';
