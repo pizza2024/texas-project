@@ -93,6 +93,22 @@ export async function handleJoinRoom(
         return { event: 'error', data: 'Room not found' };
       }
 
+      // Club-exclusive room: verify user is a club member
+      const room = await gateway.roomService.findOne(roomId);
+      if (room?.isClubOnly && room.clubId) {
+        const isMember = await gateway.clubService.isClubMember(
+          userId,
+          room.clubId,
+        );
+        if (!isMember) {
+          client.emit('access_denied', {
+            message: 'This room is exclusive to club members',
+            roomId,
+          });
+          return { event: 'access_denied', data: { roomId } };
+        }
+      }
+
       // Password brute-force protection — check before verifying password
       const rawIp = client.handshake?.address ?? '0.0.0.0';
       const ipHash = gateway.matchmakingService.hashIp(rawIp);
@@ -281,7 +297,13 @@ export async function handlePlayerAction(
 
   return gateway.withRoomLock(roomId, async () => {
     const table = await gateway.tableManager.getTable(roomId);
-    if (!table) return;
+    if (!table) {
+      client.emit('error', {
+        message: 'Table not found',
+        roomId,
+      });
+      return;
+    }
 
     await gateway.ensureRecoveredRoundFlow(roomId, table);
     const processed = table.processAction(userId, action, amount);
@@ -321,13 +343,15 @@ export async function handleLeaveRoom(gateway: AppGateway, client: Socket) {
     }
 
     return gateway.withRoomLock(roomId, async () => {
+      // Leave the Socket.io room FIRST to avoid race conditions with DB state
+      client.leave(roomId);
+
       const result = await gateway.tableManager.leaveCurrentRoom(userId);
       if (!result) {
         return { event: 'error', data: 'Not in any room' };
       }
 
       gateway.matchmakingService.recordPlayerLeft(roomId, userId);
-      client.leave(roomId);
 
       if (result.dissolved) {
         gateway.clearRoundTimers(roomId);

@@ -424,6 +424,8 @@ describe('AppGateway', () => {
             }
           }),
       } as any,
+      { isClubMember: jest.fn().mockResolvedValue(true) } as any,
+      { findOne: jest.fn().mockResolvedValue(null) } as any,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden
     // per-test without losing the adapter.rooms reference.

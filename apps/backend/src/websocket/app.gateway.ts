@@ -20,6 +20,8 @@ import { TableManagerService } from '../table-engine/table-manager.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { GameStage } from '../table-engine/table';
+import { ClubService } from '../club/club.service';
+import { RoomService } from '../room/room.service';
 import {
   ROOM_CREATED_EVENT,
   ROOM_DISSOLVED_EVENT,
@@ -103,6 +105,8 @@ export class AppGateway
     private connectionState: ConnectionStateService,
     private readonly broadcastService: BroadcastService,
     private readonly timerService: TimerService,
+    readonly clubService: ClubService,
+    readonly roomService: RoomService,
   ) {}
 
   // ── Delegating getters for ConnectionStateService ───────────────────────

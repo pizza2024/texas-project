@@ -12,6 +12,8 @@ import { MatchmakingModule } from '../matchmaking/matchmaking.module';
 import { BotModule } from '../bot/bot.module';
 import { FriendModule } from '../friend/friend.module';
 import { RedisModule } from '../redis/redis.module';
+import { ClubModule } from '../club/club.module';
+import { RoomModule } from '../room/room.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
@@ -22,6 +24,8 @@ import { getJwtSecret } from '../config/jwt.config';
     MatchmakingModule,
     BotModule,
     forwardRef(() => FriendModule),
+    forwardRef(() => ClubModule),
+    RoomModule,
     JwtModule.register({
       secret: getJwtSecret(),
     }),

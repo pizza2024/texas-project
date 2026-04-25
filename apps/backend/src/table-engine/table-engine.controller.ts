@@ -10,6 +10,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { TableManagerService } from './table-manager.service';
+import { HandHistoryService } from './hand-history.service';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -19,7 +20,10 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('tables')
 export class TableEngineController {
-  constructor(private readonly tableManagerService: TableManagerService) {}
+  constructor(
+    private readonly tableManagerService: TableManagerService,
+    private readonly handHistoryService: HandHistoryService,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me/current-room')
@@ -54,5 +58,25 @@ export class TableEngineController {
       throw new NotFoundException('Room not found');
     }
     return status;
+  }
+}
+
+@Controller('hands')
+export class HandController {
+  constructor(private readonly handHistoryService: HandHistoryService) {}
+
+  /**
+   * GET /hands/:id/replay
+   * Returns full hand replay data for the GGPoker Squash-style UI.
+   * Includes: hole cards, community cards, timeline of all actions,
+   * per-player net profit, and hand strength at showdown.
+   */
+  @Get(':id/replay')
+  async getHandReplay(@Param('id') handId: string) {
+    const replay = await this.handHistoryService.getHandReplay(handId);
+    if (!replay) {
+      throw new NotFoundException('Hand not found');
+    }
+    return replay;
   }
 }

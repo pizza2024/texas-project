@@ -7,6 +7,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebSocketManager } from '../websocket/websocket-manager';
 import { RedisService } from '../redis/redis.service';
@@ -73,8 +74,7 @@ export class ClubService {
   private generateInviteCode(): string {
     let code = '';
     for (let i = 0; i < 6; i++) {
-      code +=
-        this.INVITE_CHARS[Math.floor(Math.random() * this.INVITE_CHARS.length)];
+      code += this.INVITE_CHARS[randomInt(0, this.INVITE_CHARS.length)];
     }
     return code;
   }
