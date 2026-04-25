@@ -113,17 +113,8 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
       lastSentRef.current = now;
 
       const socket = getSocket(token);
-      socket.emit(
-        'chat-message',
-        { roomId, content: trimmed },
-        (response: { error?: string } | null) => {
-          setIsSending(false);
-          if (response?.error) {
-            setLocalError(response.error);
-            setTimeout(() => setLocalError(null), 3000);
-          }
-        },
-      );
+      socket.emit('chat-message', { roomId, content: trimmed });
+      setIsSending(false);
 
       setInput('');
     },
