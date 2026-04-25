@@ -58,6 +58,11 @@ const TIERS = [
   },
 ] as const;
 
+const SNG_FILTERS = [
+  { id: 'all', label: '全部' },
+  { id: 'sng', label: '🏆 SNG' },
+] as const;
+
 type QuickMatchTier = (typeof TIERS)[number]["id"];
 
 interface QuickMatchDialogProps {
@@ -538,6 +543,160 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
   );
 }
 
+/* ---------- Prize Modal for Tournament Rooms ---------- */
+
+interface PrizeModalProps {
+  room: Room;
+  onClose: () => void;
+  onJoin: (roomId: string) => void;
+}
+
+function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
+
+  if (!room.isTournament || !room.tournamentConfig) return null;
+
+  const { buyin, maxPlayers, prizeDistribution } = room.tournamentConfig;
+  const totalPrize = buyin * maxPlayers;
+  const firstPrize = Math.floor(totalPrize * prizeDistribution[0] / 100);
+  const secondPrize = Math.floor(totalPrize * prizeDistribution[1] / 100);
+  const thirdPrize = Math.floor(totalPrize * prizeDistribution[2] / 100);
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl p-6 space-y-5"
+        style={{
+          background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
+          border: '1px solid rgba(245,158,11,0.3)',
+          boxShadow: '0 0 60px rgba(245,158,11,0.1), 0 20px 60px rgba(0,0,0,0.8)',
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🏆</span>
+          <div>
+            <p
+              className="text-[10px] font-bold tracking-[0.3em] uppercase"
+              style={{ color: 'rgba(245,158,11,0.6)' }}
+            >
+              {t('lobby.tournament.sng')}
+            </p>
+            <h2 className="text-lg font-black tracking-wide text-white">
+              {room.name}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="ml-auto text-gray-500 hover:text-gray-300 transition-colors text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Buyin & Total Prize */}
+        <div className="grid grid-cols-2 gap-3">
+          <div
+            className="rounded-xl p-3 text-center"
+            style={{
+              background: 'rgba(245,158,11,0.08)',
+              border: '1px solid rgba(245,158,11,0.2)',
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'rgba(245,158,11,0.5)' }}>
+              Buy-in
+            </p>
+            <p className="text-base font-black text-amber-400">
+              {buyin.toLocaleString()}
+            </p>
+          </div>
+          <div
+            className="rounded-xl p-3 text-center"
+            style={{
+              background: 'rgba(16,185,129,0.08)',
+              border: '1px solid rgba(16,185,129,0.2)',
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'rgba(52,211,153,0.5)' }}>
+              Total Prize
+            </p>
+            <p className="text-base font-black" style={{ color: '#6ee7b7' }}>
+              {totalPrize.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Prize Breakdown */}
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest text-center" style={{ color: 'rgba(245,158,11,0.5)' }}>
+            Prize Distribution
+          </p>
+          <div className="space-y-1.5">
+            {/* 1st */}
+            <div
+              className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.15)' }}
+            >
+              <span className="text-lg">🥇</span>
+              <span className="flex-1 text-xs font-bold" style={{ color: '#fcd34d' }}>1st</span>
+              <span className="text-xs font-bold" style={{ color: '#fcd34d' }}>{prizeDistribution[0]}%</span>
+              <span className="text-sm font-black text-white">{firstPrize.toLocaleString()}</span>
+            </div>
+            {/* 2nd */}
+            <div
+              className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: 'rgba(209,213,219,0.06)', border: '1px solid rgba(209,213,219,0.12)' }}
+            >
+              <span className="text-lg">🥈</span>
+              <span className="flex-1 text-xs font-bold" style={{ color: '#d1d5db' }}>2nd</span>
+              <span className="text-xs font-bold" style={{ color: '#d1d5db' }}>{prizeDistribution[1]}%</span>
+              <span className="text-sm font-black text-white">{secondPrize.toLocaleString()}</span>
+            </div>
+            {/* 3rd */}
+            <div
+              className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.15)' }}
+            >
+              <span className="text-lg">🥉</span>
+              <span className="flex-1 text-xs font-bold" style={{ color: '#b45309' }}>3rd</span>
+              <span className="text-xs font-bold" style={{ color: '#b45309' }}>{prizeDistribution[2]}%</span>
+              <span className="text-sm font-black text-white">{thirdPrize.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Players */}
+        <div className="text-center">
+          <p className="text-[10px]" style={{ color: 'rgba(156,163,175,0.5)' }}>
+            {maxPlayers} players max
+          </p>
+        </div>
+
+        {/* Join Button */}
+        <button
+          onClick={() => onJoin(room.id)}
+          className="w-full h-11 rounded-xl font-black tracking-widest text-sm uppercase transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{
+            background: 'linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
+            color: '#000',
+            boxShadow: '0 0 20px rgba(245,158,11,0.25)',
+          }}
+        >
+          {t('lobby.tournament.joinTournament')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface Room {
   id: string;
   name: string;
@@ -549,6 +708,13 @@ interface Room {
   isClubOnly?: boolean;
   clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
+  isTournament?: boolean;
+  tournamentConfig?: {
+    type: 'SNG';
+    buyin: number;
+    maxPlayers: number;
+    prizeDistribution: [number, number, number];
+  };
 }
 
 interface RoomStatus {
@@ -580,6 +746,7 @@ export default function RoomsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<'ALL' | 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM'>('ALL');
+  const [tournamentFilter, setTournamentFilter] = useState<'all' | 'sng'>('all');
   const [myClubIds, setMyClubIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'players' | 'blinds' | 'name'>('players');
   const isSearchingRef = useRef(false);
@@ -587,6 +754,7 @@ export default function RoomsPage() {
     roomId: string;
     roomName: string;
   } | null>(null);
+  const [prizeModalRoom, setPrizeModalRoom] = useState<Room | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -801,6 +969,11 @@ export default function RoomsPage() {
       return;
     }
 
+    if (room?.isTournament) {
+      setPrizeModalRoom(room);
+      return;
+    }
+
     router.push(`/room/${roomId}`);
   };
 
@@ -876,6 +1049,7 @@ export default function RoomsPage() {
                                     'PREMIUM';
         if (tierOfRoom !== tierFilter) return false;
       }
+      if (tournamentFilter === 'sng' && !room.isTournament) return false;
       return true;
     })
     .sort((a, b) => {
@@ -1007,6 +1181,18 @@ export default function RoomsPage() {
           roomName={passwordDialog.roomName}
           onClose={() => setPasswordDialog(null)}
           onConfirm={handlePasswordConfirm}
+        />
+      )}
+
+      {/* Prize modal for tournament rooms */}
+      {prizeModalRoom && (
+        <PrizeModal
+          room={prizeModalRoom}
+          onClose={() => setPrizeModalRoom(null)}
+          onJoin={(roomId) => {
+            setPrizeModalRoom(null);
+            router.push(`/room/${roomId}`);
+          }}
         />
       )}
 
@@ -1197,6 +1383,30 @@ export default function RoomsPage() {
                 }}
               >
                 {tier === 'ALL' ? t('lobby.filterAll') : tier.charAt(0) + tier.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* SNG filter pills */}
+          <div className="flex items-center gap-1.5">
+            {SNG_FILTERS.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setTournamentFilter(filter.id)}
+                className="h-8 px-3 rounded-full text-[10px] font-bold tracking-wide transition-all"
+                style={{
+                  background: tournamentFilter === filter.id
+                    ? 'rgba(245,158,11,0.85)'
+                    : 'rgba(255,255,255,0.06)',
+                  color: tournamentFilter === filter.id
+                    ? '#000'
+                    : 'rgba(200,200,200,0.7)',
+                  border: tournamentFilter === filter.id
+                    ? 'none'
+                    : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {filter.label}
               </button>
             ))}
           </div>

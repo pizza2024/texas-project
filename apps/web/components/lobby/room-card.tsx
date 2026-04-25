@@ -14,6 +14,13 @@ export interface Room {
   isClubOnly?: boolean;
   clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
+  isTournament?: boolean;
+  tournamentConfig?: {
+    type: 'SNG';
+    buyin: number;
+    maxPlayers: number;
+    prizeDistribution: [number, number, number];
+  };
 }
 
 export interface RoomStatus {
@@ -92,15 +99,18 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
                 {room.tier}
               </span>
             )}
+            {room.isTournament && <span className="text-xs font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded ml-1">🏆 SNG</span>}
           </div>
           <p
             className="text-[10px] tracking-[0.2em] uppercase mt-0.5"
             style={{ color: 'rgba(245,158,11,0.5)' }}
           >
-            {t('lobby.table.blinds', {
-              small: room.blindSmall,
-              big: room.blindBig,
-            })}
+            {room.isTournament
+              ? `Buy-in: ${room.tournamentConfig?.buyin.toLocaleString()} chips`
+              : t('lobby.table.blinds', {
+                  small: room.blindSmall,
+                  big: room.blindBig,
+                })}
           </p>
         </div>
 
@@ -135,6 +145,20 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
           }}
         />
       </div>
+
+      {/* Prize structure for tournaments */}
+      {room.isTournament && room.tournamentConfig && (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px]" style={{ color: 'rgba(245,158,11,0.6)' }}>Prize:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold" style={{ color: '#fcd34d' }}>🥇 {room.tournamentConfig.prizeDistribution[0]}%</span>
+            <span className="text-[10px] opacity-40">/</span>
+            <span className="text-[10px] font-bold" style={{ color: '#d1d5db' }}>🥈 {room.tournamentConfig.prizeDistribution[1]}%</span>
+            <span className="text-[10px] opacity-40">/</span>
+            <span className="text-[10px] font-bold" style={{ color: '#b45309' }}>🥉 {room.tournamentConfig.prizeDistribution[2]}%</span>
+          </div>
+        </div>
+      )}
 
       {/* Footer row */}
       <div className="flex items-center justify-between">
