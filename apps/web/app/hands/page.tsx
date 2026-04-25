@@ -7,6 +7,7 @@ import '@/lib/i18n';
 import api from '@/lib/api';
 import { getStoredToken, getTokenPayload, handleExpiredSession, isTokenExpired } from '@/lib/auth';
 import { UserAvatar } from '@/components/user-avatar';
+import { ReplayModal } from '@/components/replay';
 
 interface PlayerEntry {
   id: string;
@@ -104,6 +105,7 @@ export default function HandsPage() {
   const [userId, setUserId] = useState<string>('');
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [selectedHandId, setSelectedHandId] = useState<string | null>(null);
   const LIMIT = 20;
 
   useEffect(() => {
@@ -232,6 +234,14 @@ export default function HandsPage() {
                 <span className="text-xs font-bold" style={{ color: '#f59e0b' }}>
                   {t('hands.pot')}: {hand.pot.toLocaleString()}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHandId(hand.handId)}
+                  className="px-2 py-1 rounded text-xs font-medium transition-colors"
+                  style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}
+                >
+                  Replay
+                </button>
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {formatDateTime(hand.date)}
                 </span>
@@ -342,6 +352,10 @@ export default function HandsPage() {
           </div>
         )}
       </main>
+
+      {selectedHandId && (
+        <ReplayModal handId={selectedHandId} onClose={() => setSelectedHandId(null)} />
+      )}
     </div>
   );
 }

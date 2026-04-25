@@ -1,47 +1,70 @@
-# Test Latest — 第113轮
+# Test Latest — 第142轮
 
-> 更新时间: 2026-04-25 08:45
+> 更新时间: 2026-04-25 15:45
 
 ## 状态
 
-| 状态 | P0 | P1 | P2 |
-|------|----|----|-----|
-| 数量 | 0 🟢 | 2 | 0 |
-
-## P0 — 全部清零 ✅
-
-## P1 进行中
-
-| ID | 问题 | 状态 |
-|----|------|------|
-| P1-RAKEBACK-001 | Rakeback E2E 测试验证 | 🔴 新发现：jest-e2e.json 缺少 dotenv 配置 |
-| P1-004 | Jest Worker 泄漏 | 🟡 监控中 |
-
-## TypeScript 编译错误 — 0 个 ✅
-
-## 测试验证
-
-- 267 tests pass ✅
-- Jest Worker 泄漏警告持续（P1-004），未阻断测试
-- rakeback E2E 阻塞于 jest-e2e.json 配置缺失（新 P1）
-
-## 新发现：E2E 测试配置问题
-
-`test/jest-e2e.json` 缺少 `setupFiles` 加载 `.env.test`，导致 JWT_SECRET 未注入，所有 E2E 测试失败。
-
-## 未提交文件
-
-- `table-manager.service.ts`（persistSettlement 两阶段）
-- `rakeback.e2e-spec.ts`
-- `rakeback.controller.spec.ts`
-- `club/page.tsx`（ExternalImg 重构）
-
-## 下轮行动
-
-1. **P1-RAKEBACK-001:** 修复 `test/jest-e2e.json` dotenv 配置 → 运行 rakeback E2E
-2. **P1-004:** 继续监控 Jest Worker 泄漏
-3. **CLUB-INVITE:** 等待 Productor 设计文档
+| 类型 | 数量 |
+|------|------|
+| P0 | 0 🟢 |
+| P1 | 0 🟢 |
+| P2 | 1 延续 + 1 新增 |
 
 ---
 
-*Test 第113轮 — P0 清零，267 tests pass，TS 编译 0 错误，E2E 配置问题（新 P1），Club 邀请码待 Productor 设计文档*
+## HEAD Commit
+
+`806c52c` — 无新提交（距上一轮 14 分钟）
+
+---
+
+## P0/P1 问题
+
+### ✅ P0/P1 均清零
+
+- P0: 0, P1: 0 — 连续保持清零
+
+---
+
+## CodeReview 关注点
+
+### 🟡 P2-NEW-009（新增）— Hand Replay timeline `getActivePlayers()` 来源
+
+**文件:** `apps/backend/src/table-engine/hand-history.service.ts`
+
+在 `buildReplayTimeline()` 中：
+```ts
+const activePlayers = table.getActivePlayers();
+```
+
+**问题:** `table` 来自 `tableManager.getTable(roomId)`，返回的是**当前**活跃 table。
+如果 room 在历史 hand 之后有新玩家加入，`getActivePlayers()` 会返回错误的玩家列表。
+
+**建议:** 使用 `hand.players` 或从 `HandAction` 去重构建历史玩家列表。
+
+**风险:** 中（如果确实有问题，会导致 Replay 显示多余玩家）
+
+### 🟡 P2-NEW-008（延续）— `Math.random()` rooms/page.tsx:233
+
+低风险 — 建议替换为 `crypto.randomInt(1, 1000)`
+
+---
+
+## 测试验证
+
+- 270 tests pass ✅
+- Jest Worker 泄漏: 持续监控（P1-004）
+
+---
+
+## 任务队列
+
+| 优先级 | ID | 任务 | 状态 |
+|--------|-----|------|------|
+| P2 | P2-NEW-009 | Hand Replay getActivePlayers() 来源需确认 | 待 Coding 确认 |
+| P2 | P2-NEW-008 | Math.random() rooms/page.tsx:233 | 低风险，建议替换 |
+| P2 | P2-NEW-007 | Hand Replay UI Phase 1 | 等候 Productor 规格 |
+
+---
+
+*Test 第142轮 — 2026-04-25 15:45*
