@@ -25,13 +25,14 @@ function getIntervalMs(speed: number): number {
 
 export function AutoPlayPanel({
   timelineLength,
-  currentIndex,
+  currentIndex: _currentIndex,
   playbackSpeed,
   isPlaying,
   onIndexChange,
   onPlayingChange,
   onSpeedChange,
 }: AutoPlayPanelProps) {
+  void _currentIndex;
   // Use refs to avoid stale closures in the interval callback
   const onIndexChangeRef = useRef(onIndexChange);
   const onPlayingChangeRef = useRef(onPlayingChange);
@@ -44,9 +45,7 @@ export function AutoPlayPanel({
     timelineLengthRef.current = timelineLength;
   }, [onIndexChange, onPlayingChange, timelineLength]);
 
-  const goToNext = useCallback(() => {
-    onIndexChange((prev) => Math.min(timelineLength - 1, prev + 1));
-  }, [timelineLength, onIndexChange]);
+  // goToNext intentionally unused — auto-advance via interval below
 
   const autoPlayToShowdown = useCallback(() => {
     // Jump to showdown stage

@@ -36,7 +36,8 @@ const PLAYER_COLORS = [
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
 ];
 
-export function EquityCurveChart({ data, currentStage }: EquityCurveChartProps) {
+export function EquityCurveChart({ data, currentStage: _currentStage }: EquityCurveChartProps) {
+  void _currentStage;
   // Build equity curve data from timeline
   const stageMap = new Map<number, EquityPoint>();
 
@@ -50,7 +51,7 @@ export function EquityCurveChart({ data, currentStage }: EquityCurveChartProps) 
       stageMap.set(stageIdx, { stage: node.stage.toUpperCase() });
     }
 
-    const point = stageMap.get(stageIdx)!;
+    void stageMap.get(stageIdx);
     // Approximate equity: give 100% to the player with the best hand at this point
     // Use hand name from the player's final hand (available at SHOWDOWN)
     // For now, distribute based on final hand strength
