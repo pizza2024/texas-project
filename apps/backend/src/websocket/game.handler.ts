@@ -191,7 +191,7 @@ export async function handleJoinRoom(
 
       // SNG Tournament: if room just became full (8 players), start tournament
       if (room?.isTournament) {
-        const activePlayers = table.players.filter(p => p && p.id);
+        const activePlayers = table.players.filter((p) => p && p.id);
         if (activePlayers.length === 8) {
           // 8 players joined — start tournament countdown
           gateway.server.to(roomId).emit('tournament_start', {

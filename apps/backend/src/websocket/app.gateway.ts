@@ -240,7 +240,9 @@ export class AppGateway
     try {
       await this.tournamentService.startBlindTimer(roomId, this.server);
     } catch (err) {
-      this.logger.error(`scheduleTournamentStart failed for room ${roomId}: ${(err as Error).message}`);
+      this.logger.error(
+        `scheduleTournamentStart failed for room ${roomId}: ${(err as Error).message}`,
+      );
     }
   }
 
