@@ -24,6 +24,7 @@ import { GameHeader } from './components/GameHeader';
 import { GameTable } from './components/GameTable';
 import { ActionBar } from './components/ActionBar';
 import { AllInConfirmModal } from './components/AllInConfirmModal';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 import { calculateEquity } from '@texas/shared';
 
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
@@ -837,6 +838,13 @@ export default function RoomPage() {
         }}
         onCancel={() => setShowAllInConfirm(false)}
       />
+
+      {/* Room Chat */}
+      {typeof id === 'string' && (
+        <div className="fixed bottom-24 right-4 z-30 w-72">
+          <ChatPanel roomId={id} />
+        </div>
+      )}
 
       <style jsx>{`
         .countdown-badge {
