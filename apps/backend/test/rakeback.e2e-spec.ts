@@ -34,7 +34,7 @@ describe('RakebackController (e2e)', () => {
         data: {
           username: 'rakeback-test-user',
           nickname: 'Rakeback Tester',
-          passwordHash:
+          password:
             '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
           role: 'PLAYER',
           status: 'OFFLINE',
@@ -55,7 +55,7 @@ describe('RakebackController (e2e)', () => {
         data: {
           username: 'rakeback-test-admin',
           nickname: 'Rakeback Admin',
-          passwordHash:
+          password:
             '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
           role: 'ADMIN',
           status: 'OFFLINE',

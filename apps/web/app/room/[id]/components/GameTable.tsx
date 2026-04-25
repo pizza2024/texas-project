@@ -17,7 +17,6 @@ interface GameTableProps {
   getDealAnimationStyle: (slotKey: string) => React.CSSProperties | undefined;
   isWaiting: boolean;
   isActionStage: boolean;
-  isSettlement: boolean;
   isUrgentCountdown: boolean;
   actionCountdown: number;
 }
@@ -33,7 +32,6 @@ export function GameTable({
   highlightedCommunityCardsSet,
   getDealAnimationStyle,
   isActionStage,
-  isSettlement,
   isWaiting,
   isUrgentCountdown,
   actionCountdown,
@@ -195,7 +193,6 @@ export function GameTable({
               actionCountdown={actionCountdown}
               isUrgentCountdown={isUrgentCountdown}
               isWaiting={isWaiting}
-              isSettlement={isSettlement}
               winnerBestCardsMap={winnerBestCardsMap}
               winnerHighlightPlayerIds={winnerHighlightPlayerIds}
               loserHighlightPlayerIds={loserHighlightPlayerIds}

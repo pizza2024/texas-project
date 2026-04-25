@@ -14,7 +14,6 @@ interface PlayerSeatProps {
   actionCountdown: number;
   isUrgentCountdown: boolean;
   isWaiting: boolean;
-  isSettlement: boolean;
   winnerBestCardsMap: Map<string, Set<string>>;
   winnerHighlightPlayerIds: Set<string>;
   loserHighlightPlayerIds: Set<string>;
@@ -31,7 +30,6 @@ export function PlayerSeat({
   actionCountdown,
   isUrgentCountdown,
   isWaiting,
-  isSettlement,
   winnerBestCardsMap,
   winnerHighlightPlayerIds,
   loserHighlightPlayerIds,

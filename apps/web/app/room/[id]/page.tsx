@@ -792,7 +792,6 @@ export default function RoomPage() {
         getDealAnimationStyle={getDealAnimationStyle}
         isWaiting={isWaiting}
         isActionStage={isActionStage}
-        isSettlement={isSettlement}
         isUrgentCountdown={isUrgentCountdown}
         actionCountdown={actionCountdown}
       />

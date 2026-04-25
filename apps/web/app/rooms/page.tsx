@@ -702,8 +702,9 @@ export default function RoomsPage() {
     const onRoomDissolved = (payload: { id: string }) => {
       setRooms((prevRooms) => prevRooms.filter((r) => r.id !== payload.id));
       setRoomStatusMap((prevMap) => {
-        const { [payload.id]: _, ...rest } = prevMap;
-        return rest;
+        const next = { ...prevMap };
+        delete next[payload.id];
+        return next;
       });
     };
 
@@ -766,7 +767,7 @@ export default function RoomsPage() {
       socket.off('match_error', onMatchError);
       disconnectSocket();
     };
-  }, [router, pathname]);
+  }, [router, pathname, t]);
 
   const handleJoinRoom = async (roomId: string) => {
     const room = rooms.find((entry) => entry.id === roomId);

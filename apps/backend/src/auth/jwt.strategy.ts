@@ -20,25 +20,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<JwtUser> {
     if (payload.sessionId) {
       if (!this.redisService.isAvailable) {
-        // Security trade-off: Redis down + reject all = total service outage.
-        // Instead we allow auth but log a CRITICAL-severity error for security team to act on.
-        // This event is identifiable by the [SECURITY-AUTH-BYPASS] prefix for alerting.
+        // Redis unavailable + sessionId present = fail-closed (deny auth).
+        // This ensures Redis outages don't create security holes by allowing
+        // stale/rogue sessions to authenticate without session validation.
         this.logger.error(
-          `[SECURITY-AUTH-BYPASS] CRITICAL: Redis unavailable — session validation SKIPPED for user ${payload.sub}. ` +
-            `Single-device login protection is temporarily disabled. ` +
-            `This is a security incident — Redis must be restored immediately. ` +
-            `Timestamp: ${new Date().toISOString()}. ` +
-            `Source: ${payload.username ?? 'unknown'}`,
+          `[SECURITY] Redis unavailable — session validation FAILED for user ${payload.sub}. ` +
+            `Authentication denied until Redis is restored. ` +
+            `Timestamp: ${new Date().toISOString()}.`,
         );
-        // Security incident counter (increment manually in monitoring dashboards using log search)
-        // grep '[SECURITY-AUTH-BYPASS]' | count per hour = auth_redis_bypass_total
-      } else {
-        const stored = await this.redisService.get(
-          `user_session:${payload.sub}`,
-        );
-        if (stored !== payload.sessionId) {
-          throw new UnauthorizedException('SESSION_REPLACED');
-        }
+        throw new UnauthorizedException('AUTH_SERVICE_UNAVAILABLE');
+      }
+      const stored = await this.redisService.get(`user_session:${payload.sub}`);
+      if (stored !== payload.sessionId) {
+        throw new UnauthorizedException('SESSION_REPLACED');
       }
     }
     return {
