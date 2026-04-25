@@ -59,6 +59,8 @@ export default function RoomPage() {
   const [myUserId] = useState<string>(() => getMyUserId());
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const { soundSettings } = useSoundSettings();
+  const soundSettingsRef = useRef(soundSettings);
+  soundSettingsRef.current = soundSettings;
   const { t } = useTranslation();
   const [dealAnimations, setDealAnimations] = useState<Record<string, number>>({});
   const [chipFlights, setChipFlights] = useState<ChipFlight[]>([]);
@@ -155,7 +157,7 @@ export default function RoomPage() {
     oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + duration * 0.8);
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(
-      Math.max(0.0001, volume * normalizeSoundVolume(soundSettings.volume)),
+      Math.max(0.0001, volume * normalizeSoundVolume(soundSettingsRef.current.volume)),
       now + 0.02,
     );
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
@@ -165,9 +167,9 @@ export default function RoomPage() {
     oscillator.stop(now + duration + 0.02);
   };
 
-  const queueDealAnimations = (entries: Array<[string, number]>) => {
+  const queueDealAnimations = useCallback((entries: Array<[string, number]>) => {
     if (entries.length === 0) return;
-    if (soundSettings.deal) {
+    if (soundSettingsRef.current.deal) {
       playTone({ type: 'triangle', frequency: 520, endFrequency: 410, duration: 0.16, volume: 0.03 });
     }
     if (dealCleanupRef.current !== null) {
@@ -182,7 +184,7 @@ export default function RoomPage() {
       setDealAnimations({});
       dealCleanupRef.current = null;
     }, DEAL_ANIMATION_MS + maxDelay + 120);
-  };
+  }, []);
 
   const getDealAnimationStyle = (slotKey: string): React.CSSProperties | undefined => {
     const delay = dealAnimations[slotKey];
@@ -209,9 +211,9 @@ export default function RoomPage() {
     }, CHIP_FLIGHT_MS + maxDelay + 160);
   };
 
-  const queuePayoutFlights = (flights: Omit<PayoutFlight, 'active'>[]) => {
+  const queuePayoutFlights = useCallback((flights: Omit<PayoutFlight, 'active'>[]) => {
     if (flights.length === 0) return;
-    if (soundSettings.winner) {
+    if (soundSettingsRef.current.winner) {
       playTone({ type: 'sine', frequency: 660, endFrequency: 980, duration: 0.26, volume: 0.04 });
       window.setTimeout(() => {
         playTone({ type: 'sine', frequency: 880, endFrequency: 1320, duration: 0.3, volume: 0.035 });
@@ -229,7 +231,7 @@ export default function RoomPage() {
       setPayoutFlights([]);
       payoutCleanupRef.current = null;
     }, CHIP_FLIGHT_MS + maxDelay + 220);
-  };
+  }, []);
 
   const queueWinnerHighlights = (playerIds: string[]) => {
     if (winnerHighlightCleanupRef.current !== null) {
@@ -297,8 +299,8 @@ export default function RoomPage() {
     }
   };
 
-  const playCountdownTone = (seconds: number, urgent: boolean) => {
-    if (!soundSettings.countdown) return;
+  const playCountdownTone = useCallback((seconds: number, urgent: boolean) => {
+    if (!soundSettingsRef.current.countdown) return;
     playTone({
       type: urgent ? 'triangle' : 'sine',
       frequency: urgent ? 880 : 640,
@@ -306,7 +308,7 @@ export default function RoomPage() {
       duration: urgent ? 0.32 : 0.22,
       volume: 0.045,
     });
-  };
+  }, []);
 
   // WebSocket setup
   useEffect(() => {
@@ -421,7 +423,7 @@ export default function RoomPage() {
       socket.off('rejoin_available', rejoinAvailableHandler);
       disconnectSocket();
     };
-  }, [id, router]);
+  }, [id, router, t, redirectToLogin, redirectForExpiredToken]);
 
   // Token expiry timer
   useEffect(() => {
@@ -443,7 +445,7 @@ export default function RoomPage() {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [roomPath]);
+  }, [roomPath, redirectForExpiredToken]);
 
   // Countdown timer
   useEffect(() => {
@@ -568,7 +570,7 @@ export default function RoomPage() {
     }
 
     previousTableRef.current = table;
-  }, [table, myUserId]);
+  }, [table, myUserId, queueDealAnimations, queuePayoutFlights]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -645,7 +647,7 @@ export default function RoomPage() {
     if (lastCountdownToneRef.current === toneKey) return;
     lastCountdownToneRef.current = toneKey;
     playCountdownTone(activeCountdown, activeCountdown <= 3);
-  }, [activeCountdown, isActionStage, isSettlement]);
+  }, [activeCountdown, isActionStage, isSettlement, playCountdownTone]);
 
   if (!table) {
     return (
