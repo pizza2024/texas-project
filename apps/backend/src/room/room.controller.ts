@@ -19,13 +19,13 @@ import {
   IsString,
   IsNumber,
   IsOptional,
+  IsBoolean,
   MaxLength,
   Min,
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApplyRateLimit, RateLimitGuard } from '../auth/rate-limit.guard';
-
 class CreateRoomDto {
   @IsString()
   @MaxLength(30)
@@ -58,6 +58,14 @@ class CreateRoomDto {
   @IsString()
   @IsOptional()
   password?: string;
+
+  @IsString()
+  @IsOptional()
+  clubId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isClubOnly?: boolean;
 }
 
 interface VerifyPasswordDto {
@@ -74,6 +82,10 @@ export class RoomController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new room' })
   async create(@Body() dto: CreateRoomDto) {
+    // P2-CLUB-007: isClubOnly and clubId must be consistent
+    if (dto.isClubOnly === true && !dto.clubId) {
+      throw new BadRequestException('俱乐部专属房间必须指定 clubId');
+    }
     if (dto.blindBig < dto.blindSmall * 2) {
       throw new BadRequestException('大盲注必须大于等于小盲注的两倍');
     }
@@ -91,6 +103,8 @@ export class RoomController {
       maxPlayers: dto.maxPlayers,
       minBuyIn: effectiveMinBuyIn,
       password: hashedPassword ?? undefined,
+      ...(dto.clubId && { clubId: dto.clubId }),
+      ...(dto.isClubOnly !== undefined && { isClubOnly: dto.isClubOnly }),
     });
     // Never return password hash to client
     const { password: _password, ...safeRoom } = room as any;
