@@ -7,29 +7,54 @@
 
 ---
 
+## P0 — 新发现（第149轮）
+
+|| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P0-BACKEND-001 | `resolveFoldWin()` 缺少 `bestCards: []` | ✅ 已修复 | commit 983b85f |
+|| P0-BACKEND-002 | Straddle 后 `calledAllIn` 未重置 | ✅ 已修复 | commit 983b85f |
+|| P0-BACKEND-003 | `persistSettlementRecords` catch 中 `handId` 未定义 | ✅ 已修复 | commit 983b85f |
+
 ## P0 — 已完成
 
-| ID | 任务 | 状态 | 备注 |
+|| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P0-GAME-001 | `buildPots()` 边池分配错误 | ✅ 已修复 | table-round.ts:265-271 |
-| P0-GAME-002 | `resolveFoldWin()` rake 未从 pot 扣减 | ✅ 已修复 | table-round.ts |
-| P0-GAME-003 | `bestHandFrom()` 5张牌早退路径 | ✅ 已修复 | hand-evaluator.ts |
-| P0-Withdraw-001 | `executeChainWithdraw` txHash 过早保存 | ✅ 已修复 | withdraw.service.ts |
-| P0-Withdraw-002 | `processWithdraw` 无幂等保护 | ✅ 已修复 | withdraw.service.ts |
-| P0-Deposit-001 | `checkAddressDeposits` 非原子操作 | ✅ 已修复 | deposit.service.ts |
-| P0-BRUTE-001 | `game.handler.ts:99` 未 await `checkPasswordAttemptLimit` | ✅ 已修复 | line 99 已正确 await |
-| P0-NEW-001 | TooManyRequestsException 编译失败 | ✅ 已修复 | 替换为 BadRequestException |
-| P0-SEC-001 | Redis Session 验证绕过（fail-closed） | ✅ 已验证修复 | jwt.strategy.ts — Redis不可用时正确 throw |
+|| P0-GAME-001 | `buildPots()` 边池分配错误 | ✅ 已修复 | table-round.ts:265-271 |
+|| P0-GAME-002 | `resolveFoldWin()` rake 未从 pot 扣减 | ✅ 已修复 | table-round.ts |
+|| P0-GAME-003 | `bestHandFrom()` 5张牌早退路径 | ✅ 已修复 | hand-evaluator.ts |
+|| P0-Withdraw-001 | `executeChainWithdraw` txHash 过早保存 | ✅ 已修复 | withdraw.service.ts |
+|| P0-Withdraw-002 | `processWithdraw` 无幂等保护 | ✅ 已修复 | withdraw.service.ts |
+|| P0-Deposit-001 | `checkAddressDeposits` 非原子操作 | ✅ 已修复 | deposit.service.ts |
+|| P0-BRUTE-001 | `game.handler.ts:99` 未 await `checkPasswordAttemptLimit` | ✅ 已修复 | line 99 已正确 await |
+|| P0-NEW-001 | TooManyRequestsException 编译失败 | ✅ 已修复 | 替换为 BadRequestException |
+|| P0-SEC-001 | Redis Session 验证绕过（fail-closed） | ✅ 已验证修复 | jwt.strategy.ts — Redis不可用时正确 throw |
 
 ## P0 — 已验证无需修复
 
-| ID | 任务 | 状态 | 备注 |
+|| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P0-001 | Auth: Redis宕机时JWT验证被绕过 | ✅ 设计决策 | Redis不可用时拒绝所有请求=完全停机 |
-| P0-002 | Withdraw: Redis不可用时cooldown被静默跳过 | ✅ 已验证 | 代码已正确throw |
-| P0-003 | Withdraw: processWithdraw服务层无Admin角色验证 | ✅ 已验证 | AdminGuard在Controller层执行 |
+|| P0-001 | Auth: Redis宕机时JWT验证被绕过 | ✅ 设计决策 | Redis不可用时拒绝所有请求=完全停机 |
+|| P0-002 | Withdraw: Redis不可用时cooldown被静默跳过 | ✅ 已验证 | 代码已正确throw |
+|| P0-003 | Withdraw: processWithdraw服务层无Admin角色验证 | ✅ 已验证 | AdminGuard在Controller层执行 |
 
 ---
+
+## P1 — 新发现（第151轮）
+
+||| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P1-BACKEND-003 | WS player-action roomId=null 误报 "Invalid action or roomId" | ✅ 已修复 | commit 713a075 — 拆分为 'Invalid action' 和 'not_in_any_room' |
+
+## P1 — 新发现（第149轮）
+
+||| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P1-WEB-004 | AutoPlayPanel useEffect 闭包不稳定 | ✅ 已修复 | commit b8f73d0 — ref-based stable closure |
+|| P1-BACKEND-001 | netProfit 计算用 `pa.bet` 而非 `totalBet` | ✅ 已修复 | commit b8f73d0 — pa.totalBet |
+|| P1-BACKEND-004 | getUserAvailableBalance 返回 null 静默用 0 | ✅ 已修复 | commit b8f73d0 — emit balance_error |
+|| P1-WEB-002 | AllInConfirmModal 重复组件 | ✅ 已修复 | commit b8f73d0 — 死代码已删除 |
+|| P1-WEB-003 | SocketSessionProvider 重复注册 handler | ✅ 已修复 | commit b8f73d0 — handlersRegistered ref |
+|| P1-BACKEND-002 | 3次超时后无视觉反馈 | ✅ 已修复 | commit b8f73d0 — emit player_sitout |
 
 ## P1 — 进行中
 
@@ -37,6 +62,15 @@
 |----|------|------|------|
 | P1-RAKEBACK-001 | E2E `passwordHash` → `password` TSC 编译错误 | ✅ 已修复 | commit 6ec6c3a 已修复 |
 | P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
+| P1-CHAT-001 | 房间内聊天 UI | 📋 规格已就绪 | WebSocket chat-message 事件后端已实现，前端缺 ChatPanel 组件 |
+| P1-SCHEDULE-001 | 赛事日历/时间表 | 📋 规格已就绪 | 888poker Beat the Clock 类赛事日程 |
+
+## P1 — 规格就绪（待 Coding 实施）
+
+| ID | 任务 | 规格来源 | 关键参数 |
+|----|------|---------|---------|
+| P1-HANDREPLAY-002 | Hand Replay Phase 2 | ✅ 已实现 | commit e7e8f1a — 5组件全部实现，270 tests pass |
+| P1-TOURNAMENT-001 | Tournament SNG Phase 1 | 本轮 Productor | 8人/500-5000 buyin/60-30-10%/每3分钟涨盲 |
 
 ## P1 — 已完成
 
@@ -61,8 +95,9 @@
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1 完成 | ReplayModal + 5 sub-components 已实现 |
-| P2-NEW-009 | Hand Replay getActivePlayers() 来源需确认 | 📋 待确认 | table-manager 可能在 hand 结束后仍保留历史玩家 |
+| P2-EMOJI-001 | 表情反应系统 | 📋 规格已就绪 | WSOP SnapCam 类低成本互动功能 |
+| P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
+| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
 
 ## P2 — 已完成
 
@@ -131,10 +166,10 @@
 
 | Phase | 内容 | 状态 |
 |-------|------|------|
-| Phase 1 | SNG 单桌赛 | 📋 规划中 |
+| Phase 1 | SNG 单桌赛 | 📋 规格已就绪（P1-TOURNAMENT-001） |
 | Phase 2 | Jackpot SNG | 📋 规划中 |
 | Phase 3 | MTT 多桌赛 | 📋 规划中 |
 
-| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1 后端完成 | `GET /hands/:id/replay` 实现，270 tests pass |
+| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1+2 完成 | commit e7e8f1a — EquityCurveChart/PotOddsTooltip/PlaybackControls/SpeedSelector/AutoPlayPanel |
 
-*最后更新: 2026-04-25 15:47 — Coding 第142轮 — commit 85963fe，270 tests pass，Hand Replay Phase 1 完成*
+*最后更新: 2026-04-25 18:20 — Coding 第152轮 — commit 713a075，P1-BACKEND-003 已修复*
