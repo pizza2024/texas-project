@@ -3,12 +3,19 @@ import { PrismaService } from '../prisma/prisma.service';
 
 /** Rakeback tier thresholds and rates */
 const TIER_THRESHOLDS = {
-  BRONZE: { minRake: 0, maxRake: 999, rate: 0.1 },
-  SILVER: { minRake: 1000, maxRake: 4999, rate: 0.2 },
-  GOLD: { minRake: 5000, maxRake: Infinity, rate: 0.3 },
+  BRONZE: { minRake: 0, rate: 0.15 },
+  SILVER: { minRake: 500, rate: 0.22 },
+  GOLD: { minRake: 2_000, rate: 0.3 },
+  PLATINUM: { minRake: 10_000, rate: 0.4 },
+  DIAMOND: { minRake: 50_000, rate: 0.5 },
 } as const;
 
-export type RakebackTier = 'BRONZE' | 'SILVER' | 'GOLD';
+export type RakebackTier =
+  | 'BRONZE'
+  | 'SILVER'
+  | 'GOLD'
+  | 'PLATINUM'
+  | 'DIAMOND';
 
 @Injectable()
 export class RakebackService {
@@ -41,7 +48,15 @@ export class RakebackService {
       return { rate: TIER_THRESHOLDS.SILVER.rate, tier: 'SILVER' };
     }
 
-    return { rate: TIER_THRESHOLDS.GOLD.rate, tier: 'GOLD' };
+    if (totalRake < TIER_THRESHOLDS.PLATINUM.minRake) {
+      return { rate: TIER_THRESHOLDS.GOLD.rate, tier: 'GOLD' };
+    }
+
+    if (totalRake < TIER_THRESHOLDS.DIAMOND.minRake) {
+      return { rate: TIER_THRESHOLDS.PLATINUM.rate, tier: 'PLATINUM' };
+    }
+
+    return { rate: TIER_THRESHOLDS.DIAMOND.rate, tier: 'DIAMOND' };
   }
 
   /**
@@ -83,6 +98,12 @@ export class RakebackService {
     } else if (tier === 'SILVER') {
       minRakeForNextTier = TIER_THRESHOLDS.GOLD.minRake;
       rakeToNextTier = TIER_THRESHOLDS.GOLD.minRake - totalRake;
+    } else if (tier === 'GOLD') {
+      minRakeForNextTier = TIER_THRESHOLDS.PLATINUM.minRake;
+      rakeToNextTier = TIER_THRESHOLDS.PLATINUM.minRake - totalRake;
+    } else if (tier === 'PLATINUM') {
+      minRakeForNextTier = TIER_THRESHOLDS.DIAMOND.minRake;
+      rakeToNextTier = TIER_THRESHOLDS.DIAMOND.minRake - totalRake;
     }
 
     return {
