@@ -69,7 +69,8 @@ export class ClubService {
   private generateInviteCode(): string {
     let code = '';
     for (let i = 0; i < 6; i++) {
-      code += this.INVITE_CHARS[Math.floor(Math.random() * this.INVITE_CHARS.length)];
+      code +=
+        this.INVITE_CHARS[Math.floor(Math.random() * this.INVITE_CHARS.length)];
     }
     return code;
   }
@@ -579,13 +580,17 @@ export class ClubService {
       where: { clubId_userId: { clubId, userId } },
     });
     if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
-      throw new ForbiddenException('Only owner or admin can create invite codes');
+      throw new ForbiddenException(
+        'Only owner or admin can create invite codes',
+      );
     }
 
     let code = this.generateInviteCode();
     // Ensure uniqueness with retry
     for (let attempt = 0; attempt < 5; attempt++) {
-      const existing = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+      const existing = await this.prisma.clubInviteCode.findUnique({
+        where: { code },
+      });
       if (!existing) break;
       code = this.generateInviteCode();
     }
@@ -649,23 +654,36 @@ export class ClubService {
     });
   }
 
-  async deleteInviteCode(userId: string, clubId: string, codeId: string): Promise<void> {
+  async deleteInviteCode(
+    userId: string,
+    clubId: string,
+    codeId: string,
+  ): Promise<void> {
     const membership = await this.prisma.clubMember.findUnique({
       where: { clubId_userId: { clubId, userId } },
     });
     if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
-      throw new ForbiddenException('Only owner or admin can delete invite codes');
+      throw new ForbiddenException(
+        'Only owner or admin can delete invite codes',
+      );
     }
-    await this.prisma.clubInviteCode.deleteMany({ where: { id: codeId, clubId } });
+    await this.prisma.clubInviteCode.deleteMany({
+      where: { id: codeId, clubId },
+    });
   }
 
-  async validateInviteCode(
-    code: string,
-  ): Promise<{ valid: boolean; club?: { id: string; name: string; avatar: string | null } }> {
-    const inviteCode = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+  async validateInviteCode(code: string): Promise<{
+    valid: boolean;
+    club?: { id: string; name: string; avatar: string | null };
+  }> {
+    const inviteCode = await this.prisma.clubInviteCode.findUnique({
+      where: { code },
+    });
     if (!inviteCode || !inviteCode.isActive) return { valid: false };
-    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) return { valid: false };
-    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses) return { valid: false };
+    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date())
+      return { valid: false };
+    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses)
+      return { valid: false };
     return {
       valid: true,
       club: { id: inviteCode.clubId, name: '', avatar: null }, // caller should fetch full club
@@ -676,7 +694,9 @@ export class ClubService {
     userId: string,
     code: string,
   ): Promise<{ clubId: string; clubName: string; role: string }> {
-    const inviteCode = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+    const inviteCode = await this.prisma.clubInviteCode.findUnique({
+      where: { code },
+    });
     if (!inviteCode || !inviteCode.isActive)
       throw new BadRequestException('Invalid or expired invite code');
     if (inviteCode.expiresAt && inviteCode.expiresAt < new Date())
@@ -701,7 +721,13 @@ export class ClubService {
       data: { usedCount: { increment: 1 } },
     });
 
-    const club = await this.prisma.club.findUnique({ where: { id: inviteCode.clubId } });
-    return { clubId: inviteCode.clubId, clubName: club?.name ?? '', role: 'MEMBER' };
+    const club = await this.prisma.club.findUnique({
+      where: { id: inviteCode.clubId },
+    });
+    return {
+      clubId: inviteCode.clubId,
+      clubName: club?.name ?? '',
+      role: 'MEMBER',
+    };
   }
 }

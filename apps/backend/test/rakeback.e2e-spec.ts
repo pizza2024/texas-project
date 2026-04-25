@@ -34,7 +34,8 @@ describe('RakebackController (e2e)', () => {
         data: {
           username: 'rakeback-test-user',
           nickname: 'Rakeback Tester',
-          passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
+          passwordHash:
+            '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
           role: 'PLAYER',
           status: 'OFFLINE',
           email: 'rakeback-test@example.com',
@@ -54,7 +55,8 @@ describe('RakebackController (e2e)', () => {
         data: {
           username: 'rakeback-test-admin',
           nickname: 'Rakeback Admin',
-          passwordHash: '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
+          passwordHash:
+            '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lWkJ8LWQqWX.',
           role: 'ADMIN',
           status: 'OFFLINE',
           email: 'rakeback-admin@example.com',
@@ -95,9 +97,7 @@ describe('RakebackController (e2e)', () => {
 
   describe('/user/rakeback (GET)', () => {
     it('should return 401 without auth token', () => {
-      return request(app.getHttpServer())
-        .get('/user/rakeback')
-        .expect(401);
+      return request(app.getHttpServer()).get('/user/rakeback').expect(401);
     });
 
     it('should return rakeback info for authenticated user', () => {

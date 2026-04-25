@@ -254,7 +254,9 @@ export class ClubController {
   }
 
   @Get('validate-code')
-  @ApiOperation({ summary: 'Validate an invite code (returns club info if valid)' })
+  @ApiOperation({
+    summary: 'Validate an invite code (returns club info if valid)',
+  })
   async validateCode(@Query('code') code: string) {
     const result = await this.clubService.validateInviteCode(code);
     if (!result.valid) {
@@ -262,6 +264,9 @@ export class ClubController {
     }
     // Fetch full club info
     const club = await this.clubService.getClub(result.club!.id, undefined);
-    return { valid: true, club: { id: club.id, name: club.name, avatar: club.avatar } };
+    return {
+      valid: true,
+      club: { id: club.id, name: club.name, avatar: club.avatar },
+    };
   }
 }
