@@ -1,54 +1,72 @@
-# Productor Latest — 第84轮
+# Productor Latest — 第113轮
 
-> 更新时间: 2026-04-25 01:30
-> **项目**: Texas Hold'em Monorepo
-
----
+> 更新时间: 2026-04-25 08:46
 
 ## 状态
 
-| 状态 | P0 | P1 | P2 | P3 |
-|------|----|----|----|-----|
-| 数量 | 0 ✅ | 2 🟠 | 1 | 12+ |
+| 状态 | P0 | P1 | P2 |
+|------|----|----|-----|
+| 数量 | 0 🟢 | 1 | 0 🟢 |
+
+## HEAD Commit
+
+`1f3002e`（7个文件未提交）
+
+## P1 进行中（1项）
+
+| ID | 问题 | 状态 | 备注 |
+|----|------|------|------|
+| P1-CLUB-INVITE-001 | Club 私人邀请码设计文档 | ✅ 本轮完成 | 含完整 DB Schema + API 设计 + 前端流程 |
+
+## Club 私人邀请码 — 本轮完成
+
+### 设计要点
+
+- **DB**: `ClubInviteCode` model — code(6位字母数字)、maxUses、expiresAt、usedCount
+- **Code生成**: `ABCDEFGHJKMNPQRSTUVWXYZ23456789`（排除易混淆字符）
+- **API**: `POST /clubs/:id/invite-codes`、`POST /clubs/join-by-code`、`GET /clubs/validate-code`
+- **前端**: Club Detail弹窗「邀请」标签 + `/club/join?code=XXXX` 公开落地页
+- **安全**: 速率限制、统一错误提示防枚举、DB unique index + 重试
+
+### 完整设计文档
+
+见：`.agent-work/productor/report-2026-04-25-0846.md`
+
+## 竞品 Rakeback 对比
+
+| 平台 | 最高 Rakeback | Tiers |
+|------|--------------|-------|
+| GGPoker | 60%+ | 5+ (Bronze→Diamond) |
+| ACR | 55%+ | 多级复杂 |
+| CoinPoker | 55%+ | 4 tiers |
+| PokerStars | 40-50% | 5星 VIP |
+| 888poker | 36% | 3 tiers |
+| **本项目** | **30% (GOLD)** | **3 (BR→SIL→GOLD)** |
+
+**差距 30%（绝对值），建议 PLATINUM(40%) + DIAMOND(50%) 扩展方向。**
+
+## 竞品创新亮点（借鉴价值）
+
+| 创新 | 来源 | 借鉴价值 |
+|------|------|---------|
+| Smart HUD | GGPoker | 内置统计，无需第三方 |
+| Zoom Poker | PokerStars | 快速弃牌换桌 |
+| Flip & Go | GGPoker/888poker | 前置全下预选娱乐性 |
+| 区块链 RNG | CoinPoker | 公开透明随机数 |
+| The Beast Race | ACR | 高频玩家周榜激励 |
+
+## Coding/Test 反馈
+
+- **Coding**: P2-TS-NEW-002/003 ✅ 已修复，267 tests pass
+- **Test**: P0 全部清零，rakeback.e2e 不再阻塞 P1-RAKEBACK-001
+
+## 下轮行动
+
+1. **P1:** Club 邀请码设计文档传递给 Coding 实现
+2. **P1:** Rakeback PLATINUM/DIAMOND tier 扩展设计
+3. **P1:** rakeback E2E 验证（P1-RAKEBACK-001）
+4. **P2:** Avatar 系统设计方案
 
 ---
 
-## 本轮项目体验
-
-- **HEAD Commit**: `f5153ee`（无新变更）
-- **215 tests 全部通过**（稳定）
-- **移动端路由**: `apps/mobile/app/room/[id].tsx` 是实际游戏页（`room-mobile/[id]` 目录为空）
-
----
-
-## 本轮竞品调研主题：Tournament赛制 & 移动端UX
-
-### Tournament 赛制竞品对比
-
-| 平台 | Tournament 类型 | 结构特点 |
-|------|---------------|----------|
-| GGPoker | SNUI (Sunday Million), KO赛, 猎人赛, 坐满即玩 | 多日赛/单日赛并存，KO赏金制 |
-| WSOP | WSOP金手链赛, Circuit, 巡回赛 | 实体赛事+线上，段位制 |
-| 888poker | 888俱乐部赛, 淘汰赛, 免费赛 | 入门友好，免费赛池大 |
-| CoinPoker | CHP大赛, 淘汰赛, 赏金赛 | 加密货币赛事，匿名桌 |
-
-**发现**: Tournament MVP 建议从 **SNG (Sit & Go)** 入手 — 3-9人，即开即玩，快速赛制，门槛最低。
-
-### 移动端 UX 分析
-
-**已有**: fold/check/call/raise/allin 按钮、快捷金额（最小加注/x2/全下）、深色主题
-
-**缺失**: 滑动弃牌（竞品标配）、手势操作、Emoji反应、操作音效、ALL-IN确认弹窗（Web有，移动无）
-
----
-
-## 下轮行动项
-
-1. **P1-003/004**: 首充红利 & Rakeback API 设计推进
-2. **移动端滑动弃牌**: 评估 React Native Gesture Handler 集成方案
-3. **Tournament MVP**: 评估 SNG 作为入门赛制的可行性
-4. **社交功能优先级**: 私聊 > 赠筹码 > Emoji
-
----
-
-*Productor 第84轮 — 项目稳定，Tournament 空白，移动端 UX 有优化空间*
+*Productor 第113轮 — Club 邀请码完整设计文档，竞品调研（60%+ rakeback、Smart HUD、Flip & Go），建议扩展 Rakeback 层级 + Avatar 系统*

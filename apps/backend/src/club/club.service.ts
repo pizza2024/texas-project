@@ -12,6 +12,7 @@ import { WebSocketManager } from '../websocket/websocket-manager';
 import { Club, ClubMember, ClubChat } from '@prisma/client';
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
+import { CreateInviteCodeDto } from './dto/create-invite-code.dto';
 import { ClubStatus } from './entity/club-status.enum';
 import { MemberRole } from './entity/member-role.enum';
 
@@ -57,11 +58,21 @@ export interface ClubChatInfo {
 
 @Injectable()
 export class ClubService {
+  private readonly INVITE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => WebSocketManager))
     private wsManager: WebSocketManager,
   ) {}
+
+  private generateInviteCode(): string {
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += this.INVITE_CHARS[Math.floor(Math.random() * this.INVITE_CHARS.length)];
+    }
+    return code;
+  }
 
   // ════════════════════════════════════════════════════════════════════════
   // Club CRUD
@@ -544,5 +555,153 @@ export class ClubService {
       where: { clubId_userId: { clubId, userId } },
     });
     return !!m;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Invite Codes
+  // ════════════════════════════════════════════════════════════════════════
+
+  async createInviteCode(
+    userId: string,
+    clubId: string,
+    dto: CreateInviteCodeDto,
+  ): Promise<{
+    code: string;
+    url: string;
+    maxUses: number;
+    expiresAt: Date | null;
+    club: { id: string; name: string; avatar: string | null };
+  }> {
+    // Verify ownership/Admin
+    const club = await this.prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) throw new NotFoundException('Club not found');
+    const membership = await this.prisma.clubMember.findUnique({
+      where: { clubId_userId: { clubId, userId } },
+    });
+    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+      throw new ForbiddenException('Only owner or admin can create invite codes');
+    }
+
+    let code = this.generateInviteCode();
+    // Ensure uniqueness with retry
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const existing = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+      if (!existing) break;
+      code = this.generateInviteCode();
+    }
+
+    const expiresAt = dto.expiresInHours
+      ? new Date(Date.now() + dto.expiresInHours * 60 * 60 * 1000)
+      : null;
+
+    const inviteCode = await this.prisma.clubInviteCode.create({
+      data: {
+        clubId,
+        code,
+        creatorId: userId,
+        maxUses: dto.maxUses ?? 5,
+        expiresAt,
+      },
+      include: { club: { select: { id: true, name: true, avatar: true } } },
+    });
+
+    return {
+      code: inviteCode.code,
+      url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.texas.com'}/club/join?code=${inviteCode.code}`,
+      maxUses: inviteCode.maxUses,
+      expiresAt: inviteCode.expiresAt,
+      club: inviteCode.club,
+    };
+  }
+
+  async listInviteCodes(
+    userId: string,
+    clubId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      code: string;
+      maxUses: number;
+      usedCount: number;
+      expiresAt: Date | null;
+      isActive: boolean;
+      createdAt: Date;
+    }>
+  > {
+    const membership = await this.prisma.clubMember.findUnique({
+      where: { clubId_userId: { clubId, userId } },
+    });
+    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+      throw new ForbiddenException('Only owner or admin can list invite codes');
+    }
+    return this.prisma.clubInviteCode.findMany({
+      where: { clubId },
+      select: {
+        id: true,
+        code: true,
+        maxUses: true,
+        usedCount: true,
+        expiresAt: true,
+        isActive: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async deleteInviteCode(userId: string, clubId: string, codeId: string): Promise<void> {
+    const membership = await this.prisma.clubMember.findUnique({
+      where: { clubId_userId: { clubId, userId } },
+    });
+    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
+      throw new ForbiddenException('Only owner or admin can delete invite codes');
+    }
+    await this.prisma.clubInviteCode.deleteMany({ where: { id: codeId, clubId } });
+  }
+
+  async validateInviteCode(
+    code: string,
+  ): Promise<{ valid: boolean; club?: { id: string; name: string; avatar: string | null } }> {
+    const inviteCode = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+    if (!inviteCode || !inviteCode.isActive) return { valid: false };
+    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) return { valid: false };
+    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses) return { valid: false };
+    return {
+      valid: true,
+      club: { id: inviteCode.clubId, name: '', avatar: null }, // caller should fetch full club
+    };
+  }
+
+  async joinByCode(
+    userId: string,
+    code: string,
+  ): Promise<{ clubId: string; clubName: string; role: string }> {
+    const inviteCode = await this.prisma.clubInviteCode.findUnique({ where: { code } });
+    if (!inviteCode || !inviteCode.isActive)
+      throw new BadRequestException('Invalid or expired invite code');
+    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date())
+      throw new BadRequestException('Invalid or expired invite code');
+    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses)
+      throw new BadRequestException('Invalid or expired invite code');
+
+    // Check if already a member
+    const existing = await this.prisma.clubMember.findUnique({
+      where: { clubId_userId: { clubId: inviteCode.clubId, userId } },
+    });
+    if (existing) throw new ConflictException('Already a member of this club');
+
+    // Join the club
+    await this.prisma.clubMember.create({
+      data: { clubId: inviteCode.clubId, userId, role: 'MEMBER' },
+    });
+
+    // Increment usedCount
+    await this.prisma.clubInviteCode.update({
+      where: { id: inviteCode.id },
+      data: { usedCount: { increment: 1 } },
+    });
+
+    const club = await this.prisma.club.findUnique({ where: { id: inviteCode.clubId } });
+    return { clubId: inviteCode.clubId, clubName: club?.name ?? '', role: 'MEMBER' };
   }
 }

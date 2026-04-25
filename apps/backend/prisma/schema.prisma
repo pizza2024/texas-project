@@ -47,6 +47,7 @@ model User {
   clubMemberships ClubMember[]
   ownedClubs      Club[]      @relation("ClubOwner")
   clubChats       ClubChat[]
+  clubInviteCodes ClubInviteCode[] @relation("ClubInviteCreator")
 
   @@map("users")
 }
@@ -260,6 +261,7 @@ model Club {
   members     ClubMember[]
   rooms       Room[]
   chats       ClubChat[]
+  inviteCodes ClubInviteCode[]
 
   @@map("clubs")
 }
@@ -290,4 +292,22 @@ model ClubChat {
 
   @@index([clubId, createdAt])
   @@map("club_chats")
+}
+
+model ClubInviteCode {
+  id         String    @id @default(uuid())
+  clubId     String
+  code       String    @unique  // 6-char uppercase alphanumeric, no 0/O/1/I/L
+  creatorId  String
+  maxUses    Int       @default(1)    // 0 = unlimited
+  usedCount  Int       @default(0)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  isActive   Boolean   @default(true)
+
+  club       Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  creator    User      @relation("ClubInviteCreator", fields: [creatorId], references: [id])
+
+  @@index([clubId])
+  @@index([code])
 }

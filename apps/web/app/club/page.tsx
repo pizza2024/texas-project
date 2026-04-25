@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { getStoredToken } from '@/lib/auth';
 import { io, type Socket } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
+import { ExternalImg } from '@/components/ui/external-img';
 import type {
   ClubInfo,
   ClubMember,
@@ -74,8 +75,7 @@ function ClubAvatar({ avatar, name, size = 'md' }: { avatar: string | null; name
   const sz = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-16 h-16 text-2xl' : 'w-12 h-12 text-sm';
   if (avatar) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={avatar} alt={name} className={`${sz} rounded-xl object-cover`} />
+      <ExternalImg src={avatar} alt={name} className={`${sz} rounded-xl object-cover`} />
     );
   }
   return (
@@ -352,7 +352,48 @@ interface ClubDetailProps {
 
 function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'members' | 'chat'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'chat' | 'invite'>('members');
+  const canInvite = myRole === 'OWNER' || myRole === 'ADMIN';
+
+  // ── Invite Tab ──────────────────────────────────────────────────────────────
+  const [inviteCodes, setInviteCodes] = useState<Array<{id: string; code: string; maxUses: number; usedCount: number; expiresAt: string | null; isActive: boolean; createdAt: string}>>([]);
+  const [loadingCodes, setLoadingCodes] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createMaxUses, setCreateMaxUses] = useState(5);
+  const [createExpiresHours, setCreateExpiresHours] = useState(72);
+  const [creating, setCreating] = useState(false);
+  const [newCode, setNewCode] = useState<{code: string; url: string; maxUses: number; expiresAt: string | null} | null>(null);
+
+  const loadInviteCodes = async () => {
+    setLoadingCodes(true);
+    try {
+      const res = await api.get(`/clubs/${club.id}/invite-codes`);
+      setInviteCodes(res.data);
+    } catch {}
+    setLoadingCodes(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'invite') loadInviteCodes();
+  }, [activeTab, club.id]);
+
+  const handleCreateCode = async () => {
+    setCreating(true);
+    try {
+      const res = await api.post(`/clubs/${club.id}/invite-codes`, { maxUses: createMaxUses, expiresInHours: createExpiresHours });
+      setNewCode(res.data);
+      await loadInviteCodes();
+      setShowCreateForm(false);
+    } catch {}
+    setCreating(false);
+  };
+
+  const handleDeleteCode = async (codeId: string) => {
+    await api.delete(`/clubs/${club.id}/invite-codes/${codeId}`);
+    await loadInviteCodes();
+  };
+
+  const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
   const [detail, setDetail] = useState<ClubDetailResponse | null>(null);
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
@@ -573,6 +614,18 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
               {tab === 'members' ? t('club.members') : t('club.chat')}
             </button>
           ))}
+          {canInvite && (
+            <button
+              onClick={() => setActiveTab('invite')}
+              className="flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors"
+              style={{
+                color: activeTab === 'invite' ? '#fcd34d' : 'rgba(156,163,175,0.5)',
+                borderBottom: activeTab === 'invite' ? '2px solid #fcd34d' : '2px solid transparent',
+              }}
+            >
+              Invite
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -607,8 +660,7 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
                     >
                       {member.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={member.avatar} className="w-8 h-8 rounded-lg object-cover" alt={member.nickname} />
+                        <ExternalImg src={member.avatar} className="w-8 h-8 rounded-lg object-cover" alt={member.nickname} />
                       ) : (
                         <div
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
@@ -658,8 +710,7 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
                   messages.map(msg => (
                     <div key={msg.id} className="flex gap-2.5">
                       {msg.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={msg.avatar} className="w-7 h-7 rounded-lg object-cover mt-0.5 flex-shrink-0" alt={msg.nickname} />
+                        <ExternalImg src={msg.avatar} className="w-7 h-7 rounded-lg object-cover mt-0.5 flex-shrink-0" alt={msg.nickname} />
                       ) : (
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
@@ -723,6 +774,72 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
               ) : (
                 <div className="p-3 text-center" style={{ borderTop: '1px solid rgba(217,119,6,0.15)' }}>
                   <p className="text-xs text-gray-500">{t('club.loginRequiredToChat')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'invite' && canInvite && (
+            <div className="p-4 space-y-4">
+              {/* New code success */}
+              {newCode && (
+                <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">New Invite Code Created!</p>
+                  <p className="text-2xl font-mono font-black text-amber-200 tracking-widest">{newCode.code}</p>
+                  <p className="text-xs text-gray-400">URL: <span className="font-mono text-gray-300">{newCode.url}</span></p>
+                  <div className="flex gap-2">
+                    <button onClick={() => copyToClipboard(newCode.code)} className="text-xs px-3 py-1 rounded-lg font-bold" style={{ background: 'rgba(217,119,6,0.2)', color: '#fcd34d' }}>Copy Code</button>
+                    <button onClick={() => copyToClipboard(newCode.url)} className="text-xs px-3 py-1 rounded-lg font-bold" style={{ background: 'rgba(217,119,6,0.2)', color: '#fcd34d' }}>Copy URL</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Create form */}
+              {showCreateForm ? (
+                <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(217,119,6,0.2)' }}>
+                  <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">New Invite Code</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wider">Max Uses</label>
+                      <input type="number" min={1} max={100} value={createMaxUses} onChange={e => setCreateMaxUses(Number(e.target.value))} className="w-full mt-1 rounded-lg px-3 py-2 text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(217,119,6,0.2)', color: '#fff' }} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wider">Expires In (hours)</label>
+                      <input type="number" min={1} max={168} value={createExpiresHours} onChange={e => setCreateExpiresHours(Number(e.target.value))} className="w-full mt-1 rounded-lg px-3 py-2 text-sm" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(217,119,6,0.2)', color: '#fff' }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleCreateCode} disabled={creating} className="flex-1 h-9 rounded-xl text-xs font-bold uppercase" style={{ background: creating ? 'rgba(217,119,6,0.3)' : 'linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%)', color: '#fff', border: 'none' }}>
+                      {creating ? '…' : 'Generate'}
+                    </button>
+                    <button onClick={() => setShowCreateForm(false)} className="h-9 px-4 rounded-xl text-xs font-bold" style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.1)' }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowCreateForm(true)} className="w-full h-10 rounded-xl text-xs font-bold uppercase tracking-wider" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 40%, #10b981 100%)', color: '#ecfdf5', border: 'none' }}>
+                  + Generate Invite Code
+                </button>
+              )}
+
+              {/* Codes list */}
+              {loadingCodes ? (
+                <div className="text-center py-4 text-xs text-gray-500">Loading…</div>
+              ) : inviteCodes.length === 0 ? (
+                <div className="text-center py-6 text-xs text-gray-600">No invite codes yet</div>
+              ) : (
+                <div className="space-y-2">
+                  {inviteCodes.map(code => (
+                    <div key={code.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-mono font-black text-amber-200 tracking-widest">{code.code}</p>
+                        <p className="text-[10px] text-gray-500">{code.usedCount}/{code.maxUses === 0 ? '∞' : code.maxUses} uses{code.expiresAt ? ` · expires ${new Date(code.expiresAt).toLocaleDateString()}` : ''}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => copyToClipboard(code.code)} className="text-[10px] px-2 py-1 rounded font-bold" style={{ background: 'rgba(217,119,6,0.15)', color: '#fcd34d' }}>Copy</button>
+                        <button onClick={() => handleDeleteCode(code.id)} className="text-[10px] px-2 py-1 rounded font-bold" style={{ background: 'rgba(220,38,38,0.15)', color: '#fca5a5' }}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -15,7 +15,11 @@ describe('RakebackController', () => {
   let controller: RakebackController;
   let rakebackService: jest.Mocked<RakebackService>;
 
-  const mockUser = { userId: 'user-1', username: 'testuser', role: 'PLAYER' as const };
+  const mockUser = {
+    userId: 'user-1',
+    username: 'testuser',
+    role: 'PLAYER' as const,
+  };
 
   beforeEach(async () => {
     const mockRakebackService = {
@@ -54,7 +58,7 @@ describe('RakebackController', () => {
       };
       rakebackService.getRakeback.mockResolvedValue(mockResult);
 
-      const req = { user: mockUser } as Request;
+      const req = { user: mockUser } as { user: typeof mockUser };
       const result = await controller.getRakeback(req);
 
       expect(result).toEqual(mockResult);
@@ -72,7 +76,7 @@ describe('RakebackController', () => {
       };
       rakebackService.getRakeback.mockResolvedValue(mockResult);
 
-      const req = { user: mockUser } as Request;
+      const req = { user: mockUser } as { user: typeof mockUser };
       const result = await controller.getRakeback(req);
 
       expect(result).toEqual(mockResult);
@@ -89,7 +93,7 @@ describe('RakebackController', () => {
       };
       rakebackService.getRakeback.mockResolvedValue(mockResult);
 
-      const req = { user: mockUser } as Request;
+      const req = { user: mockUser } as { user: typeof mockUser };
       const result = await controller.getRakeback(req);
 
       expect(result).toEqual(mockResult);
@@ -101,7 +105,7 @@ describe('RakebackController', () => {
       const mockResult = { claimedAmount: 500, newChipsBalance: 5500 };
       rakebackService.claimRakeback.mockResolvedValue(mockResult);
 
-      const req = { user: mockUser } as Request;
+      const req = { user: mockUser } as { user: typeof mockUser };
       const result = await controller.claimRakeback(req);
 
       expect(result).toEqual(mockResult);
@@ -113,7 +117,7 @@ describe('RakebackController', () => {
         new BadRequestException('No rakeback balance to claim'),
       );
 
-      const req = { user: mockUser } as Request;
+      const req = { user: mockUser } as { user: typeof mockUser };
       await expect(controller.claimRakeback(req)).rejects.toThrow(
         BadRequestException,
       );

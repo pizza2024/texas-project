@@ -345,5 +345,11 @@
     "removed": "Friend Removed",
     "loadError": "Failed to load friends",
     "requestLoadError": "Failed to load requests"
+  },
+  "club": {
+    "invalidInviteCode": "Invalid or expired invite code",
+    "youveBeenInvited": "You've Been Invited!",
+    "joinThisClub": "Join Club & Start Playing",
+    "browseClubs": "Browse all clubs"
   }
 }

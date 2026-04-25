@@ -18,6 +18,8 @@ import { Request } from 'express';
 import { ClubService } from './club.service';
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
+import { CreateInviteCodeDto } from './dto/create-invite-code.dto';
+import { JoinByCodeDto } from './dto/join-by-code.dto';
 import { ClubListQueryDto } from './dto/club-list.query.dto';
 import { ClubMemberListQueryDto } from './dto/club-member-list.query.dto';
 import { ClubChatListQueryDto } from './dto/club-chat-list.query.dto';
@@ -198,5 +200,68 @@ export class ClubController {
   @ApiOperation({ summary: 'Get clubs the current user belongs to' })
   async getMyClubs(@Req() req: AuthenticatedRequest) {
     return this.clubService.getUserClubs(req.user.userId);
+  }
+
+  // ── Invite Codes ─────────────────────────────────────────────────────────
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/invite-codes')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create an invite code for the club' })
+  async createInviteCode(
+    @Param('id') clubId: string,
+    @Body() dto: CreateInviteCodeDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.clubService.createInviteCode(req.user.userId, clubId, dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':id/invite-codes')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all invite codes for the club' })
+  async listInviteCodes(
+    @Param('id') clubId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.clubService.listInviteCodes(req.user.userId, clubId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id/invite-codes/:codeId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete/revoke an invite code' })
+  async deleteInviteCode(
+    @Param('id') clubId: string,
+    @Param('codeId') codeId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    await this.clubService.deleteInviteCode(req.user.userId, clubId, codeId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('join-by-code')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Join a club by invite code' })
+  async joinByCode(
+    @Body() dto: JoinByCodeDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.clubService.joinByCode(req.user.userId, dto.code);
+  }
+
+  @Get('validate-code')
+  @ApiOperation({ summary: 'Validate an invite code (returns club info if valid)' })
+  async validateCode(@Query('code') code: string) {
+    const result = await this.clubService.validateInviteCode(code);
+    if (!result.valid) {
+      return { valid: false };
+    }
+    // Fetch full club info
+    const club = await this.clubService.getClub(result.club!.id, undefined);
+    return { valid: true, club: { id: club.id, name: club.name, avatar: club.avatar } };
   }
 }

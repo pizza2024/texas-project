@@ -265,6 +265,11 @@ export class TableManagerService implements OnModuleInit {
   /**
    * Record Settlement + Transaction rows for the just-completed hand.
    * Must be called BEFORE resetToWaiting() so lastHandResult is still populated.
+   *
+   * Safeguard: Hand record is created BEFORE the settlement transaction so it
+   * always persists even if the later settlement/transaction/revenue update
+   * fails. A failed settlement still creates a Hand row with no Settlement rows,
+   * signalling an incomplete hand for admin investigation.
    */
   async persistSettlementRecords(roomId: string): Promise<void> {
     const table = this.tables.get(roomId);
@@ -281,8 +286,12 @@ export class TableManagerService implements OnModuleInit {
     );
     const totalPot = handResult.reduce((sum, r) => sum + r.winAmount, 0);
 
+    // ── Phase 1: Always persist the Hand row first ─────────────────────────
+    // This row acts as a sentinel — its presence signals a completed hand.
+    // If we crash between here and the settlement transaction below,
+    // the Hand row will be detected as incomplete (no Settlement rows) on startup.
+    let handId: string;
     try {
-      // Create the Hand record, then Settlement + Transaction records
       const hand = await this.prisma.hand.create({
         data: {
           tableId: roomId,
@@ -292,48 +301,54 @@ export class TableManagerService implements OnModuleInit {
           rakePercent: table.rakePercent,
         },
       });
-
-      // Calculate each winner's proportional share of the rake
-      const totalWinAmount = handResult.reduce(
-        (sum, r) => sum + r.winAmount,
-        0,
+      handId = hand.id;
+    } catch (err) {
+      // Hand creation failed — no point continuing; log and alert admin.
+      this.logger.error(
+        `[persistSettlementRecords] Hand record creation failed roomId=${roomId}`,
+        err,
       );
+      void this.adminLogSettlementFailure(roomId, handResult, err);
+      return;
+    }
 
-      const settlementData = handResult.map((r) => {
-        // Proportional rake share = (winAmount / totalWinAmount) * totalRake
-        const rakeShare =
-          totalWinAmount > 0
-            ? Math.floor((r.winAmount / totalWinAmount) * table.rakeAmount)
-            : 0;
+    // ── Phase 2: Settlement + Transaction + revenue updates (atomic) ───────
+    const totalWinAmount = handResult.reduce((sum, r) => sum + r.winAmount, 0);
+
+    const settlementData = handResult.map((r) => {
+      const rakeShare =
+        totalWinAmount > 0
+          ? Math.floor((r.winAmount / totalWinAmount) * table.rakeAmount)
+          : 0;
+      return {
+        handId,
+        userId: r.playerId,
+        amount: r.winAmount,
+        rakeAmount: rakeShare,
+      };
+    });
+
+    const transactionData = handResult
+      .filter((r) => r.totalBet > 0 || r.winAmount > 0)
+      .map((r) => {
+        const profit = r.winAmount - r.totalBet;
         return {
-          handId: hand.id,
           userId: r.playerId,
-          amount: r.winAmount,
-          rakeAmount: rakeShare,
+          amount: profit,
+          type: profit >= 0 ? 'GAME_WIN' : 'GAME_LOSS',
         };
       });
 
-      const transactionData = handResult
-        .filter((r) => r.totalBet > 0 || r.winAmount > 0)
-        .map((r) => {
-          const profit = r.winAmount - r.totalBet;
-          return {
-            userId: r.playerId,
-            amount: profit,
-            type: profit >= 0 ? 'GAME_WIN' : 'GAME_LOSS',
-          };
-        });
+    const rakeUpdates = settlementData
+      .filter((s) => s.rakeAmount > 0)
+      .map((s) =>
+        this.prisma.user.update({
+          where: { id: s.userId },
+          data: { totalRake: { increment: s.rakeAmount } },
+        }),
+      );
 
-      // Update each winner's totalRake
-      const rakeUpdates = settlementData
-        .filter((s) => s.rakeAmount > 0)
-        .map((s) =>
-          this.prisma.user.update({
-            where: { id: s.userId },
-            data: { totalRake: { increment: s.rakeAmount } },
-          }),
-        );
-
+    try {
       await this.prisma.$transaction([
         this.prisma.settlement.createMany({ data: settlementData }),
         ...transactionData.map((t) =>
@@ -352,8 +367,46 @@ export class TableManagerService implements OnModuleInit {
         }
       }
     } catch (err) {
-      // Non-fatal: log and continue — game integrity (balance updates) must not be blocked
-      this.logger.error(`[persistSettlementRecords] roomId=${roomId}`, err);
+      // Settlement transaction failed — Hand row is orphaned (no Settlements).
+      // This is a detectable anomaly: Admin can query Hand rows with no Settlements.
+      this.logger.error(
+        `[persistSettlementRecords] Settlement transaction failed roomId=${roomId} handId=${handId}`,
+        err,
+      );
+      void this.adminLogSettlementFailure(roomId, handResult, err, handId);
+    }
+  }
+
+  /**
+   * Fire-and-forget admin alert for settlement failures.
+   * Uses SYSTEM adminId so the log is visible but not attributed to a human.
+   */
+  private async adminLogSettlementFailure(
+    roomId: string,
+    handResult: { playerId: string; winAmount: number; totalBet: number }[],
+    err: unknown,
+    handId?: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.adminLog.create({
+        data: {
+          adminId: 'SYSTEM',
+          action: 'SETTLEMENT_FAILURE',
+          targetType: 'ROOM',
+          targetId: roomId,
+          detail: JSON.stringify({
+            handId: handId ?? '(not created)',
+            handResult,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        },
+      });
+    } catch (logErr) {
+      // AdminLog itself failed — log to console as last resort before silently giving up.
+      console.error(
+        '[adminLogSettlementFailure] Failed to write admin log:',
+        logErr,
+      );
     }
   }
 
