@@ -19,6 +19,7 @@ import { BotModule } from './bot/bot.module';
 import { FriendModule } from './friend/friend.module';
 import { ClubModule } from './club/club.module';
 import { RakebackModule } from './rakeback/rakeback.module';
+import { TournamentModule } from './tournament/tournament.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RakebackModule } from './rakeback/rakeback.module';
     FriendModule,
     ClubModule,
     RakebackModule,
+    TournamentModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

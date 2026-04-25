@@ -7,6 +7,9 @@
 /** Countdown before a solo player is auto-started (ms) */
 export const SOLO_READY_COUNTDOWN_MS = 10_000;
 
+/** Countdown when 8th player joins SNG tournament (ms) */
+export const SNG_START_COUNTDOWN_MS = 10_000;
+
 /** Rate-limit window for player actions (ms) */
 export const RATE_LIMIT_WINDOW_MS = 1_000;
 

@@ -441,4 +441,42 @@ export class WalletService {
       },
     });
   }
+
+  /**
+   * Unfreeze a player's chips and award additional chips (e.g., tournament prize).
+   * Used when a tournament ends and winners receive their prizes.
+   * The frozen chips are released back to available balance plus the prize amount.
+   */
+  async unfreezeAndAward(userId: string, prizeAmount: number): Promise<void> {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: { frozenChips: true, chips: true },
+    });
+
+    const frozenAmount = wallet?.frozenChips ?? 0;
+    const currentChips = wallet?.chips ?? 0;
+
+    // unfreeze + award: new balance = (current - frozen) + prize
+    // Because current = frozen + available, this = available + prize
+    const newBalance = Math.max(0, currentChips - frozenAmount + prizeAmount);
+
+    await this.prisma.$transaction([
+      this.prisma.wallet.upsert({
+        where: { userId },
+        update: { chips: newBalance, frozenChips: 0 },
+        create: { userId, chips: newBalance, frozenChips: 0 },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { coinBalance: newBalance },
+      }),
+      this.prisma.transaction.create({
+        data: {
+          userId,
+          amount: prizeAmount,
+          type: 'TOURNAMENT_PRIZE',
+        },
+      }),
+    ]);
+  }
 }

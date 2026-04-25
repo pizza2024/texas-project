@@ -39,6 +39,15 @@ export class RoomService {
     });
   }
 
+  async findAllTournamentRooms(): Promise<Room[]> {
+    return this.prisma.room.findMany({
+      where: {
+        isTournament: true,
+        isMatchmaking: false,
+      },
+    });
+  }
+
   async findAllPaginated(
     page: number,
     limit: number,

@@ -125,7 +125,8 @@
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1",
       "^@texas/shared$": "<rootDir>/../../../packages/shared/src/index.ts",
-      "^@texas/shared/validation$": "<rootDir>/../../../packages/shared/src/validation.ts"
+      "^@texas/shared/validation$": "<rootDir>/../../../packages/shared/src/validation.ts",
+      "^@texas/shared/types/tournament$": "<rootDir>/../../../packages/shared/src/types/tournament.ts"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

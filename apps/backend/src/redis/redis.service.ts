@@ -134,4 +134,28 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
+  /**
+   * Add a member with score to a sorted set (for tournament blind timers).
+   */
+  async zadd(key: string, score: number, member: string): Promise<void> {
+    if (!this.available || !this.client) return;
+    try {
+      await this.client.zadd(key, score, member);
+    } catch {
+      // non-fatal
+    }
+  }
+
+  /**
+   * Remove a member from a sorted set.
+   */
+  async zrem(key: string, member: string): Promise<void> {
+    if (!this.available || !this.client) return;
+    try {
+      await this.client.zrem(key, member);
+    } catch {
+      // non-fatal
+    }
+  }
 }

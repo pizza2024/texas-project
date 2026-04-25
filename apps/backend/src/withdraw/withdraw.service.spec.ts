@@ -425,7 +425,10 @@ describe('WithdrawService', () => {
     });
 
     it('should set status to FAILED and refund chips', async () => {
-      await service.handleWithdrawFailure('req-fail-1', 'Chain transfer failed');
+      await service.handleWithdrawFailure(
+        'req-fail-1',
+        'Chain transfer failed',
+      );
 
       expect(prisma.withdrawRequest.update).toHaveBeenCalledWith({
         where: { id: 'req-fail-1' },
@@ -441,7 +444,10 @@ describe('WithdrawService', () => {
     it('should early return if request not found', async () => {
       prisma.withdrawRequest.findUnique.mockResolvedValue(null);
 
-      await service.handleWithdrawFailure('non-existent', 'Chain transfer failed');
+      await service.handleWithdrawFailure(
+        'non-existent',
+        'Chain transfer failed',
+      );
 
       expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
     });
@@ -452,7 +458,10 @@ describe('WithdrawService', () => {
         status: 'CONFIRMED',
       } as any);
 
-      await service.handleWithdrawFailure('req-fail-1', 'Chain transfer failed');
+      await service.handleWithdrawFailure(
+        'req-fail-1',
+        'Chain transfer failed',
+      );
 
       expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
     });

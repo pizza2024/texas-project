@@ -78,19 +78,21 @@ model Wallet {
 }
 
 model Room {
-  id            String   @id @default(uuid())
-  name          String
-  blindSmall    Float
-  blindBig      Float
-  maxPlayers    Int
-  minBuyIn      Float    @default(0)
-  password      String?
-  status        String   @default("ACTIVE") // ACTIVE, MAINTENANCE
-  isMatchmaking Boolean  @default(false)    // true = auto-created for quick-match
-  isClubOnly    Boolean  @default(false)    // true = only accessible to club members
-  tier          String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
-  createdAt     DateTime @default(now())
-  
+  id               String   @id @default(uuid())
+  name             String
+  blindSmall       Float
+  blindBig         Float
+  maxPlayers       Int
+  minBuyIn         Float    @default(0)
+  password         String?
+  status           String   @default("ACTIVE") // ACTIVE, MAINTENANCE
+  isMatchmaking    Boolean  @default(false)    // true = auto-created for quick-match
+  isClubOnly       Boolean  @default(false)    // true = only accessible to club members
+  tier             String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
+  isTournament     Boolean  @default(false)    // true = SNG/MTT tournament room
+  tournamentConfig Json?                       // TournamentConfig JSON (SNG/MTT settings)
+  createdAt        DateTime @default(now())
+
   tables      Table[]
   clubId      String?
   club        Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)

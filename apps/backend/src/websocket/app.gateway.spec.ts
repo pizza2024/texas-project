@@ -424,6 +424,10 @@ describe('AppGateway', () => {
             }
           }),
       } as any,
+      {
+        startBlindTimer: jest.fn().mockResolvedValue(undefined),
+        advanceBlindLevel: jest.fn().mockResolvedValue(undefined),
+      } as any,
       { isClubMember: jest.fn().mockResolvedValue(true) } as any,
       { findOne: jest.fn().mockResolvedValue(null) } as any,
     );

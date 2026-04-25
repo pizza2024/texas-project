@@ -61,10 +61,7 @@ export class ConnectionStateService {
    */
   async checkChatRateLimit(userId: string): Promise<boolean> {
     const windowSec = Math.ceil(CHAT_RATE_LIMIT_WINDOW_MS / 1000);
-    const count = await this.redisService.incr(
-      `ws_chat:${userId}`,
-      windowSec,
-    );
+    const count = await this.redisService.incr(`ws_chat:${userId}`, windowSec);
 
     if (count !== null) {
       return count <= CHAT_RATE_LIMIT_MAX;

@@ -22,6 +22,7 @@ import {
 
 import {
   SOLO_READY_COUNTDOWN_MS,
+  SNG_START_COUNTDOWN_MS,
   MAX_CHIP_AMOUNT,
   VALID_ACTIONS_SET,
   PlayerAction,
@@ -187,6 +188,20 @@ export async function handleJoinRoom(
       await gateway.tableManager.persistTableState(roomId);
       await gateway.broadcastTableState(roomId, table);
       await gateway.tableManager.broadcastRoomStatus(roomId);
+
+      // SNG Tournament: if room just became full (8 players), start tournament
+      if (room?.isTournament) {
+        const activePlayers = table.players.filter(p => p && p.id);
+        if (activePlayers.length === 8) {
+          // 8 players joined — start tournament countdown
+          gateway.server.to(roomId).emit('tournament_start', {
+            roomId,
+            startsAt: Date.now() + 10_000, // 10s countdown
+          });
+          await gateway.scheduleTournamentStart(roomId);
+        }
+      }
+
       return {
         event: 'joined',
         data: table.getMaskedView(client.data.user?.sub),
@@ -526,8 +541,7 @@ export async function handleChatMessage(
   }
 
   // Verify user is in this room
-  const currentRoomId =
-    await gateway.tableManager.getUserCurrentRoomId(userId);
+  const currentRoomId = await gateway.tableManager.getUserCurrentRoomId(userId);
   if (currentRoomId !== roomId) {
     return { event: 'chat_error', data: { message: '您不在此房间' } };
   }

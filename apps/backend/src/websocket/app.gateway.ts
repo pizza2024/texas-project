@@ -49,6 +49,7 @@ import {
 import { ConnectionStateService } from './connection-state.service';
 import { BroadcastService } from './broadcast.service';
 import { TimerService } from './timer.service';
+import { TournamentService } from '../tournament/tournament.service';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -106,6 +107,8 @@ export class AppGateway
     private connectionState: ConnectionStateService,
     private readonly broadcastService: BroadcastService,
     private readonly timerService: TimerService,
+    @Inject(forwardRef(() => TournamentService))
+    private readonly tournamentService: TournamentService,
     readonly clubService: ClubService,
     readonly roomService: RoomService,
   ) {}
@@ -230,6 +233,15 @@ export class AppGateway
       durationMs,
       reuseExistingCountdown,
     );
+  }
+
+  async scheduleTournamentStart(roomId: string) {
+    if (!this.tournamentService) return;
+    try {
+      await this.tournamentService.startBlindTimer(roomId, this.server);
+    } catch (err) {
+      this.logger.error(`scheduleTournamentStart failed for room ${roomId}: ${(err as Error).message}`);
+    }
   }
 
   async ensureRecoveredRoundFlow(
