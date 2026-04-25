@@ -61,14 +61,14 @@
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P2-NEW-008 | `Math.random()` 遗留 rooms/page.tsx:233 | 📋 低风险 | CreateRoomDialog 默认值，建议替换 |
-| P2-NEW-007 | 战后手牌复盘 UI | 📋 Phase 1 后端完成 | UI 等候 Productor 规格 |
+| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1 完成 | ReplayModal + 5 sub-components 已实现 |
 | P2-NEW-009 | Hand Replay getActivePlayers() 来源需确认 | 📋 待确认 | table-manager 可能在 hand 结束后仍保留历史玩家 |
 
 ## P2 — 已完成
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
+| P2-NEW-008 | `Math.random()` 遗留 rooms/page.tsx:233 | ✅ 已修复 | crypto.getRandomValues() 替换 |
 | P2-CLUB-003 | Club 专属房间 — 前端权限过滤 | ✅ 已修复 | rooms/page.tsx — myClubIds 过滤 + RoomCard 🏠 徽章 |
 | P2-CLUB-007 | Club 专属房间 — AdminRoomController 校验缺失 | ✅ 已修复 | commit 3e8163a — admin-room.controller.ts:49-51 |
 | P2-BREAKING-001 | joinByCode 返回类型变更 ClubMember | ✅ 已修复 | club.service.ts joinByCode 已返回 SharedClubMember |
@@ -137,4 +137,4 @@
 
 | P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1 后端完成 | `GET /hands/:id/replay` 实现，270 tests pass |
 
-*最后更新: 2026-04-25 15:30 — Coding 第141轮 — commit 806c52c，270 tests pass，4项未提交修复已提交*
+*最后更新: 2026-04-25 15:47 — Coding 第142轮 — commit 85963fe，270 tests pass，Hand Replay Phase 1 完成*
