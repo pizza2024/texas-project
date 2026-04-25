@@ -230,7 +230,7 @@ interface CreateRoomDialogProps {
 function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
   const [form, setForm] = useState<CreateRoomForm>({
     ...DEFAULT_FORM,
-    name: `Table ${Math.floor(Math.random() * 1000) + 1}`,
+    name: `Table ${((typeof crypto !== 'undefined' && crypto.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] : Date.now()) % 1000) + 1}`,
   });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<
