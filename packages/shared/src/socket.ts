@@ -35,6 +35,8 @@ export interface ServerToClientEvents {
   friend_status_update: (data: FriendStatusUpdatePayload) => void;
   /** 收到好友请求 */
   friend_request_received: (data: FriendRequestReceivedPayload) => void;
+  /** 收到聊天消息 */
+  'chat-message': (data: { id: string; userId: string; username: string; content: string; timestamp: number }) => void;
   error: (message: string) => void;
 }
 
@@ -45,6 +47,8 @@ export interface ClientToServerEvents {
   player_action: (data: { roomId: string; action: string; amount?: number }) => void;
   quick_match: (data: { tier: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM' }) => void;
   show_cards: (data: { roomId: string }) => void;
+  /** 发送聊天消息 */
+  'chat-message': (data: { roomId: string; content: string }) => void;
 }
 
 // ── 连接管理 ─────────────────────────────────────────────────────────────────
