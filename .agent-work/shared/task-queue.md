@@ -39,11 +39,23 @@
 
 ---
 
+## P1 — 新发现（第201轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-DECORATOR-001 | `@InjectServer()` 返回 `undefined` | ✅ 已修复 | commit 174996b — 死代码已删除 |
+
+## P1 — 新发现（第193轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-BACKEND-005 | `TournamentType` 未导入导致 TS2304 编译失败 | ✅ 已验证 | commit 9a25696 — `import { TournamentType }` from `@texas/shared/types/tournament` — 第194轮验证编译通过 |
+
 ## P1 — 新发现（第151轮）
 
 ||| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-BACKEND-003 | WS player-action roomId=null 误报 "Invalid action or roomId" | ✅ 已修复 | commit 713a075 — 拆分为 'Invalid action' 和 'not_in_any_room' |
+||| P1-BACKEND-003 | WS player-action roomId=null 误报 "Invalid action or roomId" | ✅ 已修复 | commit 713a075 — 拆分为 'Invalid action' 和 'not_in_any_room' |
 
 ## P1 — 新发现（第149轮）
 
@@ -62,15 +74,15 @@
 |----|------|------|------|
 | P1-RAKEBACK-001 | E2E `passwordHash` → `password` TSC 编译错误 | ✅ 已修复 | commit 6ec6c3a 已修复 |
 | P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
-| P1-CHAT-001 | 房间内聊天 UI | ✅ 后端已完成 | 后端: chat-message WS事件 + 1msg/5s速率限制; 前端: ChatPanel fire-and-forget emit |
-| P1-SCHEDULE-001 | 赛事日历/时间表 | 📋 规格已就绪 | 888poker Beat the Clock 类赛事日程 |
+| P1-CHAT-001 | 房间内聊天 UI | ✅ 已完成 | 后端: chat-message WS事件 + 1msg/5s速率限制; 前端: ChatPanel 集成到 room/[id]/page.tsx（commit dd41bc8） |
+| P1-SCHEDULE-001 | 赛事日历/时间表 | ✅ 后端已完成 | Controller + Service 已完成，TS签名已修复 |
 
 ## P1 — 规格就绪（待 Coding 实施）
 
 | ID | 任务 | 规格来源 | 关键参数 |
 |----|------|---------|---------|
 | P1-HANDREPLAY-002 | Hand Replay Phase 2 | ✅ 已实现 | commit e7e8f1a — 5组件全部实现，270 tests pass |
-| P1-TOURNAMENT-001 | Tournament SNG Phase 1 | ✅ 已修复 | commit 0a7687d — WS集成: handleJoinRoom→8人触发tournament_start+scheduleTournamentStart; backend骨架+tournament.service.spec.ts 21 tests pass |
+| P1-TOURNAMENT-001 | Tournament SNG Phase 1+2 | ✅ 已实现 | commit 0a7687d — WS集成; commit 60232be — 前端UI: 房间🏆徽章+PrizeModal+筛选Tab |
 
 ## P1 — 已完成
 
@@ -182,4 +194,4 @@
 
 | P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1+2 完成 | commit e7e8f1a — EquityCurveChart/PotOddsTooltip/PlaybackControls/SpeedSelector/AutoPlayPanel |
 
-*最后更新: 2026-04-26 22:45 — Coding 第165轮 — P1-TOURNAMENT-001 WS集成完成，commit 0a7687d，21 tests pass*
+*最后更新: 2026-04-27 05:00 — Coding 第194轮 — 0 P0 / 0 P1 / 0 P2，295 tests pass，2 commits (dd41bc8, 9a25696)*
