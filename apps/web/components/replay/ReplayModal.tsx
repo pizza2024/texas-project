@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { ReplayPlayerCards } from './ReplayPlayerCards';
 import { ReplayCommunityCards } from './ReplayCommunityCards';
@@ -71,9 +72,8 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`/api/table-engine/hands/${handId}/replay`);
-        if (!res.ok) throw new Error('Failed to load hand replay');
-        const json = await res.json();
+        const res = await api.get(`/table-engine/hands/${handId}/replay`);
+        const json = res.data;
         if (!cancelled) setData(json);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Unknown error');

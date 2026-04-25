@@ -143,6 +143,10 @@ export async function handleJoinRoom(
       const balance = isAlreadySeated
         ? null
         : await gateway.tableManager.getUserAvailableBalance(userId);
+      if (balance === null) {
+        client.emit('balance_error', { message: 'Unable to retrieve balance' });
+        return { event: 'error', data: { message: 'balance_unavailable' } };
+      }
       const minimumRequiredBalance = table.minBuyIn;
       if (!isAlreadySeated && (balance ?? 0) < minimumRequiredBalance) {
         client.emit('insufficient_balance', {

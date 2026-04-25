@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { setForceLogoutHandler, setRejoinAvailableHandler } from '@/lib/socket';
 import { handleExpiredSession } from '@/lib/auth';
@@ -11,8 +11,12 @@ import { handleExpiredSession } from '@/lib/auth';
  */
 export function SocketSessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const handlersRegistered = useRef(false);
 
   useEffect(() => {
+    if (handlersRegistered.current) return;
+    handlersRegistered.current = true;
+
     setForceLogoutHandler((data) => {
       const message = data.roomId
         ? '您的账号已在其他设备登录，当前游戏已被中断。'

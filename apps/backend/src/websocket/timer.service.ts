@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Server } from 'socket.io';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import { MatchmakingService } from '../matchmaking/matchmaking.service';
 import { BroadcastService } from './broadcast.service';
@@ -73,6 +74,15 @@ export class TimerService implements OnModuleDestroy {
     if (currentTable.isCurrentPlayerSitOut()) {
       const processed = currentTable.foldSitOutPlayer();
       if (!processed) {
+        // Player hit 3x consecutive timeouts and was force-sitout
+        const timeoutAction = currentTable.getTimeoutAction();
+        if (timeoutAction && timeoutAction.action === 'sitout') {
+          server.to(roomId).emit('player_sitout', {
+            playerId: timeoutAction.playerId,
+            roomId,
+            message: '您因连续3次超时，已被强制设为旁观状态',
+          });
+        }
         if (this.isActionStage(currentTable.currentStage)) {
           await this.scheduleActionTimeout(server, roomId, currentTable);
         }

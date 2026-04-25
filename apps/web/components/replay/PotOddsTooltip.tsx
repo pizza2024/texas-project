@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { ReplayActionNode } from './ReplayModal';
 
 interface PotOddsTooltipProps {
@@ -15,16 +16,16 @@ export function PotOddsTooltip({ node, visible, position, anchorRef }: PotOddsTo
 
   useEffect(() => {
     if (!visible || !node) {
-      setTooltipPos(null);
+      flushSync(() => setTooltipPos(null));
       return;
     }
     if (position) {
-      setTooltipPos(position);
+      flushSync(() => setTooltipPos(position));
       return;
     }
     if (anchorRef?.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+      flushSync(() => setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top }));
     }
   }, [visible, node, position, anchorRef]);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { SpeedSelector } from './SpeedSelector';
 
 interface AutoPlayPanelProps {
@@ -32,6 +32,18 @@ export function AutoPlayPanel({
   onPlayingChange,
   onSpeedChange,
 }: AutoPlayPanelProps) {
+  // Use refs to avoid stale closures in the interval callback
+  const onIndexChangeRef = useRef(onIndexChange);
+  const onPlayingChangeRef = useRef(onPlayingChange);
+  const timelineLengthRef = useRef(timelineLength);
+
+  // Keep refs up-to-date when props change (effect runs after render)
+  useEffect(() => {
+    onIndexChangeRef.current = onIndexChange;
+    onPlayingChangeRef.current = onPlayingChange;
+    timelineLengthRef.current = timelineLength;
+  }, [onIndexChange, onPlayingChange, timelineLength]);
+
   const goToNext = useCallback(() => {
     onIndexChange((prev) => Math.min(timelineLength - 1, prev + 1));
   }, [timelineLength, onIndexChange]);
@@ -45,16 +57,16 @@ export function AutoPlayPanel({
   useEffect(() => {
     if (!isPlaying) return;
     const interval = setInterval(() => {
-      onIndexChange((prev) => {
-        if (prev >= timelineLength - 1) {
-          onPlayingChange(false);
+      onIndexChangeRef.current((prev) => {
+        if (prev >= timelineLengthRef.current - 1) {
+          onPlayingChangeRef.current(false);
           return prev;
         }
         return prev + 1;
       });
     }, getIntervalMs(playbackSpeed));
     return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed, timelineLength, onIndexChange, onPlayingChange]);
+  }, [isPlaying, playbackSpeed]);
 
   return (
     <div
