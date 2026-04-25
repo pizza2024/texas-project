@@ -32,15 +32,16 @@
 
 ## P1 — 进行中
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 | P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
 
 ## P1 — 已完成
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-RAKEBACK-001 | Rakeback E2E 测试验证 | 🟡 待验证 | rakeback.e2e-spec.ts 存在 `passwordHash` 字段错误（→ P2-TS-NEW-002），需先修复 |
+| P1-CLUB-INVITE-001 | Club 私人邀请码 | ✅ 已实现 | bfd9ffa — ClubInviteCode model + 5 API + 前端落地页 + 邀请标签 |
+| P1-RAKEBACK-001 | Rakeback E2E 测试验证 | 🟡 待验证 | rakeback.e2e-spec.ts 已提交（passwordHash 错误已修复），等待 Test 代理 E2E 运行 |
 || P1-TEST-001 | `connection-state.service.spec.ts` 缺失 | ✅ 已实现 | 22 个测试用例覆盖全部方法 |
 | P1-NEW-001 | `buildPots` 使用 stale `allPlayers`，all-in 边池可能计算错误 | ✅ 已确认无问题 | table-round.ts — showdown 调用时 allPlayers 已是最新快照 |
 | P1-NEW-002 | Withdraw 幂等性修复未提交 | ✅ 已提交 | withdraw.service.ts — txHash 确认后保存 + $transaction 幂等检查 |
