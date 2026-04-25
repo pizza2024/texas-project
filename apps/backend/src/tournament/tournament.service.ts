@@ -20,6 +20,7 @@ import {
   SNG_BLIND_DURATION_SECONDS,
   PrizeDistributionResponse,
   PrizePosition,
+  TournamentType,
 } from '@texas/shared/types/tournament';
 
 /** Redis key for tournament blind timer sorted set */
@@ -55,7 +56,7 @@ export class TournamentService implements OnModuleDestroy {
     const blindSchedule = createDefaultBlindSchedule(smallBlind);
 
     return {
-      type: 'SNG',
+      type: TournamentType.SNG,
       buyin,
       maxPlayers: SNG_MAX_PLAYERS,
       prizeDistribution: [60, 30, 10],
