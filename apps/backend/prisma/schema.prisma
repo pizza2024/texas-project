@@ -87,6 +87,7 @@ model Room {
   password      String?
   status        String   @default("ACTIVE") // ACTIVE, MAINTENANCE
   isMatchmaking Boolean  @default(false)    // true = auto-created for quick-match
+  isClubOnly    Boolean  @default(false)    // true = only accessible to club members
   tier          String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
   createdAt     DateTime @default(now())
   

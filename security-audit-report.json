@@ -1,0 +1,115 @@
+{
+  "report": {
+    "title": "Code Quality & Security Audit Report",
+    "scan_date": "2026-04-25T04:50:00Z",
+    "scanned_paths": [
+      "/Users/pizza/workspace/texas-project/apps/backend/src/auth/",
+      "/Users/pizza/workspace/texas-project/apps/web/lib/"
+    ],
+    "issues": [
+      {
+        "severity": "P0",
+        "category": "AUTH_BYPASS",
+        "description": "Session validation is completely skipped when Redis is unavailable, allowing authentication without valid session check. This creates a security bypass vulnerability when the Redis dependency goes down.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/jwt.strategy.ts",
+        "line": 22,
+        "suggestion": "When Redis is unavailable, reject authentication requests instead of bypassing session validation. For high-availability requirements, implement a fallback mechanism like JWT-based session revocation list stored in a secondary cache or database. Never silently skip security controls under infrastructure failure."
+      },
+      {
+        "severity": "P1",
+        "category": "CRYPTO",
+        "description": "OTP verification uses direct string comparison ('storedCode !== code') instead of constant-time comparison, potentially vulnerable to timing attacks.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/auth.service.ts",
+        "line": 201,
+        "suggestion": "Use crypto.subtle.timingSafeEqual() or a constant-time comparison library to compare the stored OTP with the provided code. This prevents attackers from inferring the correct code via response time differences."
+      },
+      {
+        "severity": "P1",
+        "category": "AUTH",
+        "description": "No rate limiting on /auth/verify-email-code endpoint. An attacker could brute-force 6-digit OTPs (10,000 possibilities) with only 5 max attempts per 5 minutes per email - the current attempt limit is insufficient for a 6-digit code.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/auth.controller.ts",
+        "line": 68,
+        "suggestion": "Add rate limit decorator to verify-email-code route similar to other auth routes. Consider increasing OTP_MAX_ATTEMPTS or using a longer/higher-entropy code format (e.g., alphanumeric 8+ characters). Implement exponential backoff after failed attempts."
+      },
+      {
+        "severity": "P2",
+        "category": "RATE_LIMIT",
+        "description": "Rate limiting is completely bypassed in non-production environments (NODE_ENV !== 'production') when userId/email is not present. This allows attackers to circumvent rate limits during development/staging attacks.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/rate-limit.guard.ts",
+        "line": 54,
+        "suggestion": "Never bypass security controls based on environment. Rate limiting should apply in all environments. The dev-mode bypass should be removed or implemented differently (e.g., higher limits in dev rather than no limits)."
+      },
+      {
+        "severity": "P2",
+        "category": "AUTH",
+        "description": "Password minimum length is only 6 characters, which is considered weak by modern security standards (OWASP recommends minimum 8 characters with complexity).",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/dto/register.dto.ts",
+        "line": 19,
+        "suggestion": "Increase minimum password length to at least 8 characters. Consider adding password complexity requirements (uppercase, lowercase, numbers, special characters) using @Matches decorator."
+      },
+      {
+        "severity": "P2",
+        "category": "INPUT_VALIDATION",
+        "description": "No maximum length validation on password field in LoginDto. This could allow extremely long passwords that cause resource exhaustion during bcrypt hashing.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/dto/login.dto.ts",
+        "line": 14,
+        "suggestion": "Add @MaxLength(128) decorator to the password field to prevent resource exhaustion attacks. Also validate max length on the server-side bcrypt hash operation."
+      },
+      {
+        "severity": "P2",
+        "category": "XSS",
+        "description": "JWT token stored in localStorage is vulnerable to XSS attacks. If any XSS vulnerability exists in the application, attackers can steal tokens.",
+        "file": "/Users/pizza/workspace/texas-project/apps/web/lib/api.ts",
+        "line": 13,
+        "suggestion": "Store JWT tokens in httpOnly, secure cookies instead of localStorage. This prevents JavaScript access to the token, mitigating XSS-based token theft. Implement CSRF protection if using cookie-based auth."
+      },
+      {
+        "severity": "P2",
+        "category": "SECURITY_LOGGING",
+        "description": "Security incident log message includes potentially attacker-controlled username field ('Source: ${payload.username ?? \"unknown\"}'), which could be used to inject malicious content into log aggregation systems.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/jwt.strategy.ts",
+        "line": 31,
+        "suggestion": "Sanitize or truncate the username in log messages. Use a structured logging format that escaping special characters. Consider logging only a hash or partial identifier instead of raw username."
+      },
+      {
+        "severity": "P3",
+        "category": "INFORMATION_DISCLOSURE",
+        "description": "The checkAuth() function in AuthContext makes an unauthenticated API call to /auth/profile on page load, which may leak information about valid user sessions to attackers.",
+        "file": "/Users/pizza/workspace/texas-project/apps/web/lib/auth-context.tsx",
+        "line": 34,
+        "suggestion": "Use a token validation endpoint that doesn't expose user data, or validate token client-side using the shared getTokenExpiryTime() before making authenticated requests. Only call /auth/profile if a valid-looking token exists."
+      },
+      {
+        "severity": "P3",
+        "category": "REDIRECT",
+        "description": "window.location.replace() is used for redirects without validation. An attacker could potentially manipulate the returnTo parameter in handleExpiredSession to redirect users to a malicious page.",
+        "file": "/Users/pizza/workspace/texas-project/apps/web/lib/auth.ts",
+        "line": 79,
+        "suggestion": "Validate that redirect targets are within the application's trusted domains. Implement a whitelist of allowed redirect paths or use Next.js router methods with proper path validation."
+      },
+      {
+        "severity": "P3",
+        "category": "AUTH",
+        "description": "Session TTL is 1 hour (3600 seconds) which may be too short for some use cases, forcing frequent re-authentication. Additionally, there is no refresh token mechanism implemented.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/auth.service.ts",
+        "line": 26,
+        "suggestion": "Implement a JWT refresh token mechanism to allow extended sessions without compromising security. Use refresh tokens with httpOnly cookies and short-lived access tokens."
+      },
+      {
+        "severity": "P3",
+        "category": "AUTH",
+        "description": "Login DTO allows either username or email for authentication but LoginDto uses @IsOptional on username/email fields without @ValidateNested or a custom validator to ensure at least one is provided.",
+        "file": "/Users/pizza/workspace/texas-project/apps/backend/src/auth/dto/login.dto.ts",
+        "line": 3,
+        "suggestion": "Add a custom decorator or use @ValidateAtLeastOneOf (if available) to ensure either username or email is provided, but not neither."
+      }
+    ],
+    "summary": {
+      "total_issues": 12,
+      "p0_critical": 1,
+      "p1_high": 2,
+      "p2_medium": 5,
+      "p3_low": 4
+    }
+  }
+}

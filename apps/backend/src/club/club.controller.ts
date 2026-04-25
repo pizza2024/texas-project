@@ -25,6 +25,8 @@ import { ClubMemberListQueryDto } from './dto/club-member-list.query.dto';
 import { ClubChatListQueryDto } from './dto/club-chat-list.query.dto';
 import { SendChatMessageDto } from './dto/send-chat-message.dto';
 import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
+import { GetLeaderboardQueryDto } from './dto/get-leaderboard.query.dto';
+import { GetStatsQueryDto } from './dto/get-stats.query.dto';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 
 interface AuthenticatedRequest extends Request {
@@ -262,11 +264,35 @@ export class ClubController {
     if (!result.valid) {
       return { valid: false };
     }
-    // Fetch full club info
     const club = await this.clubService.getClub(result.club!.id, undefined);
     return {
       valid: true,
       club: { id: club.id, name: club.name, avatar: club.avatar },
     };
+  }
+
+  // ── Leaderboard & Stats ─────────────────────────────────────────────────────
+
+  @Get(':clubId/leaderboard')
+  @ApiOperation({ summary: 'Get club leaderboard (top members by metric)' })
+  async getLeaderboard(
+    @Param('clubId') clubId: string,
+    @Query() query: GetLeaderboardQueryDto,
+  ) {
+    return this.clubService.getLeaderboard(
+      clubId,
+      query.period as 'daily' | 'weekly' | 'monthly' | 'all',
+      'elo',
+      query.limit ?? 20,
+    );
+  }
+
+  @Get(':clubId/stats')
+  @ApiOperation({ summary: 'Get statistics for a specific club' })
+  async getClubStats(
+    @Param('clubId') clubId: string,
+    @Query() query: GetStatsQueryDto,
+  ) {
+    return this.clubService.getClubStats(clubId);
   }
 }

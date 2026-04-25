@@ -33,12 +33,18 @@ export class RoomService {
     return safeRoom;
   }
 
-  async findAll(): Promise<Room[]> {
-    return this.prisma.room.findMany({ where: { isMatchmaking: false } });
+  async findAll(clubId?: string): Promise<Room[]> {
+    return this.prisma.room.findMany({
+      where: { isMatchmaking: false, ...(clubId && { clubId }) },
+    });
   }
 
-  async findAllPaginated(page: number, limit: number): Promise<PaginatedRooms> {
-    const where = { isMatchmaking: false };
+  async findAllPaginated(
+    page: number,
+    limit: number,
+    clubId?: string,
+  ): Promise<PaginatedRooms> {
+    const where = { isMatchmaking: false, ...(clubId && { clubId }) };
     const [data, total] = await Promise.all([
       this.prisma.room.findMany({
         where,

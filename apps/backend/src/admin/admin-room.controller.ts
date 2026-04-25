@@ -11,6 +11,7 @@ import {
   Req,
   ParseIntPipe,
   DefaultValuePipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AdminGuard } from './guards/admin.guard';
@@ -45,6 +46,10 @@ export class AdminRoomController {
 
   @Post()
   async createRoom(@Body() dto: CreateRoomDto, @Req() req: AdminRequest) {
+    // P2-CLUB-007: isClubOnly and clubId must be consistent
+    if (dto.isClubOnly === true && !dto.clubId) {
+      throw new BadRequestException('俱乐部专属房间必须指定 clubId');
+    }
     const room = await this.adminService.createRoom(dto);
     await this.adminService.log({
       adminId: req.admin.sub,

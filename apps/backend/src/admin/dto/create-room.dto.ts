@@ -44,4 +44,12 @@ export class CreateRoomDto {
   @IsOptional()
   @IsString()
   tier?: string;
+
+  @IsOptional()
+  @IsString()
+  clubId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isClubOnly?: boolean;
 }

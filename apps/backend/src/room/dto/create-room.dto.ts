@@ -2,6 +2,7 @@ import {
   IsString,
   IsNumber,
   IsOptional,
+  IsBoolean,
   MaxLength,
   Min,
   Max,
@@ -48,4 +49,18 @@ export class CreateRoomDto {
   @IsString()
   @MaxLength(64, { message: '房间密码最多64个字符' })
   password?: string;
+
+  @ApiPropertyOptional({
+    description: 'Club ID this room belongs to',
+  })
+  @IsOptional()
+  @IsString()
+  clubId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether this room is exclusive to club members',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isClubOnly?: boolean;
 }

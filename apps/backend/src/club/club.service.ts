@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebSocketManager } from '../websocket/websocket-manager';
-import { Club, ClubMember, ClubChat } from '@prisma/client';
+import { RedisService } from '../redis/redis.service';
+import { Club, ClubMember as PrismaClubMember, ClubChat } from '@prisma/client';
+import type { ClubMember as SharedClubMember } from '@texas/shared';
+type ClubMember = PrismaClubMember;
 import { CreateClubDto } from './dto/create-club.dto';
 import { UpdateClubDto } from './dto/update-club.dto';
 import { CreateInviteCodeDto } from './dto/create-invite-code.dto';
@@ -64,6 +67,7 @@ export class ClubService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => WebSocketManager))
     private wsManager: WebSocketManager,
+    private redis: RedisService,
   ) {}
 
   private generateInviteCode(): string {
@@ -690,30 +694,39 @@ export class ClubService {
     };
   }
 
-  async joinByCode(
-    userId: string,
-    code: string,
-  ): Promise<{ clubId: string; clubName: string; role: string }> {
+  /**
+   * Join a club by invite code.
+   */
+  async joinByCode(userId: string, code: string): Promise<SharedClubMember> {
     const inviteCode = await this.prisma.clubInviteCode.findUnique({
       where: { code },
+      include: { club: true },
     });
-    if (!inviteCode || !inviteCode.isActive)
-      throw new BadRequestException('Invalid or expired invite code');
-    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date())
-      throw new BadRequestException('Invalid or expired invite code');
-    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses)
-      throw new BadRequestException('Invalid or expired invite code');
 
-    // Check if already a member
+    if (!inviteCode || !inviteCode.isActive) {
+      throw new BadRequestException('Invalid invite code');
+    }
+
+    if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) {
+      throw new BadRequestException('Invite code has expired');
+    }
+
+    if (inviteCode.maxUses > 0 && inviteCode.usedCount >= inviteCode.maxUses) {
+      throw new BadRequestException('Invite code has reached max uses');
+    }
+
+    const club = inviteCode.club;
+    if (club.status !== ClubStatus.ACTIVE) {
+      throw new BadRequestException('Club is not active');
+    }
+
     const existing = await this.prisma.clubMember.findUnique({
-      where: { clubId_userId: { clubId: inviteCode.clubId, userId } },
+      where: { clubId_userId: { clubId: club.id, userId } },
     });
-    if (existing) throw new ConflictException('Already a member of this club');
 
-    // Join the club
-    await this.prisma.clubMember.create({
-      data: { clubId: inviteCode.clubId, userId, role: 'MEMBER' },
-    });
+    if (existing) {
+      throw new ConflictException('Already a member of this club');
+    }
 
     // Increment usedCount
     await this.prisma.clubInviteCode.update({
@@ -721,13 +734,313 @@ export class ClubService {
       data: { usedCount: { increment: 1 } },
     });
 
-    const club = await this.prisma.club.findUnique({
-      where: { id: inviteCode.clubId },
+    const membership = await this.prisma.clubMember.create({
+      data: { clubId: club.id, userId, role: MemberRole.MEMBER },
+      include: {
+        user: { select: { nickname: true, avatar: true, status: true } },
+      },
     });
+
+    this.wsManager.sendToAll('club_member_joined', {
+      clubId: club.id,
+      userId,
+    });
+
+    // Transform to match packages/shared ClubMember interface
     return {
-      clubId: inviteCode.clubId,
-      clubName: club?.name ?? '',
-      role: 'MEMBER',
+      id: membership.id,
+      userId: membership.userId,
+      nickname: membership.user.nickname,
+      avatar: membership.user.avatar,
+      role: membership.role as 'OWNER' | 'ADMIN' | 'MEMBER',
+      status: membership.user.status as 'OFFLINE' | 'ONLINE' | 'PLAYING',
+      joinedAt: membership.joinedAt.toISOString(),
     };
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // Leaderboard & Stats
+  // ════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get club leaderboard — top members by a given metric within a period.
+   * Metrics: elo, chips, hands, winrate
+   * Periods: daily, weekly, monthly, all
+   * Cached in Redis for 5 minutes.
+   */
+  async getLeaderboard(
+    clubId: string,
+    period: 'daily' | 'weekly' | 'monthly' | 'all' = 'weekly',
+    metric: 'elo' | 'chips' | 'hands' | 'winrate' = 'elo',
+    limit: number = 20,
+  ): Promise<
+    Array<{
+      userId: string;
+      nickname: string;
+      avatar: string | null;
+      value: number;
+    }>
+  > {
+    const cacheKey = `club:${clubId}:leaderboard:${period}:${metric}:${limit}`;
+
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        // malformed cache — fall through
+      }
+    }
+
+    // Verify club exists
+    const club = await this.prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) throw new NotFoundException('Club not found');
+
+    // Date filter
+    const now = new Date();
+    let dateFilter: Date | undefined;
+    if (period === 'daily') {
+      dateFilter = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'weekly') {
+      dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'monthly') {
+      dateFilter = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        now.getDate(),
+      );
+    }
+    // 'all' = no date filter
+
+    // Get club member user IDs
+    const members = await this.prisma.clubMember.findMany({
+      where: { clubId },
+      select: { userId: true },
+    });
+    const userIds = members.map((m) => m.userId);
+    if (userIds.length === 0) return [];
+
+    let result: Array<{
+      userId: string;
+      nickname: string;
+      avatar: string | null;
+      value: number;
+    }> = [];
+
+    if (metric === 'elo') {
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, nickname: true, avatar: true, elo: true },
+        orderBy: { elo: 'desc' },
+        take: limit,
+      });
+      result = users.map((u) => ({
+        userId: u.id,
+        nickname: u.nickname,
+        avatar: u.avatar,
+        value: u.elo,
+      }));
+    } else if (metric === 'chips') {
+      // chips are stored on Wallet, not User
+      const wallets = await this.prisma.wallet.findMany({
+        where: { userId: { in: userIds } },
+        select: { userId: true, chips: true },
+        orderBy: { chips: 'desc' },
+        take: limit,
+      });
+      const userIdsWithChips = wallets.map((w) => w.userId);
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIdsWithChips } },
+        select: { id: true, nickname: true, avatar: true },
+      });
+      const userMap: Record<
+        string,
+        { nickname: string; avatar: string | null }
+      > = {};
+      for (const u of users) {
+        userMap[u.id] = { nickname: u.nickname, avatar: u.avatar };
+      }
+      result = wallets.map((w) => ({
+        userId: w.userId,
+        nickname: userMap[w.userId]?.nickname ?? '',
+        avatar: userMap[w.userId]?.avatar ?? null,
+        value: w.chips,
+      }));
+    } else if (metric === 'hands') {
+      const settlements = await this.prisma.settlement.findMany({
+        where: {
+          userId: { in: userIds },
+          ...(dateFilter ? { createdAt: { gte: dateFilter } } : {}),
+        },
+        select: { userId: true, handId: true },
+      });
+      const counts: Record<string, Set<string>> = {};
+      for (const s of settlements) {
+        if (!counts[s.userId]) counts[s.userId] = new Set();
+        counts[s.userId].add(s.handId);
+      }
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, nickname: true, avatar: true },
+      });
+      result = users
+        .map((u) => ({
+          userId: u.id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          value: counts[u.id]?.size ?? 0,
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, limit);
+    } else if (metric === 'winrate') {
+      const settlements = await this.prisma.settlement.findMany({
+        where: {
+          userId: { in: userIds },
+          ...(dateFilter ? { createdAt: { gte: dateFilter } } : {}),
+        },
+        select: { userId: true, handId: true, amount: true },
+      });
+      const stats: Record<string, { won: Set<string>; total: Set<string> }> =
+        {};
+      for (const s of settlements) {
+        if (!stats[s.userId])
+          stats[s.userId] = { won: new Set(), total: new Set() };
+        stats[s.userId].total.add(s.handId);
+        if (s.amount > 0) stats[s.userId].won.add(s.handId);
+      }
+      const users = await this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, nickname: true, avatar: true },
+      });
+      result = users
+        .map((u) => {
+          const s = stats[u.id];
+          const total = s?.total.size ?? 0;
+          const won = s?.won.size ?? 0;
+          return {
+            userId: u.id,
+            nickname: u.nickname,
+            avatar: u.avatar,
+            value: total > 0 ? Math.round((won / total) * 10000) / 100 : 0,
+          };
+        })
+        .sort((a, b) => b.value - a.value)
+        .slice(0, limit);
+    }
+
+    await this.redis.set(cacheKey, JSON.stringify(result), 300);
+    return result;
+  }
+
+  /**
+   * Get detailed statistics for a club.
+   * Aggregates Settlement + Hand + Room data.
+   * Optionally returns per-user stats when userId is provided.
+   */
+  async getClubStats(
+    clubId: string,
+    userId?: string,
+  ): Promise<{
+    clubId: string;
+    totalHands: number;
+    netProfit: number;
+    averagePot: number;
+    activeMembers: number;
+    totalMembers: number;
+    popularRooms: Array<{ tableId: string; name: string; handCount: number }>;
+    userStats?: {
+      userId: string;
+      totalHands: number;
+      netProfit: number;
+      winRate: number;
+    };
+  }> {
+    const club = await this.prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) throw new NotFoundException('Club not found');
+
+    const members = await this.prisma.clubMember.findMany({
+      where: { clubId },
+      select: { userId: true },
+    });
+    const memberUserIds = members.map((m) => m.userId);
+
+    // All hands at this club's rooms
+    const hands = await this.prisma.hand.findMany({
+      where: { table: { room: { clubId } } },
+      select: { id: true, potSize: true },
+    });
+    const handIds = hands.map((h) => h.id);
+    const totalHands = handIds.length;
+    const totalPot = hands.reduce((sum, h) => sum + h.potSize, 0);
+
+    // Settlements for club members
+    const settlements = await this.prisma.settlement.findMany({
+      where: { userId: { in: memberUserIds }, handId: { in: handIds } },
+      select: { userId: true, amount: true, handId: true },
+    });
+
+    const netProfit = settlements.reduce((sum, s) => sum + s.amount, 0);
+
+    // Popular rooms (top 5 by hand count)
+    const roomCounts = await this.prisma.hand.groupBy({
+      by: ['tableId'],
+      where: { table: { room: { clubId } } },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5,
+    });
+    const tableIds = roomCounts.map((r) => r.tableId);
+    const tables = await this.prisma.table.findMany({
+      where: { id: { in: tableIds } },
+      include: { room: { select: { id: true, name: true } } },
+    });
+    const roomMap: Record<string, { name: string }> = {};
+    for (const t of tables) {
+      roomMap[t.id] = { name: t.room.name };
+    }
+    const popularRooms = roomCounts.map((r) => ({
+      tableId: r.tableId,
+      name: roomMap[r.tableId]?.name ?? '',
+      handCount: r._count.id,
+    }));
+
+    // Active members (played in last 30 days — have non-zero settlement amounts)
+    const activeMemberIds = new Set(
+      settlements.filter((s) => s.amount !== 0).map((s) => s.userId),
+    );
+
+    const result: ReturnType<typeof this.getClubStats> extends Promise<infer T>
+      ? T
+      : never = {
+      clubId,
+      totalHands,
+      netProfit: Math.round(netProfit * 100) / 100,
+      averagePot:
+        totalHands > 0 ? Math.round((totalPot / totalHands) * 100) / 100 : 0,
+      activeMembers: activeMemberIds.size,
+      totalMembers: memberUserIds.length,
+      popularRooms,
+    };
+
+    // Per-user stats
+    if (userId) {
+      const userSettlements = settlements.filter((s) => s.userId === userId);
+      const userHands = new Set(userSettlements.map((s) => s.handId));
+      const wins = userSettlements.filter((s) => s.amount > 0).length;
+      result.userStats = {
+        userId,
+        totalHands: userHands.size,
+        netProfit:
+          Math.round(
+            userSettlements.reduce((sum, s) => sum + s.amount, 0) * 100,
+          ) / 100,
+        winRate:
+          userHands.size > 0
+            ? Math.round((wins / userHands.size) * 10000) / 100
+            : 0,
+      };
+    }
+
+    return result;
   }
 }

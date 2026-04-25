@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ClubService } from '../club.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebSocketManager } from '../../websocket/websocket-manager';
+import { RedisService } from '../../redis/redis.service';
 import {
   BadRequestException,
   ConflictException,
@@ -39,12 +40,19 @@ describe('ClubService', () => {
     sendToAll: jest.fn(),
   };
 
+  const mockRedisService = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClubService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: WebSocketManager, useValue: mockWsManager },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
