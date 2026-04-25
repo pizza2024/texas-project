@@ -56,6 +56,8 @@ export class TableRound {
    * The straddle effectively makes them act last preflop.
    */
   attemptStraddle(playerId: string): boolean {
+    // Straddle resets calledAllIn to allow raises after straddle (like any new street)
+    this.table.calledAllIn = null;
     if (this.table.currentStage !== GameStage.PREFLOP) return false;
     if (this.table.straddle !== null) return false;
 
@@ -312,6 +314,7 @@ export class TableRound {
         playerId: p.id,
         nickname: p.nickname,
         handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+        bestCards: [],
         winAmount: p.id === winner.id ? winAmount : 0,
         totalBet: p.totalBet,
       }));

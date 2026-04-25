@@ -290,7 +290,7 @@ export class TableManagerService implements OnModuleInit {
     // This row acts as a sentinel — its presence signals a completed hand.
     // If we crash between here and the settlement transaction below,
     // the Hand row will be detected as incomplete (no Settlement rows) on startup.
-    let handId: string;
+    let handId: string | undefined = undefined;
     try {
       const hand = await this.prisma.hand.create({
         data: {
