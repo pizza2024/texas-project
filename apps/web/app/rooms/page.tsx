@@ -546,6 +546,8 @@ interface Room {
   maxPlayers: number;
   minBuyIn: number;
   isPrivate?: boolean;
+  isClubOnly?: boolean;
+  clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
 }
 
@@ -578,6 +580,7 @@ export default function RoomsPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<'ALL' | 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM'>('ALL');
+  const [myClubIds, setMyClubIds] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'players' | 'blinds' | 'name'>('players');
   const isSearchingRef = useRef(false);
   const [passwordDialog, setPasswordDialog] = useState<{
@@ -599,13 +602,20 @@ export default function RoomsPage() {
       }
 
       try {
-        const [currentRoomRes, roomsRes, profileRes] = await Promise.all([
+        const [currentRoomRes, roomsRes, profileRes, clubsRes] = await Promise.all([
           api.get<CurrentRoomResponse>("/tables/me/current-room"),
           api.get("/rooms"),
           api.get("/auth/profile"),
+          api.get<{ data: { id: string }[] }>("/clubs/me/clubs").catch(() => ({ data: { data: [] } })),
         ]);
 
         if (cancelled) return;
+
+        // Extract user's club IDs
+        const clubIds = Array.isArray(clubsRes.data?.data)
+          ? clubsRes.data.data.map((c: { id: string }) => c.id)
+          : [];
+        setMyClubIds(clubIds);
 
         if (currentRoomRes.data?.roomId) {
           // Always leave any current room when returning to the lobby.
@@ -850,6 +860,10 @@ export default function RoomsPage() {
   // Compute filtered + sorted room list
   const filteredRooms = rooms
     .filter((room) => {
+      // Filter out club-exclusive rooms the user is not a member of
+      if (room.isClubOnly && room.clubId && !myClubIds.includes(room.clubId)) {
+        return false;
+      }
       const q = searchQuery.toLowerCase().trim();
       if (q && !room.name.toLowerCase().includes(q)) return false;
       if (tierFilter !== 'ALL') {

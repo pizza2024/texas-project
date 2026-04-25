@@ -36,6 +36,8 @@ export interface Room {
   maxPlayers: number;
   minBuyIn: number;
   isPrivate?: boolean;
+  isClubOnly?: boolean;
+  clubId?: string;
 }
 
 export interface RoomStatus {

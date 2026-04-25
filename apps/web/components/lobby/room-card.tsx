@@ -11,6 +11,8 @@ export interface Room {
   maxPlayers: number;
   minBuyIn: number;
   isPrivate?: boolean;
+  isClubOnly?: boolean;
+  clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
 }
 
@@ -74,6 +76,7 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {room.isPrivate && <span className="text-sm">🔒</span>}
+            {room.isClubOnly && <span className="text-sm" title="俱乐部专属">🏠</span>}
             <h3 className="font-black text-white text-base truncate tracking-wide">
               {room.name}
             </h3>
