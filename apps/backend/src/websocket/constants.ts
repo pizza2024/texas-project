@@ -13,6 +13,12 @@ export const RATE_LIMIT_WINDOW_MS = 1_000;
 /** Maximum actions allowed per rate-limit window */
 export const RATE_LIMIT_MAX_ACTIONS = 10;
 
+/** Rate-limit window for chat messages (ms) — slower than game actions */
+export const CHAT_RATE_LIMIT_WINDOW_MS = 5_000;
+
+/** Maximum chat messages per window */
+export const CHAT_RATE_LIMIT_MAX = 1;
+
 /** Maximum sane chip amount per action — prevents floating-point abuse and integer overflow */
 export const MAX_CHIP_AMOUNT = 1_000_000_000;
 

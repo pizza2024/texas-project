@@ -489,3 +489,58 @@ export async function handleShowCards(gateway: AppGateway, client: Socket) {
   await gateway.tableManager.persistTableState(roomId);
   await gateway.broadcastTableState(roomId, table);
 }
+
+// ---------------------------------------------------------------------------
+// Handler: chat_message
+// ---------------------------------------------------------------------------
+
+export async function handleChatMessage(
+  gateway: AppGateway,
+  client: Socket,
+  data: { roomId: string; content: string },
+) {
+  const userId = client.data.user?.sub as string;
+  if (!userId) {
+    return { event: 'error', data: 'Unauthorized' };
+  }
+
+  const { roomId, content } = data ?? {};
+  if (!roomId || typeof content !== 'string' || !content.trim()) {
+    return { event: 'error', data: 'Invalid message' };
+  }
+
+  const trimmed = content.trim();
+  if (trimmed.length > 200) {
+    return {
+      event: 'chat_error',
+      data: { message: '消息不能超过200个字符' },
+    };
+  }
+
+  // Rate limit — 1 message per 5 seconds
+  if (!(await gateway.checkChatRateLimit(userId))) {
+    client.emit('rate_limited', {
+      message: '发送消息过于频繁，请稍后再试',
+    });
+    return;
+  }
+
+  // Verify user is in this room
+  const currentRoomId =
+    await gateway.tableManager.getUserCurrentRoomId(userId);
+  if (currentRoomId !== roomId) {
+    return { event: 'chat_error', data: { message: '您不在此房间' } };
+  }
+
+  // Broadcast to all clients in the room (including sender)
+  const username =
+    (client.data.user as { username?: string } | undefined)?.username ??
+    '未知玩家';
+  gateway.server.to(roomId).emit('chat-message', {
+    id: crypto.randomUUID(),
+    userId,
+    username,
+    content: trimmed,
+    timestamp: Date.now(),
+  });
+}

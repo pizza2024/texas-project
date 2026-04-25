@@ -44,6 +44,7 @@ import {
   handleLeaveRoom,
   handleQuickMatch,
   handleShowCards,
+  handleChatMessage,
 } from './game.handler';
 import { ConnectionStateService } from './connection-state.service';
 import { BroadcastService } from './broadcast.service';
@@ -121,6 +122,10 @@ export class AppGateway
 
   async checkRateLimit(userId: string) {
     return this.connectionState.checkRateLimit(userId);
+  }
+
+  async checkChatRateLimit(userId: string) {
+    return this.connectionState.checkChatRateLimit(userId);
   }
 
   async checkPasswordAttemptLimit(ip: string, roomId: string) {
@@ -576,5 +581,13 @@ export class AppGateway
   @SubscribeMessage('show_cards')
   async handleShowCards(@ConnectedSocket() client: Socket) {
     return handleShowCards(this, client);
+  }
+
+  @SubscribeMessage('chat-message')
+  async handleChatMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; content: string },
+  ) {
+    return handleChatMessage(this, client, data);
   }
 }

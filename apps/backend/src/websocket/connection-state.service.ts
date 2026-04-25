@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
-import { RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_ACTIONS } from './constants';
+import {
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_ACTIONS,
+  CHAT_RATE_LIMIT_WINDOW_MS,
+  CHAT_RATE_LIMIT_MAX,
+} from './constants';
 
 @Injectable()
 export class ConnectionStateService {
@@ -45,6 +50,28 @@ export class ConnectionStateService {
     // Blocking all requests when Redis is down is the safe default (fail-closed).
     this.logger.warn(
       `[RATE-LIMIT] Redis unavailable for user=${userId} — denying request (fail-closed)`,
+    );
+    return false;
+  }
+
+  /**
+   * Chat message rate limit — separate key from game action rate limit.
+   * Redis key: ws_chat:{userId} — TTL = CHAT_RATE_LIMIT_WINDOW_MS in seconds.
+   * Allow 1 message per 5-second window to prevent spam.
+   */
+  async checkChatRateLimit(userId: string): Promise<boolean> {
+    const windowSec = Math.ceil(CHAT_RATE_LIMIT_WINDOW_MS / 1000);
+    const count = await this.redisService.incr(
+      `ws_chat:${userId}`,
+      windowSec,
+    );
+
+    if (count !== null) {
+      return count <= CHAT_RATE_LIMIT_MAX;
+    }
+
+    this.logger.warn(
+      `[CHAT-RATE-LIMIT] Redis unavailable for user=${userId} — denying message (fail-closed)`,
     );
     return false;
   }
