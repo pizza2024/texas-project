@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ReplayTimeline } from './ReplayTimeline';
 import { ReplayPlayerCards } from './ReplayPlayerCards';
 import { ReplayCommunityCards } from './ReplayCommunityCards';
 import { ReplayActionLog } from './ReplayActionLog';
 import { ReplayStageNav } from './ReplayStageNav';
+import { EquityCurveChart } from './EquityCurveChart';
+import { PotOddsTooltip } from './PotOddsTooltip';
+import { AutoPlayPanel } from './AutoPlayPanel';
 
 export interface ReplayPlayer {
   id: string;
@@ -57,6 +59,12 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Phase 2 state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const [showEquityChart, setShowEquityChart] = useState(false);
+  const [hoveredActionNode, setHoveredActionNode] = useState<ReplayActionNode | null>(null);
+  const actionLogRef = useRef<HTMLDivElement>(null);
 
   // Fetch replay data
   useEffect(() => {
@@ -93,6 +101,11 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
     if (!data) return;
     setCurrentIndex(i => Math.min(data.timeline.length - 1, i + 1));
   }, [data]);
+
+  // Auto-play index change handler (supports functional update like setState)
+  const handleIndexChange = useCallback((value: number | ((prev: number) => number)) => {
+    setCurrentIndex(value);
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -159,6 +172,17 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
           </span>
           <button
             type="button"
+            onClick={() => setShowEquityChart(s => !s)}
+            className="text-sm px-3 py-1 rounded transition-colors"
+            style={{
+              background: showEquityChart ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)',
+              color: showEquityChart ? '#f59e0b' : 'rgba(255,255,255,0.6)',
+            }}
+          >
+            📊 Equity
+          </button>
+          <button
+            type="button"
             onClick={() => setIsFullscreen(f => !f)}
             className="text-sm px-3 py-1 rounded"
             style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
@@ -179,6 +203,19 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? '' : 'max-w-5xl mx-auto w-full p-4'}`}>
         {/* Left: Community cards + Player cards */}
         <div className="flex-1 flex flex-col gap-4">
+          {/* Equity chart panel */}
+          {showEquityChart && (
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(245,158,11,0.2)',
+              }}
+            >
+              <EquityCurveChart data={data} currentStage={stage} />
+            </div>
+          )}
+
           {/* Community cards */}
           <div className="flex flex-col items-center gap-2">
             <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -200,25 +237,32 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
 
         {/* Right: Action log */}
         <div
-          className="w-72 flex-shrink-0 border-l overflow-y-auto"
+          ref={actionLogRef}
+          className="w-72 flex-shrink-0 border-l overflow-y-auto relative"
           style={{ borderColor: 'rgba(245,158,11,0.15)' }}
         >
           <ReplayActionLog
             nodes={data.timeline}
             currentIndex={currentIndex}
             onSelectNode={setCurrentIndex}
+            onHoverNode={setHoveredActionNode}
           />
         </div>
       </div>
 
-      {/* Timeline scrubber */}
+      {/* Pot odds tooltip */}
+      <PotOddsTooltip node={hoveredActionNode} visible={!!hoveredActionNode} anchorRef={actionLogRef} />
+
+      {/* Auto-play panel */}
       <div className="border-t px-4 py-3" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
-        <ReplayTimeline
-          nodes={data.timeline}
+        <AutoPlayPanel
+          timelineLength={data.timeline.length}
           currentIndex={currentIndex}
-          onSelect={setCurrentIndex}
-          onPrev={goToPrev}
-          onNext={goToNext}
+          playbackSpeed={playbackSpeed}
+          isPlaying={isPlaying}
+          onIndexChange={handleIndexChange}
+          onPlayingChange={setIsPlaying}
+          onSpeedChange={setPlaybackSpeed}
         />
       </div>
     </div>

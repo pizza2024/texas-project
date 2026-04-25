@@ -6,9 +6,10 @@ interface ReplayActionLogProps {
   nodes: ReplayActionNode[];
   currentIndex: number;
   onSelectNode: (index: number) => void;
+  onHoverNode?: (node: ReplayActionNode | null) => void;
 }
 
-export function ReplayActionLog({ nodes, currentIndex, onSelectNode }: ReplayActionLogProps) {
+export function ReplayActionLog({ nodes, currentIndex, onSelectNode, onHoverNode }: ReplayActionLogProps) {
   return (
     <div className="flex flex-col h-full">
       <div
@@ -27,6 +28,8 @@ export function ReplayActionLog({ nodes, currentIndex, onSelectNode }: ReplayAct
               key={i}
               type="button"
               onClick={() => onSelectNode(i)}
+              onMouseEnter={() => onHoverNode?.(node)}
+              onMouseLeave={() => onHoverNode?.(null)}
               className="w-full text-left px-3 py-2 transition-colors"
               style={{
                 background: isActive ? 'rgba(245,158,11,0.1)' : 'transparent',

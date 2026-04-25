@@ -254,6 +254,9 @@ importers:
       prisma:
         specifier: ^5.10.2
         version: 5.22.0
+      socket.io-client:
+        specifier: ^4.8.3
+        version: 4.8.3
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
@@ -406,6 +409,9 @@ importers:
       react-joyride:
         specifier: ^3.0.2
         version: 3.0.2(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      recharts:
+        specifier: ^2.15.0
+        version: 2.15.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
