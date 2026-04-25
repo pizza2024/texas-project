@@ -156,9 +156,21 @@ describe('TournamentService', () => {
       expect(result!.totalPrize).toBe(8000);
       expect(result!.maxPlayers).toBe(8);
       expect(result!.positions).toHaveLength(3);
-      expect(result!.positions[0]).toEqual({ place: 1, percentage: 60, chips: 4800 });
-      expect(result!.positions[1]).toEqual({ place: 2, percentage: 30, chips: 2400 });
-      expect(result!.positions[2]).toEqual({ place: 3, percentage: 10, chips: 800 });
+      expect(result!.positions[0]).toEqual({
+        place: 1,
+        percentage: 60,
+        chips: 4800,
+      });
+      expect(result!.positions[1]).toEqual({
+        place: 2,
+        percentage: 30,
+        chips: 2400,
+      });
+      expect(result!.positions[2]).toEqual({
+        place: 3,
+        percentage: 10,
+        chips: 800,
+      });
     });
 
     it('should correctly calculate chips for different buyins', async () => {
