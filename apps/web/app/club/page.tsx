@@ -364,18 +364,18 @@ function ClubDetail({ club, onClose, isAuthenticated, myRole }: ClubDetailProps)
   const [creating, setCreating] = useState(false);
   const [newCode, setNewCode] = useState<{code: string; url: string; maxUses: number; expiresAt: string | null} | null>(null);
 
-  const loadInviteCodes = async () => {
+  const loadInviteCodes = useCallback(async () => {
     setLoadingCodes(true);
     try {
       const res = await api.get(`/clubs/${club.id}/invite-codes`);
       setInviteCodes(res.data);
     } catch {}
     setLoadingCodes(false);
-  };
+  }, [club.id]);
 
   useEffect(() => {
     if (activeTab === 'invite') loadInviteCodes();
-  }, [activeTab, club.id]);
+  }, [activeTab, loadInviteCodes]);
 
   const handleCreateCode = async () => {
     setCreating(true);

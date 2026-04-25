@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { getSocket, disconnectSocket } from '@/lib/socket';
@@ -176,7 +176,7 @@ export default function MobileRoomPage() {
   }, [table?.actionEndsAt, table?.settlementEndsAt, table?.readyCountdownEndsAt]);
 
   // ── Auto-action ─────────────────────────────────────────────────────────
-  function doAutoAction(currentTable: typeof table) {
+  const doAutoAction = useCallback((currentTable: typeof table) => {
     if (!currentTable) return;
     const socket = getSocket(getStoredToken()!);
     if (!socket) return;
@@ -184,7 +184,7 @@ export default function MobileRoomPage() {
     const callAmt = myP ? Math.max(0, (currentTable.currentBet ?? 0) - myP.bet) : 0;
     const action = callAmt === 0 ? 'check' : 'fold';
     socket.emit('player_action', { roomId: id as string, action });
-  }
+  }, [id, myUserId]);
 
   useEffect(() => {
     if (autoActRef.current) clearTimeout(autoActRef.current);
@@ -199,7 +199,7 @@ export default function MobileRoomPage() {
     }
     autoActRef.current = setTimeout(() => doAutoAction(table), remaining);
     return () => { if (autoActRef.current) clearTimeout(autoActRef.current); };
-  }, [table?.actionEndsAt, table?.currentStage, table, myUserId]);
+  }, [table?.actionEndsAt, table?.currentStage, table, myUserId, doAutoAction]);
 
   const queueChipFlights = (flights: Omit<ChipFlight, 'active'>[]) => {
     if (flights.length === 0) return;

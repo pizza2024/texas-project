@@ -31,91 +31,103 @@ describe('RakebackService', () => {
   });
 
   describe('getRakebackRate', () => {
-    it('should return BRONZE tier (10%) for totalRake 0-999', async () => {
+    // 5-tier system: BRONZE 15% (0-499), SILVER 22% (500-1999), GOLD 30% (2000-9999), PLATINUM 40% (10000-49999), DIAMOND 50% (50000+)
+
+    it('should return BRONZE tier (15%) for totalRake 0', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         totalRake: 0,
       });
       const result = await service.getRakebackRate(mockUserId);
       expect(result.tier).toBe('BRONZE');
-      expect(result.rate).toBe(0.1);
+      expect(result.rate).toBe(0.15);
     });
 
-    it('should return BRONZE tier (10%) for totalRake 500', async () => {
+    it('should return BRONZE tier (15%) for totalRake 499', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 499,
+      });
+      const result = await service.getRakebackRate(mockUserId);
+      expect(result.tier).toBe('BRONZE');
+      expect(result.rate).toBe(0.15);
+    });
+
+    it('should return SILVER tier (22%) for totalRake 500', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         totalRake: 500,
       });
       const result = await service.getRakebackRate(mockUserId);
-      expect(result.tier).toBe('BRONZE');
-      expect(result.rate).toBe(0.1);
+      expect(result.tier).toBe('SILVER');
+      expect(result.rate).toBe(0.22);
     });
 
-    it('should return BRONZE tier (10%) for totalRake 999', async () => {
+    it('should return SILVER tier (22%) for totalRake 1999', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 999,
-      });
-      const result = await service.getRakebackRate(mockUserId);
-      expect(result.tier).toBe('BRONZE');
-      expect(result.rate).toBe(0.1);
-    });
-
-    it('should return SILVER tier (20%) for totalRake 1000', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: mockUserId,
-        totalRake: 1000,
+        totalRake: 1999,
       });
       const result = await service.getRakebackRate(mockUserId);
       expect(result.tier).toBe('SILVER');
-      expect(result.rate).toBe(0.2);
+      expect(result.rate).toBe(0.22);
     });
 
-    it('should return SILVER tier (20%) for totalRake 3000', async () => {
+    it('should return GOLD tier (30%) for totalRake 2000', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 3000,
-      });
-      const result = await service.getRakebackRate(mockUserId);
-      expect(result.tier).toBe('SILVER');
-      expect(result.rate).toBe(0.2);
-    });
-
-    it('should return SILVER tier (20%) for totalRake 4999', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: mockUserId,
-        totalRake: 4999,
-      });
-      const result = await service.getRakebackRate(mockUserId);
-      expect(result.tier).toBe('SILVER');
-      expect(result.rate).toBe(0.2);
-    });
-
-    it('should return GOLD tier (30%) for totalRake 5000', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: mockUserId,
-        totalRake: 5000,
+        totalRake: 2000,
       });
       const result = await service.getRakebackRate(mockUserId);
       expect(result.tier).toBe('GOLD');
       expect(result.rate).toBe(0.3);
     });
 
-    it('should return GOLD tier (30%) for totalRake 10000', async () => {
+    it('should return GOLD tier (30%) for totalRake 9999', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 9999,
+      });
+      const result = await service.getRakebackRate(mockUserId);
+      expect(result.tier).toBe('GOLD');
+      expect(result.rate).toBe(0.3);
+    });
+
+    it('should return PLATINUM tier (40%) for totalRake 10000', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         totalRake: 10000,
       });
       const result = await service.getRakebackRate(mockUserId);
-      expect(result.tier).toBe('GOLD');
-      expect(result.rate).toBe(0.3);
+      expect(result.tier).toBe('PLATINUM');
+      expect(result.rate).toBe(0.4);
+    });
+
+    it('should return PLATINUM tier (40%) for totalRake 49999', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 49999,
+      });
+      const result = await service.getRakebackRate(mockUserId);
+      expect(result.tier).toBe('PLATINUM');
+      expect(result.rate).toBe(0.4);
+    });
+
+    it('should return DIAMOND tier (50%) for totalRake 50000', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 50000,
+      });
+      const result = await service.getRakebackRate(mockUserId);
+      expect(result.tier).toBe('DIAMOND');
+      expect(result.rate).toBe(0.5);
     });
 
     it('should return BRONZE tier for non-existent user', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       const result = await service.getRakebackRate(mockUserId);
       expect(result.tier).toBe('BRONZE');
-      expect(result.rate).toBe(0.1);
+      expect(result.rate).toBe(0.15);
     });
   });
 
@@ -131,59 +143,89 @@ describe('RakebackService', () => {
       prisma.user.update.mockResolvedValue({});
     });
 
-    it('should credit rakeback correctly for BRONZE tier (10%)', async () => {
+    // 5-tier system: BRONZE 15% (0-499), SILVER 22% (500-1999), GOLD 30% (2000-9999), PLATINUM 40% (10000-49999), DIAMOND 50% (50000+)
+
+    it('should credit rakeback correctly for BRONZE tier (15%)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 500,
+        totalRake: 100, // BRONZE: 0-499
       });
 
       await service.creditRakeback(mockUserId, 100);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 10 } },
+        data: { rakebackBalance: { increment: 15 } }, // 100 * 0.15 = 15
       });
     });
 
-    it('should credit rakeback correctly for SILVER tier (20%)', async () => {
+    it('should credit rakeback correctly for SILVER tier (22%)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 3000,
+        totalRake: 1000, // SILVER: 500-1999
       });
 
       await service.creditRakeback(mockUserId, 100);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 20 } },
+        data: { rakebackBalance: { increment: 22 } }, // 100 * 0.22 = 22
       });
     });
 
     it('should credit rakeback correctly for GOLD tier (30%)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 10000,
+        totalRake: 5000, // GOLD: 2000-9999
       });
 
       await service.creditRakeback(mockUserId, 100);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 30 } },
+        data: { rakebackBalance: { increment: 30 } }, // 100 * 0.3 = 30
       });
     });
 
-    it('should floor the rakeback amount (e.g., 33.33 -> 3)', async () => {
+    it('should credit rakeback correctly for PLATINUM tier (40%)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 500,
+        totalRake: 20000, // PLATINUM: 10000-49999
+      });
+
+      await service.creditRakeback(mockUserId, 100);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: { rakebackBalance: { increment: 40 } }, // 100 * 0.4 = 40
+      });
+    });
+
+    it('should credit rakeback correctly for DIAMOND tier (50%)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 100000, // DIAMOND: 50000+
+      });
+
+      await service.creditRakeback(mockUserId, 100);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: { rakebackBalance: { increment: 50 } }, // 100 * 0.5 = 50
+      });
+    });
+
+    it('should floor the rakeback amount (e.g., 33.33 -> 4)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: mockUserId,
+        totalRake: 100, // BRONZE 15%
       });
 
       await service.creditRakeback(mockUserId, 33);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 3 } },
+        data: { rakebackBalance: { increment: 4 } }, // floor(33 * 0.15) = floor(4.95) = 4
       });
     });
 
@@ -202,10 +244,10 @@ describe('RakebackService', () => {
     it('should not credit if rakebackAmount floors to 0', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 500,
+        totalRake: 100, // BRONZE 15%
       });
 
-      // 1 * 0.1 = 0.1, floors to 0
+      // 1 * 0.15 = 0.15, floors to 0
       await service.creditRakeback(mockUserId, 1);
 
       expect(prisma.user.update).not.toHaveBeenCalled();
@@ -214,21 +256,21 @@ describe('RakebackService', () => {
     it('should accumulate rakeback balance correctly across multiple credits', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
-        totalRake: 500,
+        totalRake: 100, // BRONZE 15%
       });
 
-      // First credit: 100 * 0.1 = 10
+      // First credit: 100 * 0.15 = 15
       await service.creditRakeback(mockUserId, 100);
       expect(prisma.user.update).toHaveBeenLastCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 10 } },
+        data: { rakebackBalance: { increment: 15 } },
       });
 
-      // Second credit: 200 * 0.1 = 20
+      // Second credit: 200 * 0.15 = 30
       await service.creditRakeback(mockUserId, 200);
       expect(prisma.user.update).toHaveBeenLastCalledWith({
         where: { id: mockUserId },
-        data: { rakebackBalance: { increment: 20 } },
+        data: { rakebackBalance: { increment: 30 } },
       });
 
       // Total should be 30
