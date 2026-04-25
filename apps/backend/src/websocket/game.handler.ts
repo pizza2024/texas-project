@@ -329,7 +329,12 @@ export async function handlePlayerAction(
     }
 
     await gateway.ensureRecoveredRoundFlow(roomId, table);
-    const processed = table.processAction(userId, action, amount);
+    // P1-WS-STACK-VALIDATION: cap raise amount at player's stack server-side
+    const player = table.players?.find((p) => p?.id === userId);
+    const playerStack = player?.stack ?? 0;
+    const cappedAmount =
+      action === 'raise' ? Math.min(amount, playerStack) : amount;
+    const processed = table.processAction(userId, action, cappedAmount);
     if (!processed) {
       client.emit('action_rejected', {
         action,
