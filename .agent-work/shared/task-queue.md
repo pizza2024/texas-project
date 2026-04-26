@@ -43,16 +43,17 @@
 
 ## P1 — 新发现（第244轮）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-WALLET-001 | `exchangeBalanceToChips` 缺少 `$transaction` | ✅ 已修复 | commit a8442a0 — wallet.upsert + user.update + transaction.create 原子化 |
-|| P1-WITHDRAW-005 | `createWithdraw` transaction log 在原子块外 | ✅ 已修复 | commit a8442a0 — 移除外部 transaction.create |
-|| P1-WALLET-002 | `setBalances` Phase 2 失败静默吞掉 | ✅ 已修复 | commit a8442a0 — Promise.allSettled + rethrow non-bot errors |
-|| P1-WITHDRAW-007 | `executeChainWithdraw` 链确认后 DB 更新无重试 | ✅ 已修复 | commit a8442a0 — 3× retry + exponential backoff |
+| P1-WALLET-001 | `exchangeBalanceToChips` 缺少 `$transaction` | ✅ 已修复 | commit a8442a0 — wallet.upsert + user.update + transaction.create 原子化 |
+| P1-WITHDRAW-005 | `createWithdraw` transaction log 在原子块外 | ✅ 已修复 | commit a8442a0 — 移除外部 transaction.create |
+| P1-WALLET-002 | `setBalances` Phase 2 失败静默吞掉 | ✅ 已修复 | commit a8442a0 — Promise.allSettled + rethrow non-bot errors |
+| P1-WITHDRAW-007 | `executeChainWithdraw` 链确认后 DB 更新无重试 | ✅ 已修复 | commit a8442a0 — 3× retry + exponential backoff |
+| P1-PRIZE-DISPLAY | TournamentCard 缺 totalPrize/GTD/registeredCount | ✅ 已修复 | commit f071ae3 — DTO + service + TournamentCard + detail page |
 
 ## P1 — 新发现（第231轮）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 | P1-WITHDRAW-003 | `refundChips` REJECT 路径无事务保护 | ✅ 已修复 | commit ca66c4a — processWithdraw REJECT 路径原子化 |
 | P1-WITHDRAW-004 | `refundChips` handleWithdrawFailure 无事务保护 | ✅ 已修复 | commit ca66c4a — handleWithdrawFailure 原子化 |
@@ -66,32 +67,32 @@
 
 ## P1 — 新发现（第201轮）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-DECORATOR-001 | `@InjectServer()` 返回 `undefined` | ✅ 已修复 | commit 174996b — `decorators.ts` 已清空为注释 |
+| P1-DECORATOR-001 | `@InjectServer()` 返回 `undefined` | ✅ 已修复 | commit 174996b — `decorators.ts` 已清空为注释 |
 
 ## P1 — 新发现（第193轮）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-BACKEND-005 | `TournamentType` 未导入导致 TS2304 编译失败 | ✅ 已验证 | commit 9a25696 |
+| P1-BACKEND-005 | `TournamentType` 未导入导致 TS2304 编译失败 | ✅ 已验证 | commit 9a25696 |
 
 ## P1 — 新发现（第151轮）
 
-|||| ID | 任务 | 状态 | 备注 |
-||----|------|------|------|------|
-||| P1-BACKEND-003 | WS player-action roomId=null 误报 "Invalid action or roomId" | ✅ 已修复 | commit 713a075 |
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|------|
+| P1-BACKEND-003 | WS player-action roomId=null 误报 "Invalid action or roomId" | ✅ 已修复 | commit 713a075 |
 
 ## P1 — 新发现（第149轮）
 
-|||| ID | 任务 | 状态 | 备注 |
-||----|------|------|------|------|
-||| P1-WEB-004 | AutoPlayPanel useEffect 闭包不稳定 | ✅ 已修复 | commit b8f73d0 |
-||| P1-BACKEND-001 | netProfit 计算用 `pa.bet` 而非 `totalBet` | ✅ 已修复 | commit b8f73d0 |
-||| P1-BACKEND-004 | getUserAvailableBalance 返回 null 静默用 0 | ✅ 已修复 | commit b8f73d0 |
-||| P1-WEB-002 | AllInConfirmModal 重复组件 | ✅ 已修复 | commit b8f73d0 |
-||| P1-WEB-003 | SocketSessionProvider 重复注册 handler | ✅ 已修复 | commit b8f73d0 |
-||| P1-BACKEND-002 | 3次超时后无视觉反馈 | ✅ 已修复 | commit b8f73d0 |
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|------|
+| P1-WEB-004 | AutoPlayPanel useEffect 闭包不稳定 | ✅ 已修复 | commit b8f73d0 |
+| P1-BACKEND-001 | netProfit 计算用 `pa.bet` 而非 `totalBet` | ✅ 已修复 | commit b8f73d0 |
+| P1-BACKEND-004 | getUserAvailableBalance 返回 null 静默用 0 | ✅ 已修复 | commit b8f73d0 |
+| P1-WEB-002 | AllInConfirmModal 重复组件 | ✅ 已修复 | commit b8f73d0 |
+| P1-WEB-003 | SocketSessionProvider 重复注册 handler | ✅ 已修复 | commit b8f73d0 |
+| P1-BACKEND-002 | 3次超时后无视觉反馈 | ✅ 已修复 | commit b8f73d0 |
 
 ## P1 — 进行中
 
@@ -108,30 +109,30 @@
 
 ## P1 — 规格就绪（待 Coding 实施）
 
-|| ID | 任务 | 规格来源 | 关键参数 |
+| ID | 任务 | 规格来源 | 关键参数 |
 |----|------|---------|---------|
-|| P1-HANDREPLAY-002 | Hand Replay Phase 2 | ✅ 已实现 | commit e7e8f1a |
-|| P1-TOURNAMENT-001 | Tournament SNG Phase 1+2 | ✅ 已实现 | commit 0a7687d |
-||| P1-FIRST-DEPOSIT | 首充奖金规格 | ✅ 已实现 | Backend: DepositBonus model + getBonusStatus/addWagering + /bonus/status + /bonus/wagering endpoints |
-||| P1-DAILY-MISSIONS | 每日任务规格 | ✅ 后端完成 | Backend: mission.service.ts (10 missions, progress/claim/reset), mission.controller.ts, Mission/UserMission models; 前端 UI 待实施 |
-|| P1-BLAST-001 | Blast 即时赛事 | 📋 规格待定义 | 参考 GGPoker SPINS |
+| P1-HANDREPLAY-002 | Hand Replay Phase 2 | ✅ 已实现 | commit e7e8f1a |
+| P1-TOURNAMENT-001 | Tournament SNG Phase 1+2 | ✅ 已实现 | commit 0a7687d |
+| P1-FIRST-DEPOSIT | 首充奖金规格 | ✅ 已实现 | Backend: DepositBonus model + getBonusStatus/addWagering + /bonus/status + /bonus/wagering endpoints |
+| P1-DAILY-MISSIONS | 每日任务规格 | ✅ 后端完成 | Backend: mission.service.ts (10 missions, progress/claim/reset), mission.controller.ts, Mission/UserMission models; 前端 UI 待实施 |
+| P1-BLAST-001 | Blast 即时赛事 | 📋 规格待定义 | 参考 GGPoker SPINS |
 
 ## P1 — 已完成
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-CLUB-INVITE-001 | Club 私人邀请码 | ✅ 已实现 | bfd9ffa |
-|| P1-TEST-001 | `connection-state.service.spec.ts` 缺失 | ✅ 已实现 | 22 个测试用例 |
-|| P1-RAKEBACK-002 | Rakeback 5 tier 代码实现 | ✅ 已实现 | commit dc28855 |
-|| P1-RAKEBACK-003 | Rakeback service.spec.ts 13 tests failing | ✅ 已修复 | commit dc3e4a |
-|| P1-NEW-001 | `buildPots` 使用 stale `allPlayers` | ✅ 已确认无问题 | showdown 调用时 allPlayers 已是最新快照 |
-|| P1-NEW-002 | Withdraw 幂等性修复未提交 | ✅ 已提交 | withdraw.service.ts |
-|| P1-001 | `TableManager.getTable()` 并发竞态 | ✅ 已修复 | 并发测试通过 |
-|| P1-002 | Redis 不可用时 rate limit 回退 | ✅ 已修复 | fail-closed 策略 |
-|| P1-003 | 密码暴力破解保护 in-memory Map | ✅ 已修复 | Redis 迁移完成 |
-|| P1-005 | `persistSettlementRecords` 静默失败 | ✅ 已修复 | AdminLog 告警 |
-|| P1-004 | Rakeback 前端空白 | ✅ 已实现 | GET/POST /user/rakeback |
-|| P1-CLUB-TEST-001 | ClubService spec RedisService 依赖缺失 | ✅ 已修复 | commit dc3e4a |
+| P1-CLUB-INVITE-001 | Club 私人邀请码 | ✅ 已实现 | bfd9ffa |
+| P1-TEST-001 | `connection-state.service.spec.ts` 缺失 | ✅ 已实现 | 22 个测试用例 |
+| P1-RAKEBACK-002 | Rakeback 5 tier 代码实现 | ✅ 已实现 | commit dc28855 |
+| P1-RAKEBACK-003 | Rakeback service.spec.ts 13 tests failing | ✅ 已修复 | commit dc3e4a |
+| P1-NEW-001 | `buildPots` 使用 stale `allPlayers` | ✅ 已确认无问题 | showdown 调用时 allPlayers 已是最新快照 |
+| P1-NEW-002 | Withdraw 幂等性修复未提交 | ✅ 已提交 | withdraw.service.ts |
+| P1-001 | `TableManager.getTable()` 并发竞态 | ✅ 已修复 | 并发测试通过 |
+| P1-002 | Redis 不可用时 rate limit 回退 | ✅ 已修复 | fail-closed 策略 |
+| P1-003 | 密码暴力破解保护 in-memory Map | ✅ 已修复 | Redis 迁移完成 |
+| P1-005 | `persistSettlementRecords` 静默失败 | ✅ 已修复 | AdminLog 告警 |
+| P1-004 | Rakeback 前端空白 | ✅ 已实现 | GET/POST /user/rakeback |
+| P1-CLUB-TEST-001 | ClubService spec RedisService 依赖缺失 | ✅ 已修复 | commit dc3e4a |
 
 ---
 
@@ -168,27 +169,27 @@
 
 ## P2 — 已完成（本轮更新）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
-|| P2-WEB-LINT-WARNINGS | ActionBar + room/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 — 移除 useState/useRef/useGameSocket/AllowedEmoji；useEffect eslint-disable |
-|| P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
+| P2-WEB-LINT-WARNINGS | ActionBar + room/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 — 移除 useState/useRef/useGameSocket/AllowedEmoji；useEffect eslint-disable |
+| P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
 
 ## P2 — 已完成
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P2-NEW-008 | `Math.random()` 遗留 rooms/page.tsx:233 | ✅ 已修复 | crypto.getRandomValues() 替换 |
-|| P2-CLUB-003 | Club 专属房间 — 前端权限过滤 | ✅ 已修复 | rooms/page.tsx — myClubIds 过滤 |
-|| P2-CLUB-007 | Club 专属房间 — AdminRoomController 校验缺失 | ✅ 已修复 | admin-room.controller.ts |
-|| P2-BREAKING-001 | joinByCode 返回类型变更 ClubMember | ✅ 已修复 | club.service.ts |
-|| P2-NEW-001 | Web React hooks exhaustive-deps warnings | ✅ 已修复 | commit e28e902 |
-|| P2-NEW-002 | PlayerSeat.tsx `isSettlement` unused | ✅ 已修复 | 已移除 |
-|| P2-NEW-003 | rooms/page.tsx `_` unused variable | ✅ 已修复 | 改用 delete |
-|| P2-NEW-006 | `Button` 缺少 `loading` prop | ✅ 已修复 | commit ac33323 |
+| P2-NEW-008 | `Math.random()` 遗留 rooms/page.tsx:233 | ✅ 已修复 | crypto.getRandomValues() 替换 |
+| P2-CLUB-003 | Club 专属房间 — 前端权限过滤 | ✅ 已修复 | rooms/page.tsx — myClubIds 过滤 |
+| P2-CLUB-007 | Club 专属房间 — AdminRoomController 校验缺失 | ✅ 已修复 | admin-room.controller.ts |
+| P2-BREAKING-001 | joinByCode 返回类型变更 ClubMember | ✅ 已修复 | club.service.ts |
+| P2-NEW-001 | Web React hooks exhaustive-deps warnings | ✅ 已修复 | commit e28e902 |
+| P2-NEW-002 | PlayerSeat.tsx `isSettlement` unused | ✅ 已修复 | 已移除 |
+| P2-NEW-003 | rooms/page.tsx `_` unused variable | ✅ 已修复 | 改用 delete |
+| P2-NEW-006 | `Button` 缺少 `loading` prop | ✅ 已修复 | commit ac33323 |
 
 ## P2 — 新发现（建议升 P1）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 || P2→P1-NEW-001 | Club 邀请码 Math.random() 非密码学安全 | ✅ 已修复 | crypto.randomInt() |
 || P2→P1-NEW-002 | client.leave() 在 DB 更新之后（竞态条件） | ✅ 已修复 | game.handler.ts:323 |
@@ -196,7 +197,7 @@
 
 ## P2 — TypeScript 编译错误（已全部修复）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 || ~~P2-TS-002~~ | app.gateway.ts action 类型不兼容 | ✅ 已修复 | 联合类型 |
 || ~~P2-TS-001~~ | table-manager.service.spec.ts 参数数量 | ✅ 已修复 | rakebackService 占位符 |
@@ -211,7 +212,7 @@
 
 ## P2 — TypeScript 编译错误（spec/e2e 文件）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 || ~~P2-TS-NEW~~ | rakeback.controller.spec.ts Request 类型断言 | ✅ 已修复 | `{ user: typeof mockUser }` |
 || ~~P2-TS-NEW-003~~ | connection-state.service.spec.ts mock 类型错误 | ✅ 已修复 | mockRedisService 返回 `any` |
@@ -219,11 +220,11 @@
 
 ## P2 — 其他已完成
 
-|| ID | 任务 | 状态 |
+| ID | 任务 | 状态 |
 |----|------|------|
-|| P2-002 | Club 数据库迁移 | ⏳ 待执行 |
-|| P2-003 | Sit-Out 重构 | ✅ 已实现 |
-|| P2-004 | All-in 确认弹窗 | ✅ 前端实现完成 |
+| P2-002 | Club 数据库迁移 | ⏳ 待执行 |
+| P2-003 | Sit-Out 重构 | ✅ 已实现 |
+| P2-004 | All-in 确认弹窗 | ✅ 前端实现完成 |
 
 ---
 
@@ -235,8 +236,8 @@
 || Phase 2 | Jackpot SNG | 📋 规划中 |
 || Phase 3 | MTT 多桌赛 | 📋 规划中 |
 
-|| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1+2 完成 | commit e7e8f1a — EquityCurveChart/PotOddsTooltip/PlaybackControls/SpeedSelector/AutoPlayPanel |
+| P2-NEW-007 | 战后手牌复盘 UI | ✅ Phase 1+2 完成 | commit e7e8f1a — EquityCurveChart/PotOddsTooltip/PlaybackControls/SpeedSelector/AutoPlayPanel |
 
 ---
 
-*最后更新: 2026-04-28 00:40 — Coding 第271轮 — P2-TOURNAMENT-SPEC (friend.spec.ts 41 tests) + Admin lint 0 warnings，0 P0 / 0 P1 / ~5 P2 *
+*最后更新: 2026-04-27 01:05 — Coding 第273轮 — P1-PRIZE-DISPLAY ✅ — 0 P0 / 0 P1 / ~5 P2 *
