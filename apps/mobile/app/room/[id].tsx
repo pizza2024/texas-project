@@ -99,6 +99,24 @@ export default function RoomPage() {
         if (mounted) router.replace('/rooms');
       });
 
+      socket.on('rejoin_available', ({ roomId }) => {
+        if (!mounted) return;
+        Alert.alert(
+          '重新连接',
+          '检测到您已重新连接，正在恢复游戏...',
+          [
+            {
+              text: '确定',
+              onPress: () => {
+                // Re-join the room to restore game state
+                socket.emit('join_room', { roomId: id });
+              },
+            },
+          ],
+          { cancelable: false },
+        );
+      });
+
       socket.emit('join_room', { roomId: id });
     }
     connect();

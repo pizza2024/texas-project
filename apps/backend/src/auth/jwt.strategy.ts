@@ -1,6 +1,7 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtPayload, JwtUser } from './interfaces/jwt-user.interface';
 import { RedisService } from '../redis/redis.service';
 import { getJwtSecret } from '../config/jwt.config';
@@ -11,13 +12,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   constructor(private redisService: RedisService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: Request) => {
+        // First try Authorization header (Bearer token)
+        const authHeader = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+        if (authHeader) return authHeader;
+        // Fallback: read from httpOnly cookie
+        return req.cookies?.access_token ?? null;
+      },
       ignoreExpiration: false,
       secretOrKey: getJwtSecret(),
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtUser> {
+  async validate(req: Request, payload: JwtPayload): Promise<JwtUser> {
     if (payload.sessionId) {
       if (!this.redisService.isAvailable) {
         // Redis unavailable + sessionId present = fail-closed (deny auth).

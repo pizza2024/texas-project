@@ -1,5 +1,13 @@
-import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
-import { Request } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Req,
+  Res,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -34,8 +42,20 @@ export class AuthController {
   @ApiOperation({ summary: 'User login' })
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponseDto> {
+    const result = await this.authService.login(loginDto);
+    // Set httpOnly cookie for web clients (additive - localStorage still works for backward compat)
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+    return result;
   }
 
   @Post('register')
@@ -43,8 +63,21 @@ export class AuthController {
   @ApplyRateLimit({ limit: 10, windowSeconds: 3600, keyPrefix: 'rl:register' })
   @ApiOperation({ summary: 'User registration (username + password)' })
   @ApiOkResponse({ type: AuthUserDto })
-  async register(@Body() registerDto: RegisterDto): Promise<AuthUserDto> {
-    return this.authService.register(registerDto);
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthUserDto> {
+    const user = await this.authService.register(registerDto);
+    // Also set httpOnly cookie on register for web clients
+    const token = await this.authService.generateTokenForUser(user.id);
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+    return user;
   }
 
   @Post('request-email-code')

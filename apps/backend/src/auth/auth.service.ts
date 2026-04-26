@@ -313,6 +313,25 @@ export class AuthService {
     await this.redisService.del(`${AuthService.SESSION_KEY_PREFIX}${userId}`);
   }
 
+  async generateTokenForUser(userId: string): Promise<string> {
+    const sessionId = randomUUID();
+    await this.redisService.set(
+      `${AuthService.SESSION_KEY_PREFIX}${userId}`,
+      sessionId,
+      AuthService.SESSION_TTL_SECONDS,
+    );
+    const user = await this.userService.user({ id: userId });
+    if (!user) throw new UnauthorizedException('User not found');
+    const payload = {
+      username: user.username,
+      nickname: user.nickname,
+      sub: user.id,
+      role: user.role ?? 'PLAYER',
+      sessionId,
+    };
+    return this.jwtService.sign(payload);
+  }
+
   private async toAuthUser(user: {
     id: string;
     nickname: string;
