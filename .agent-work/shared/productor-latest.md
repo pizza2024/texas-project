@@ -1,6 +1,6 @@
-# Productor Latest — 第241轮
+# Productor Latest — 第243轮
 
-**时间:** 2026-04-27 16:30
+**时间:** 2026-04-26 17:16
 
 ## 状态
 
@@ -12,63 +12,49 @@
 
 ## HEAD Commit
 
-`c177780` — fix: P2-EMOJI-ROOMID add roomId to emoji-reaction broadcast payload
+`8ce5e54` — fix: P2-NEW-001 deposit atomic balance + P2-NEW-002 OTP JSON.parse safety
 
-> 系统完全清洁。
+> 系统整体稳定，但 Test 发现 1 P0 / 3 P1 / 12 P2 待修复。
 
 ## 系统健康
 
-- **Coding:** 第238轮，0 P0/0 P1/0 P2
-- **Test:** 第239轮，323 tests pass，0 P0/0 P1/0 P2（Test 最新一轮 04-26 16:15）
-- **Productor:** 第241轮，0 P0/0 P1/0 P2
+- **Coding:** 第241轮，0 P0/0 P1/0 P2
+- **Test:** 第241轮，323 tests pass，**1 P0 / 3 P1 / 12 P2** ⚠️
+- **Productor:** 第243轮，0 P0/0 P1/0 P2
 
-## 本轮主题：移动端扑克 UX + 新手引导
+## 本轮主题：Test P0/P1 问题产品影响评估 + Natural8 UX 调研
 
-### 竞品移动端能力
+### Test P0 问题产品影响
 
-| 平台 | 手势操作 | 快速操作栏 | 多桌管理 | Web3 集成 |
-|------|---------|-----------|---------|-----------|
-| GGPoker | ✅ 滑动 | ✅ | ✅ | ❌ |
-| PokerStars | ✅ | ✅ | ✅ | ❌ |
-| CoinPoker | ❌ | ✅ | ✅ | ✅ |
-| **本项目** | ⚠️ 待验证 | ⚠️ 待验证 | ⚠️ 待验证 | ✅ |
+| ID | 问题 | 产品影响 | 紧急度 |
+|----|------|---------|--------|
+| P0-TYPE-001 | Rakeback 利率 ×100 | 金融数据错误显示（5000% rakeback） | **立即** |
+| P0-TYPE-002 | HandResultEntry 无 nickname | 好友对战显示 undefined | **立即** |
+| P0-TYPE-003 | FriendRequestPayload 字段不一致 | 好友请求 100% 失败 | **立即** |
 
-### 新手引导
+### Test P1 问题产品影响
 
-| 平台 | 引导流程 | 免费练习 | 首充激励 |
-|------|---------|---------|---------|
-| Bovada | 5分钟注册→AI练习→首充 | ✅ | ✅ 双倍 |
-| ACR Poker | 规则→策略→资金管理 | ✅ | ✅ |
-| **本项目** | ⚠️ 无文档 | ⚠️ 待确认 | ⚠️ 待确认 |
+| ID | 问题 | 产品影响 | 紧急度 |
+|----|------|---------|--------|
+| P1-WALLET-001 | exchangeBalanceToChips 非原子 | 充值到账丢失/延迟 | 高 |
+| P1-WITHDRAW-005/006/007 | withdraw 事务 | 提现数据不一致 | 高 |
+| P1-WS-001 | handleConnection 时序 | 会话安全 | 中 |
 
-## 跨 Agent 重要观察
+### Natural8 UX 调研要点
 
-### Test 建议升档（P1）
-
-| ID | 原因 |
-|----|------|
-| P2-NEW-001 → P1 | deposit 余额非原子更新，真实资金竞态条件 |
-| P2-NEW-003 → P1 | JWT 存 localStorage，XSS Token 盗窃风险 |
-
-### Coding 遗留队列
-
-| 优先级 | ID | 任务 |
-|--------|-----|------|
-| P1 | P1-BLAST-001 | 即时赛事（规格已就绪） |
-| P2 | P2-PROFILE-001 | 玩家资料页 |
-| P2 | P2-NOTIFY-001 | 站内通知中心 |
+- 首次存款 200% 奖励（vs 本项目无入职奖励）
+- 80% rakeback 固定返现（接近本项目 tier 设计）
+- 每周 $100k 免费锦标赛门票（可参考 Blast 即时赛事设计）
+- 24/7 即时客服
 
 ## 下一轮优先级
 
-1. **P2-NEW-001 / P2-NEW-003 升 P1 建议** — 涉及资金安全 + XSS，建议 Coding 评估
-2. **P1-BLAST-001 极速赛事** — 规格已就绪，可推进
-3. **移动端体验验证** — 下轮尝试启动 mobile 端验证手势操作
-4. **新手引导确认** — 检查项目是否有 onboarding 流程
-
-## 本轮调研文件
-
-- `research-ui-ux-2026-04-27.md` — 移动端 UX + 新手引导竞品分析
+1. **P0-TYPE-001/002/003** — Coding 立即处理（类型 drift）
+2. **P1-WALLET-001** — 建议评估是否升 P0（资金安全）
+3. **P1-WITHDRAW-005/006/007** — withdraw 事务修复
+4. **P1-BLAST-001** — 即时赛事规格完善
+5. **P2-EMOJI-MOBILE** — 移动端 emoji 反应移植
 
 ---
 
-*Productor 第241轮 — 2026-04-27 16:30 — 0 P0 / 0 P1 / 0 P2*
+*Productor 第243轮 — 2026-04-26 17:16 — 0 P0 / 0 P1 / 0 P2*

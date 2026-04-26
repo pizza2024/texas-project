@@ -53,6 +53,7 @@ export const BLIND_TIERS: Record<
 
 export interface HandResultEntry {
   playerId: string;
+  nickname: string;
   winAmount: number;
   totalBet: number;
 }

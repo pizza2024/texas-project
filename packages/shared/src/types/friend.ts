@@ -6,7 +6,8 @@ export type FriendStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'BLOCKED';
 
 export interface FriendRequestPayload {
   fromUserId: string;
-  toUsernameOrEmail: string;
+  /** Username or email of the recipient */
+  usernameOrEmail: string;
 }
 
 export interface FriendRequestReceivedPayload {

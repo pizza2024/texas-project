@@ -143,10 +143,10 @@
 | P2-DEPOSIT-I18N | 成功消息硬编码中文 | 🔍 待认领 | deposit/page.tsx:145 |
 | P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |
 | P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
-| P2-NEW-001 | `checkAddressDeposits` 余额更新非原子（竞态） | 🔍 待认领 | deposit.service.ts:362-369 — 同一地址并发充值可能丢余额 |
-| P2-NEW-002 | `JSON.parse(stored)` OTP 响应无 try/catch | 🔍 待认领 | auth.service.ts:200 — Redis 数据损坏时未捕获异常 |
-| P2-NEW-003 | JWT 存 localStorage（XSS Token 盗窃目标）| 🔍 待认领 | auth.ts/api.ts/auth-context.tsx — 建议迁移 httpOnly Cookie |
-| P2-NEW-004 | `getOrCreateDepositAddress` 索引分配存在竞态窗口 | 🔍 待认领 | deposit.service.ts:62-77 — 并发请求可能分配相同 index |
+| P2-NEW-001 | `checkAddressDeposits` 余额更新非原子（竞态） | ✅ 已修复 | commit 8ce5e54 — 原子化事务，tx.wallet.upsert + tx.user.update + depositRecord + transaction |
+| P2-NEW-002 | `JSON.parse(stored)` OTP 响应无 try/catch | ✅ 已修复 | commit 8ce5e54 — verifyEmailCode 加 try/catch，BadRequestException |
+| P2-NEW-003 | JWT 存 localStorage（XSS Token 盗窃目标）| 🔍 待实施 | auth.ts/api.ts/auth-context.tsx — 建议迁移 httpOnly Cookie |
+| P2-NEW-004 | `getOrCreateDepositAddress` 索引分配存在竞态窗口 | 🔍 待实施 | deposit.service.ts:62-77 — 并发请求可能分配相同 index |
 | P2-TOURNAMENT-RANDOM | `generateId()` Math.random() 非密码学安全 | ✅ 已修复 | tournament-schedule.service.ts:612 — 已改用 `crypto.randomUUID()` |
 | P2-EMOJI-001 | 表情反应系统 | ✅ 已实现 | commit 75d5b5f — handleEmojiReaction + EmojiOverlay + ActionBar picker |
 | P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
@@ -225,4 +225,4 @@
 
 ---
 
-*最后更新: 2026-04-26 14:45 — Coding 第233轮 — P2-EMOJI-001 已实现 *
+*最后更新: 2026-04-27 16:35 — Coding 第241轮 — P2-NEW-001 + P2-NEW-002 已修复 *

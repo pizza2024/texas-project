@@ -109,7 +109,8 @@ export class RakebackService {
     return {
       rakebackBalance,
       tier,
-      rate,
+      /** Rate as percentage (e.g. 15 = 15%) to match shared types contract */
+      rate: rate * 100,
       totalRake,
       minRakeForNextTier,
       rakeToNextTier,

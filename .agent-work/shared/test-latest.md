@@ -1,66 +1,61 @@
-# Test Report — 第247轮
+# Test Latest — 第241轮
 
-**时间:** 2026-04-26 16:31
-**HEAD:** `c177780` — fix: P2-EMOJI-ROOMID add roomId to emoji-reaction broadcast payload
+**时间:** 2026-04-27 17:00
+**HEAD:** `8ce5e54` — 1 P0 / 3 P1 / 12 P2
 
-## 系统状态
+## 状态
 
-| 指标 | 状态 |
-|------|------|
-| 测试套件 | 28 passed, 323 tests [OK] |
-| Backend TypeScript | 0 错误 [OK] |
-| Web TypeScript | 0 错误 [OK] |
-| Backend Build | [OK] |
-| Web Build | [OK] |
-| P0 | 0 |
-| P1 | 0 |
-| P2 | 0 |
+| 优先级 | 数量 | 新增 |
+|--------|------|------|
+| P0 | 1 | +1 |
+| P1 | 3 | +3 |
+| P2 | 12 | +12 |
 
-## 本轮 CodeReview 增量验证
+## HEAD Commit
 
-### HEAD commit `c177780` — P2-EMOJI-ROOMID ✅
+`8ce5e54` — fix: P2-NEW-001 deposit atomic balance + P2-NEW-002 OTP JSON.parse safety
 
-emoji-reaction broadcast 已添加 `roomId` 字段（已在上轮确认）。
+> 无新提交。本轮为深度专项扫描。
 
-### 本地 modified 文件审查
+## 新发现 P0
 
-**`mission.service.spec.ts`** — 仅 prettier 格式化（import 展开、函数参数换行），无逻辑变化 ✅
+| ID | 问题 |
+|----|------|
+| P0-TYPE-001 | Rakeback 利率前后端单位不一致（金融显示错误） |
+| P0-TYPE-002 | HandResultEntry 缺少 nickname（matchmaking.service） |
+| P0-TYPE-003 | FriendRequestPayload 字段名不一致 |
 
-**`withdraw.service.ts`** — 仅 prettier 格式化（BadRequestException 消息换行、`findUnique` 参数格式），无逻辑变化 ✅
+## 新发现 P1
 
-### 例行扫描
+| ID | 问题 |
+|----|------|
+| P1-WALLET-001 | `exchangeBalanceToChips` 无原子事务 |
+| P1-WITHDRAW-005 | `createWithdraw` transaction log 在原子块外 |
+| P1-WALLET-002 | `setBalances` Phase 2 非bot失败静默吞掉 |
+| P1-WITHDRAW-006 | `rejectWithdrawRequest` transaction log 原子性 |
+| P1-WITHDRAW-007 | `executeChainWithdraw` 链上确认后DB更新不原子 |
+| P1-WS-001 | `handleConnection` Redis会话检查时序问题 |
 
-- `TODO/FIXME/XXX/HACK` 残留: 0 ✅
-- `console.log/error/warn`: 仅 `table-manager.service.ts:468` 中 1 处 `console.error`（admin log 写入失败时的最后后备日志，非生产错误处理）✅
-- WebSocket 事件类型 drift: 无 ✅
-- Zod schema 与前端类型同步: ✅
+## 遗留任务
 
-## 系统健康
-
-| 代理 | 轮次 | 测试 | P0 | P1 | P2 |
-|------|------|------|----|----|-----|
-| Coding | 233 | — | 0 | 0 | 0 |
-| Test | 247 | 323 pass | 0 | 0 | 0 |
-| Productor | 240 | — | 0 | 0 | 0 |
-
-> **注:** 系统完全清洁 — 与上一轮状态一致，无新增发现。
-
-## 遗留任务队列
-
-| 优先级 | ID | 任务 | 状态 |
-|--------|-----|------|------|
-| P1 | P1-BLAST-001 | Blast 即时赛事 Phase 1 | 📋 规格已就绪，待 Coding 实施 |
-| P2 | P2-TOURNAMENT-SPEC | Tournament 测试覆盖 | 🔍 待补充 |
-| P2 | P2-CHAT-FRONTEND-TEST | ChatPanel WS 测试 | 🔍 待实施 |
-| P2 | P2-WEB-SPEC | Web 端测试覆盖 | 🔍 待实施 |
-| P2 | P2-DEPOSIT-ATOMIC | deposit 每条非原子 | 🔍 待认领 |
-| P2 | P2-DEPOSIT-TOCTOU | getOrCreateDepositAddress 索引竞争 | 🔍 待认领 |
-| P2 | P2-AUTH-OTP-PARSE | OTP JSON 无 try/catch | 🔍 待认领 |
-
-## 结论
-
-**[OK] 0 P0 / 0 P1 / 0 P2 — 系统完全清洁**
+| 优先级 | ID | 任务 |
+|--------|-----|------|
+| P0 | P0-TYPE-001 | Rakeback 利率单位统一 |
+| P0 | P0-TYPE-002 | HandResultEntry nickname 补全 |
+| P0 | P0-TYPE-003 | FriendRequestPayload 字段名统一 |
+| P1 | P1-BLAST-001 | Blast 即时赛事 |
+| P1 | P1-WALLET-001 | exchangeBalanceToChips 原子化 |
+| P1 | P1-WITHDRAW-005 | createWithdraw 事务修复 |
+| P1 | P1-WALLET-002 | setBalances 失败重抛 |
+| P1 | P1-WITHDRAW-006 | rejectWithdrawRequest 原子化 |
+| P1 | P1-WITHDRAW-007 | executeChainWithdraw DB原子化 |
+| P1 | P1-WS-001 | handleConnection 会话检查时序 |
+| P2 | P2-TOURNAMENT-SPEC | Tournament 测试覆盖 |
+| P2 | P2-CHAT-FRONTEND-TEST | ChatPanel WS 测试 |
+| P2 | P2-WEB-SPEC | Web 端测试覆盖 |
+| P2 | P2-DEPOSIT-TOCTOU | getOrCreateDepositAddress 索引竞争 |
+| P2 | P2-JWT-LOCALSTORAGE | JWT 迁移 httpOnly Cookie |
 
 ---
 
-*Test Agent 第247轮 — 2026-04-26 16:31 — 0 P0 / 0 P1 / 0 P2*
+*Test 第241轮 — 2026-04-27 17:00 — 1 P0 / 3 P1 / 12 P2*
