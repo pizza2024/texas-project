@@ -25,6 +25,14 @@ interface DepositRecord {
   createdAt: string;
 }
 
+interface BonusStatus {
+  eligible: boolean;
+  claimed: boolean;
+  bonusAmount: number;
+  minDeposit: number;
+  requirement?: string;
+}
+
 const pageBg: React.CSSProperties = {
   background: 'radial-gradient(ellipse at 50% 20%, #0d2818 0%, #060e10 55%, #020406 100%)',
 };
@@ -54,6 +62,7 @@ export default function DepositPage() {  const { t } = useTranslation();
   const router = useRouter();
   const [depositInfo, setDepositInfo] = useState<DepositAddress | null>(null);
   const [history, setHistory] = useState<DepositRecord[]>([]);
+  const [bonusStatus, setBonusStatus] = useState<BonusStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -83,13 +92,15 @@ export default function DepositPage() {  const { t } = useTranslation();
 
     const loadData = async (retry = false) => {
       try {
-        const [addrRes, histRes] = await Promise.all([
+        const [addrRes, histRes, bonusRes] = await Promise.all([
           api.get<DepositAddress>('/deposit/address'),
           api.get<DepositRecord[]>('/deposit/history'),
+          api.get<BonusStatus>('/deposit/bonus/status'),
         ]);
         if (!cancelled) {
           setDepositInfo(addrRes.data);
           setHistory(histRes.data);
+          setBonusStatus(bonusRes.data);
           setLoading(false);
         }
       } catch {
@@ -189,6 +200,49 @@ export default function DepositPage() {  const { t } = useTranslation();
             style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: '#f87171' }}
           >
             {error}
+          </div>
+        )}
+
+        {!loading && !error && bonusStatus && (
+          <div
+            className="rounded-2xl p-4 space-y-2"
+            style={{
+              background: 'linear-gradient(135deg, rgba(251,191,36,0.10) 0%, rgba(245,158,11,0.05) 100%)',
+              border: '1px solid rgba(251,191,36,0.30)',
+              boxShadow: '0 0 24px rgba(251,191,36,0.06)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🎁</span>
+              <p className="text-sm font-semibold" style={{ color: '#fbbf24' }}>首充 bonus</p>
+              {bonusStatus.claimed && (
+                <span
+                  className="ml-auto px-2 py-0.5 rounded text-xs font-bold"
+                  style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.30)' }}
+                >
+                  ✅ 已领取
+                </span>
+              )}
+            </div>
+            <div className="text-xs space-y-1">
+              <p style={{ color: 'rgba(255,255,255,0.5)' }}>
+                最低充值 <span style={{ color: '#fbbf24' }}>{bonusStatus.minDeposit} USDT</span>，额外获得{' '}
+                <span style={{ color: '#4ade80' }}>+{bonusStatus.bonusAmount} 筹码</span>
+              </p>
+              {bonusStatus.requirement && (
+                <p style={{ color: 'rgba(255,255,255,0.35)' }}>{bonusStatus.requirement}</p>
+              )}
+              {!bonusStatus.claimed && bonusStatus.eligible && (
+                <p className="font-medium" style={{ color: '#a3e635' }}>
+                  ✓ 您已满足首充条件，充值后bonus自动到账
+                </p>
+              )}
+              {!bonusStatus.eligible && !bonusStatus.claimed && (
+                <p style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  首充完成后可领取
+                </p>
+              )}
+            </div>
           </div>
         )}
 
