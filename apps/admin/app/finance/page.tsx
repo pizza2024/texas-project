@@ -5,7 +5,7 @@ import AdminLayout from '@/components/layout/admin-layout';
 import Badge from '@/components/ui/badge';
 import { getTransactions, getFinanceSummary, deposit, withdraw } from '@/lib/api';
 import type { PaginatedTransactions, FinanceSummary, Transaction } from '@/lib/types';
-import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 type TxVariant = 'success' | 'danger' | 'info' | 'warning' | 'default';
 

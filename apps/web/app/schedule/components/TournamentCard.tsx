@@ -128,8 +128,6 @@ export function TournamentCard({
   const canRegister =
     tournament.status === "SCHEDULED" || tournament.status === "RUNNING";
 
-  const prize = tournament.prizeDistribution;
-
   return (
     <>
       <div

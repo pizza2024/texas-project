@@ -18,12 +18,13 @@ export default function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   async function load() {
     setLoading(true);
     try { setRoom(await getRoomById(id)); } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) return <AdminLayout><div className="p-8 text-slate-400">加载中...</div></AdminLayout>;
   if (!room) return <AdminLayout><div className="p-8 text-slate-400">房间不存在</div></AdminLayout>;

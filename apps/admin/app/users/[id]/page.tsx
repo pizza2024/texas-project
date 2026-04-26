@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import AdminLayout from '@/components/layout/admin-layout';
 import Badge from '@/components/ui/badge';
 import { getUserById, updateUser, getUserTransactions, banUser, unbanUser } from '@/lib/api';
@@ -11,13 +11,13 @@ import Link from 'next/link';
 
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [txs, setTxs] = useState<PaginatedResponse<Transaction> | null>(null);
   const [loading, setLoading] = useState(true);
   const [editRole, setEditRole] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   async function load() {
     setLoading(true);
     try {
@@ -30,7 +30,7 @@ export default function UserDetailPage() {
     }
   }
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [load]);
 
   async function handleSaveRole() {
     setSaving(true);
@@ -56,6 +56,7 @@ export default function UserDetailPage() {
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-indigo-500/20 flex items-center justify-center text-2xl">
                 {user.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={`${process.env.NEXT_PUBLIC_API_URL}${user.avatar}`} className="w-14 h-14 rounded-full object-cover" alt="" />
                 ) : '👤'}
               </div>
@@ -80,14 +81,14 @@ export default function UserDetailPage() {
               ))}
             </div>
 
-            {/* Role editor */}
-            <div className="pt-2 border-t border-[#1e2535]">
-              <p className="text-slate-400 text-sm mb-2">角色设置</p>
+            {/* Role edit */}
+            <div className="space-y-2 pt-2 border-t border-[#1e2535]">
+              <label className="text-slate-400 text-sm">修改角色</label>
               <div className="flex gap-2">
                 <select
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value)}
-                  className="flex-1 bg-[#0f1117] border border-[#1e2535] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                  className="flex-1 bg-[#0d1117] border border-[#1e2535] rounded-lg px-3 py-2 text-white text-sm"
                 >
                   <option value="PLAYER">PLAYER</option>
                   <option value="ADMIN">ADMIN</option>
@@ -95,32 +96,34 @@ export default function UserDetailPage() {
                 </select>
                 <button
                   onClick={handleSaveRole}
-                  disabled={saving || editRole === user.role}
-                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm rounded-lg transition-colors"
+                  disabled={saving}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-lg"
                 >
-                  {saving ? '...' : '保存'}
+                  {saving ? '保存中...' : '保存'}
                 </button>
               </div>
             </div>
 
-            {/* Ban/Unban */}
-            <div className="pt-2 border-t border-[#1e2535]">
-              {user.status === 'BANNED' ? (
-                <button
-                  onClick={async () => { await unbanUser(id); load(); }}
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-sm rounded-lg transition-colors"
-                >
-                  <UserCheck size={15} /> 解封用户
-                </button>
-              ) : (
-                <button
-                  onClick={async () => { await banUser(id); load(); }}
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm rounded-lg transition-colors"
-                >
-                  <UserX size={15} /> 封禁用户
-                </button>
-              )}
-            </div>
+            {/* Ban / Unban */}
+            {user.role !== 'SUPER_ADMIN' && (
+              <div className="pt-2 border-t border-[#1e2535]">
+                {user.status === 'BANNED' ? (
+                  <button
+                    onClick={async () => { await unbanUser(id); load(); }}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-sm rounded-lg transition-colors"
+                  >
+                    <UserCheck size={15} /> 解封用户
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => { await banUser(id); load(); }}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm rounded-lg transition-colors"
+                  >
+                    <UserX size={15} /> 封禁用户
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Transactions */}
@@ -137,10 +140,10 @@ export default function UserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {txs?.data?.length === 0 ? (
+                {txs?.items.length === 0 ? (
                   <tr><td colSpan={3} className="text-center py-8 text-slate-500">暂无流水</td></tr>
                 ) : (
-                  txs?.data?.map((tx: Transaction) => (
+                  txs?.items.map((tx) => (
                     <tr key={tx.id} className="border-b border-[#1e2535]">
                       <td className="px-4 py-3">
                         <Badge variant={tx.amount > 0 ? 'success' : 'danger'}>
@@ -150,7 +153,7 @@ export default function UserDetailPage() {
                       <td className={`px-4 py-3 font-mono ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">
+                      <td className="px-4 py-3 text-slate-500">
                         {new Date(tx.createdAt).toLocaleString('zh-CN')}
                       </td>
                     </tr>

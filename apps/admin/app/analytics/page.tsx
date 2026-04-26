@@ -2,19 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/admin-layout';
-import { getOverview, getRevenue, getUserGrowth, getRoomHotList, getHandsStats } from '@/lib/api';
+import { getRevenue, getUserGrowth, getRoomHotList, getHandsStats } from '@/lib/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
-import type { OverviewStats, RevenueItem, GrowthItem, HotRoom, HandsStats } from '@/lib/types';
+import type { RevenueItem, GrowthItem, HotRoom, HandsStats } from '@/lib/types';
 
 const tooltipStyle = {
   contentStyle: { background: '#161b27', border: '1px solid #1e2535', borderRadius: 8, color: '#e2e8f0' },
 };
 
 export default function AnalyticsPage() {
-  const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [revenue, setRevenue] = useState<RevenueItem[]>([]);
   const [growth, setGrowth] = useState<GrowthItem[]>([]);
   const [hotRooms, setHotRooms] = useState<HotRoom[]>([]);
@@ -28,9 +27,8 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => {
-    Promise.all([getOverview(), getRevenue('day', 30), getUserGrowth(30), getRoomHotList(), getHandsStats()])
-      .then(([ov, rev, gr, rooms, hands]) => {
-        setOverview(ov);
+    Promise.all([getRevenue('day', 30), getUserGrowth(30), getRoomHotList(), getHandsStats()])
+      .then(([rev, gr, rooms, hands]) => {
         setRevenue(rev.map((r: RevenueItem) => ({ ...r, date: r.date.slice(5) })));
         setGrowth(gr.map((g: GrowthItem) => ({ ...g, date: g.date.slice(5) })));
         setHotRooms(rooms);
