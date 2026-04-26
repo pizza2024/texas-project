@@ -10,7 +10,10 @@ import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
-import { MissionService, MISSION_KEY_FIRST_DEPOSIT } from '../mission/mission.service';
+import {
+  MissionService,
+  MISSION_KEY_FIRST_DEPOSIT,
+} from '../mission/mission.service';
 import { getHdWalletMnemonic } from '../config/jwt.config';
 
 // Bonus wagering multiplier: user must wager 5× the bonus amount before unlocking it
@@ -392,7 +395,10 @@ export class DepositService {
         });
         const bonusAmount = mission?.rewardChips ?? 10000;
 
-        await this.missionService.progressMission(userId, MISSION_KEY_FIRST_DEPOSIT);
+        await this.missionService.progressMission(
+          userId,
+          MISSION_KEY_FIRST_DEPOSIT,
+        );
 
         // Create the DepositBonus wagering record for this first deposit
         await this.prisma.depositBonus.create({

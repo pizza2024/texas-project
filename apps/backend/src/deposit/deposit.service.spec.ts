@@ -58,7 +58,11 @@ describe('DepositService - First Deposit Bonus', () => {
         update: jest.fn(),
       },
       mission: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'mission-1', key: 'P1-FIRST-DEPOSIT', rewardChips: 10000 }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'mission-1',
+          key: 'P1-FIRST-DEPOSIT',
+          rewardChips: 10000,
+        }),
       },
       scanCursor: {
         findUnique: jest
@@ -79,7 +83,9 @@ describe('DepositService - First Deposit Bonus', () => {
     };
 
     mockMissionService = {
-      progressMission: jest.fn().mockResolvedValue({ completed: false, rewardChips: 0 }),
+      progressMission: jest
+        .fn()
+        .mockResolvedValue({ completed: false, rewardChips: 0 }),
     };
   });
 

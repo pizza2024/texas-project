@@ -78,8 +78,8 @@
 || ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 || P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
-| P1-MISSION-WIRING | MissionService 游戏事件未连线 | 🔴 待修复 | onHandWon/onHandPlayed 定义但从未调用；timer.service.ts finalizeSettlement 未触发任务 |
-| P1-WAGERING-WIRING | wagering 追踪未连线 | 🔴 待修复 | deposit.service.addWagering() 存在但 table engine 未调用 |
+| P1-MISSION-WIRING | MissionService 游戏事件未连线 | ✅ 已修复 | commit 9de7619 — persistSettlementRecords 触发 onHandWon/onHandPlayed/onSettlement/onRakeContributed |
+| P1-WAGERING-WIRING | wagering 追踪未连线 | ✅ 已修复 | commit 9de7619 — depositService.addWagering() 于每局结算时调用 |
 || P1-CHAT-001 | 房间内聊天 UI | ✅ 后端完成 | 后端: chat-message WS事件 + 1msg/5s速率限制; 前端: ChatPanel 集成（commit dd41bc8）；前端集成测试未实施 → P2-CHAT-FRONTEND-TEST |
 || P1-SCHEDULE-001 | 赛事日历/时间表 | ✅ 后端完成 | 前端 UI 待实施 |
 

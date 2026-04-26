@@ -53,9 +53,7 @@ export class DepositController {
    * Called by the table engine after each hand.
    */
   @Post('bonus/wagering')
-  async addWagering(
-    @Request() req: { user: JwtUser },
-  ) {
+  async addWagering(@Request() req: { user: JwtUser }) {
     // The actual chips wagered are determined server-side by the table engine;
     // this endpoint is called by the engine after processing a hand.
     // Clients should not call this directly — it is internal.

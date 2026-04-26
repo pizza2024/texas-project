@@ -8,7 +8,13 @@ import { DepositController } from './deposit.controller';
 import { DepositService } from './deposit.service';
 
 @Module({
-  imports: [ScheduleModule, WalletModule, PrismaModule, RedisModule, MissionModule],
+  imports: [
+    ScheduleModule,
+    WalletModule,
+    PrismaModule,
+    RedisModule,
+    MissionModule,
+  ],
   controllers: [DepositController],
   providers: [DepositService],
 })

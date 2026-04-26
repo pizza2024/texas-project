@@ -78,7 +78,9 @@ describe('DepositService E2E', () => {
     };
 
     mockMissionService = {
-      progressMission: jest.fn().mockResolvedValue({ completed: false, rewardChips: 0 }),
+      progressMission: jest
+        .fn()
+        .mockResolvedValue({ completed: false, rewardChips: 0 }),
     };
   });
 

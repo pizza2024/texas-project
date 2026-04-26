@@ -44,7 +44,7 @@ export const MISSION_DEFINITIONS: Array<{
   {
     key: MISSION_KEY_FIRST_HAND,
     title: 'First Hand Played',
-    description: 'Complete your first hand of Texas Hold\'em',
+    description: "Complete your first hand of Texas Hold'em",
     type: 'ONE_TIME',
     rewardChips: 500,
     target: 1,
@@ -130,7 +130,9 @@ export const MISSION_DEFINITIONS: Array<{
 /** Returns midnight UTC of the current day. */
 export function getDailyPeriodStart(): Date {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
 }
 
 /** Returns Monday 00:00 UTC of the current week. */
@@ -139,7 +141,13 @@ export function getWeeklyPeriodStart(): Date {
   const dayOfWeek = now.getUTCDay(); // 0 = Sunday
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(now.getTime() + diffToMonday * 86_400_000);
-  return new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate()));
+  return new Date(
+    Date.UTC(
+      monday.getUTCFullYear(),
+      monday.getUTCMonth(),
+      monday.getUTCDate(),
+    ),
+  );
 }
 
 @Injectable()
@@ -216,7 +224,9 @@ export class MissionService implements OnModuleInit {
       },
       data: { status: 'EXPIRED' },
     });
-    this.logger.log(`[resetDailyMissions] expired ${result.count} daily mission records`);
+    this.logger.log(
+      `[resetDailyMissions] expired ${result.count} daily mission records`,
+    );
     return result.count;
   }
 
@@ -240,7 +250,9 @@ export class MissionService implements OnModuleInit {
       },
       data: { status: 'EXPIRED' },
     });
-    this.logger.log(`[resetWeeklyMissions] expired ${result.count} weekly mission records`);
+    this.logger.log(
+      `[resetWeeklyMissions] expired ${result.count} weekly mission records`,
+    );
     return result.count;
   }
 
@@ -266,7 +278,10 @@ export class MissionService implements OnModuleInit {
       return { completed: false, rewardChips: 0 };
     }
 
-    const periodStart = this.getPeriodStart(mission.type, mission.periodType ?? undefined);
+    const periodStart = this.getPeriodStart(
+      mission.type,
+      mission.periodType ?? undefined,
+    );
 
     // Find or create user-mission record for this period
     let userMission = await this.prisma.userMission.findUnique({
@@ -296,7 +311,10 @@ export class MissionService implements OnModuleInit {
       return { completed: false, rewardChips: 0 };
     }
 
-    const newProgress = Math.min(userMission.progress + increment, mission.target);
+    const newProgress = Math.min(
+      userMission.progress + increment,
+      mission.target,
+    );
     const isComplete = newProgress >= mission.target;
 
     await this.prisma.userMission.update({
@@ -312,7 +330,10 @@ export class MissionService implements OnModuleInit {
       await this.claimMission(userId, mission, userMission.id);
     }
 
-    return { completed: isComplete, rewardChips: isComplete ? mission.rewardChips : 0 };
+    return {
+      completed: isComplete,
+      rewardChips: isComplete ? mission.rewardChips : 0,
+    };
   }
 
   /** Awards chips and marks the user-mission as CLAIMED. */
@@ -435,7 +456,9 @@ export class MissionService implements OnModuleInit {
 
   /** Returns all missions (definitions + user's current progress for this period). */
   async getUserMissions(userId: string) {
-    const missions = await this.prisma.mission.findMany({ orderBy: { key: 'asc' } });
+    const missions = await this.prisma.mission.findMany({
+      orderBy: { key: 'asc' },
+    });
 
     const now = new Date();
     const dailyStart = getDailyPeriodStart();
@@ -465,10 +488,20 @@ export class MissionService implements OnModuleInit {
       },
     });
 
-    const map = new Map(userMissions.map((um) => [um.missionId + '|' + um.periodStart.getTime(), um]));
+    const map = new Map(
+      userMissions.map((um) => [
+        um.missionId + '|' + um.periodStart.getTime(),
+        um,
+      ]),
+    );
 
     return missions.map((m) => {
-      const periodStart = m.type === 'WEEKLY' ? weeklyStart : m.type === 'DAILY' ? dailyStart : null;
+      const periodStart =
+        m.type === 'WEEKLY'
+          ? weeklyStart
+          : m.type === 'DAILY'
+            ? dailyStart
+            : null;
       const key = periodStart ? m.id + '|' + periodStart.getTime() : m.id;
       const um = map.get(key);
 
