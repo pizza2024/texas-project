@@ -45,17 +45,19 @@ describe('WithdrawService', () => {
       transaction: {
         create: jest.fn(),
       },
-      $transaction: jest.fn().mockImplementation(async (fn: Function) => {
-        // Execute the callback with a tx-like object so db operations work in tests
-        const tx = {
-          wallet: mockPrisma.wallet,
-          user: mockPrisma.user,
-          transaction: mockPrisma.transaction,
-          withdrawRequest: mockPrisma.withdrawRequest,
-          adminLog: mockPrisma.adminLog,
-        };
-        return fn(tx);
-      }),
+      $transaction: jest
+        .fn()
+        .mockImplementation(async (fn: (tx: any) => Promise<unknown>) => {
+          // Execute the callback with a tx-like object so db operations work in tests
+          const tx = {
+            wallet: mockPrisma.wallet,
+            user: mockPrisma.user,
+            transaction: mockPrisma.transaction,
+            withdrawRequest: mockPrisma.withdrawRequest,
+            adminLog: mockPrisma.adminLog,
+          };
+          return fn(tx);
+        }),
       adminLog: {
         create: jest.fn(),
       },
