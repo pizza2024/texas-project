@@ -297,7 +297,7 @@ export class WalletService {
         data: {
           userId,
           amountChips: chipsAmount,
-          amountUsdt,
+          amountUsdt: usdtAmount,
           toAddress: trimmed,
           status: 'PENDING',
         },
