@@ -261,7 +261,7 @@ export default function RoomsPage() {
     setSelectedRoomsMap(new Map());
   }, []);
 
-  const currentPageAllSelected = data?.data?.length > 0 && (data?.data ?? []).every((r: Room) => selectedIds.has(r.id));
+  const currentPageAllSelected = (data?.data?.length ?? 0) > 0 && (data?.data ?? []).every((r: Room) => selectedIds.has(r.id));
 
   return (
     <AdminLayout>

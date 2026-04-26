@@ -140,10 +140,10 @@ export default function UserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {txs?.items.length === 0 ? (
+                {(txs?.data?.length ?? 0) === 0 ? (
                   <tr><td colSpan={3} className="text-center py-8 text-slate-500">暂无流水</td></tr>
                 ) : (
-                  txs?.items.map((tx) => (
+                  txs?.data?.map((tx: Transaction) => (
                     <tr key={tx.id} className="border-b border-[#1e2535]">
                       <td className="px-4 py-3">
                         <Badge variant={tx.amount > 0 ? 'success' : 'danger'}>

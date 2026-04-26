@@ -101,7 +101,7 @@ export default function SystemPage() {
           <h2 className="text-white font-medium mb-4">系统状态</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "运行时间", value: formatUptime(status?.uptime) },
+              { label: "运行时间", value: formatUptime(status?.uptime ?? 0) },
               {
                 label: "内存使用",
                 value: `${status?.memoryUsed ?? 0} MB / ${status?.memoryTotal ?? 0} MB`,

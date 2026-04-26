@@ -225,7 +225,7 @@ function DetailModal({ request, onClose, onProcess, processing }: DetailModalPro
 export default function WithdrawPage() {
   const [data, setData] = useState<PaginatedData | null>(null);
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WithdrawRequest | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -292,7 +292,7 @@ export default function WithdrawPage() {
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="bg-[#161b27] border border-[#1e2535] rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
             <option value="">全部状态</option>
-            {['PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED'].map(s => (
+            {(['PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED'] as const).map(s => (
               <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
