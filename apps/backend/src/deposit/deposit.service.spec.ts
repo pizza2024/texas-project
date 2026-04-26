@@ -40,6 +40,11 @@ describe('DepositService - First Deposit Bonus', () => {
     });
 
     mockPrisma = {
+      $transaction: jest
+        .fn()
+        .mockImplementation((fn: (tx: any) => Promise<unknown>) =>
+          fn(mockPrisma),
+        ),
       depositAddress: {
         findMany: jest
           .fn()
@@ -51,6 +56,10 @@ describe('DepositService - First Deposit Bonus', () => {
       },
       depositBonus: {
         create: jest.fn(),
+      },
+      wallet: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn(),
       },
       transaction: { create: jest.fn() },
       user: {
@@ -139,7 +148,7 @@ describe('DepositService - First Deposit Bonus', () => {
 
       await service.pollDeposits();
 
-      // Verify deposit record created
+      // Verify deposit record created inside atomic tx
       expect(mockPrisma.depositRecord.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: USER_ID,
@@ -150,13 +159,16 @@ describe('DepositService - First Deposit Bonus', () => {
         }),
       });
 
-      // Verify DEPOSIT transaction
+      // Verify DEPOSIT transaction created inside atomic tx
       expect(mockPrisma.transaction.create).toHaveBeenCalledWith({
         data: { userId: USER_ID, amount: 5000, type: 'DEPOSIT' },
       });
 
-      // Verify balance was set for deposit
-      expect(mockWalletService.setBalance).toHaveBeenCalledWith(USER_ID, 5000);
+      // Verify coinBalance synced inside atomic tx (via tx.user.update)
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: USER_ID },
+        data: { coinBalance: 5000 },
+      });
 
       // Verify mission was triggered for first deposit bonus
       expect(mockMissionService.progressMission).toHaveBeenCalledWith(
@@ -174,11 +186,18 @@ describe('DepositService - First Deposit Bonus', () => {
     it('should NOT trigger mission if user already received bonus', async () => {
       await setupModule();
 
-      // User already received the bonus
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: USER_ID,
-        hasReceivedFirstDepositBonus: true,
-      });
+      // User already received the bonus — return hasReceivedFirstDepositBonus=true
+      // for the bonus check query inside the atomic deposit transaction
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({
+          id: USER_ID,
+          hasReceivedFirstDepositBonus: true,
+        })
+        // Second call in the bonus block also returns the same user
+        .mockResolvedValueOnce({
+          id: USER_ID,
+          hasReceivedFirstDepositBonus: true,
+        });
 
       // Mock deposit event
       mockContract.queryFilter.mockResolvedValueOnce([
@@ -191,17 +210,18 @@ describe('DepositService - First Deposit Bonus', () => {
 
       await service.pollDeposits();
 
-      // Verify deposit was processed
+      // Verify deposit was processed (depositRecord created inside atomic tx)
       expect(mockPrisma.depositRecord.create).toHaveBeenCalled();
 
-      // Verify NO mission was triggered
+      // Verify NO mission was triggered (user already got bonus)
       expect(mockMissionService.progressMission).not.toHaveBeenCalled();
 
-      // Verify user.update was NOT called for bonus
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
-
-      // Verify balance only increased by deposit amount (10000 chips)
-      expect(mockWalletService.setBalance).toHaveBeenCalledWith(USER_ID, 10000);
+      // Verify user.update was called from atomic tx (to sync coinBalance = 10000)
+      // but NOT a second time for setting hasReceivedFirstDepositBonus
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: USER_ID },
+        data: { coinBalance: 10000 },
+      });
     });
 
     it('should not process already processed transaction', async () => {

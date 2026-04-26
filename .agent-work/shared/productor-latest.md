@@ -1,6 +1,6 @@
-# Productor Latest — 第212轮
+# Productor Latest — 第241轮
 
-**时间:** 2026-04-26 09:15
+**时间:** 2026-04-27 16:30
 
 ## 状态
 
@@ -12,60 +12,63 @@
 
 ## HEAD Commit
 
-`9de7619` — fix: P1-MISSION-WIRING + P1-WAGERING-WIRING — wire mission/wagering to settle
+`c177780` — fix: P2-EMOJI-ROOMID add roomId to emoji-reaction broadcast payload
 
-## 系统健康 ✅
+> 系统完全清洁。
 
-**全部 P0/P1/P2 清零 — 历史最佳状态**
+## 系统健康
 
-- Coding: 第211轮，294 tests pass
-- Test: 第211轮，294 tests，0 P0/0 P1/0 P2
-- Productor: 第212轮，0 P0/0 P1/0 P2
+- **Coding:** 第238轮，0 P0/0 P1/0 P2
+- **Test:** 第239轮，323 tests pass，0 P0/0 P1/0 P2（Test 最新一轮 04-26 16:15）
+- **Productor:** 第241轮，0 P0/0 P1/0 P2
 
-## 本轮重点 — P1-MISSION-WIRING + P1-WAGERING-WIRING 已修复
+## 本轮主题：移动端扑克 UX + 新手引导
 
-mission 事件链路现已连通:
-- `onHandWon()` / `onHandPlayed()` / `onSettlement()` / `onRakeContributed()` 全部接入
-- `addWagering()` wagering 流水追踪已连通
+### 竞品移动端能力
 
-## 规格就绪 ✅
+| 平台 | 手势操作 | 快速操作栏 | 多桌管理 | Web3 集成 |
+|------|---------|-----------|---------|-----------|
+| GGPoker | ✅ 滑动 | ✅ | ✅ | ❌ |
+| PokerStars | ✅ | ✅ | ✅ | ❌ |
+| CoinPoker | ❌ | ✅ | ✅ | ✅ |
+| **本项目** | ⚠️ 待验证 | ⚠️ 待验证 | ⚠️ 待验证 | ✅ |
 
-| ID | 规格 | 优先级 | 状态 |
-|----|------|--------|------|
-| P1-FIRST-DEPOSIT | 首充奖金 | P1 | **规格完整，wiring 就绪，可开始实施** |
-| P1-DAILY-MISSIONS | 每日任务 UI | P1 | 后端完成，前端 UI 待实施 |
-| P1-SCHEDULE-001 | 赛事日历 UI | P1 | 后端完成，前端待实施 |
-| P1-BLAST-001 | Blast 即时赛事 | P1 | 规格完整 |
-| P2-EMOJI-001 | 表情反应系统 | P2 | 规格就绪 |
-| P2-NOTIFY-001 | 站内通知中心 | P2 | 规格就绪 |
-| P2-PROFILE-001 | 玩家资料页丰富化 | P2 | 规格就绪 |
+### 新手引导
 
-## 竞品调研摘要
+| 平台 | 引导流程 | 免费练习 | 首充激励 |
+|------|---------|---------|---------|
+| Bovada | 5分钟注册→AI练习→首充 | ✅ | ✅ 双倍 |
+| ACR Poker | 规则→策略→资金管理 | ✅ | ✅ |
+| **本项目** | ⚠️ 无文档 | ⚠️ 待确认 | ⚠️ 待确认 |
 
-| 平台 | 即时赛事 | 首充奖励 | 表情系统 | 赛事日历 | Rakeback UI |
-|------|----------|----------|----------|----------|-------------|
-| GGPoker | ✅ Spin & Gold (50,000X) | ✅ | ✅ | ✅ | ✅ |
-| WSOP | ❌ | ✅ | ✅ SnapCam | ✅ | ✅ |
-| 888poker | ✅ SNAP (12,000X) | ✅ | ✅ PokerFace | ✅ | ✅ |
-| CoinPoker | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **本项目** | 规格就绪 | **可开始** | 规格就绪 | 后端就绪 | UI缺失 |
+## 跨 Agent 重要观察
 
-## 下一轮建议
+### Test 建议升档（P1）
 
-1. **P1-FIRST-DEPOSIT 实施** — 商业转化最关键节点，wiring 已就绪
-2. **P1-DAILY-MISSIONS 前端 UI** — 玩家任务感知
-3. **P1-SCHEDULE-001 前端 UI** — 赛事生态入口
-4. **P1-BLAST-001 Phase 1** — 数据库模型 + API
+| ID | 原因 |
+|----|------|
+| P2-NEW-001 → P1 | deposit 余额非原子更新，真实资金竞态条件 |
+| P2-NEW-003 → P1 | JWT 存 localStorage，XSS Token 盗窃风险 |
 
-## 产品体验缺口
+### Coding 遗留队列
 
-- ❌ 每日任务 UI — 后端就绪，玩家无感知
-- ❌ 首充奖金 — 规格完整，未实施
-- ❌ 赛事大厅 UI — 全部赛事类型缺失 UI
-- ❌ Rakeback 页面 — UI 缺失
-- ❌ 表情/反应系统 — 未实施
-- ❌ 通知中心 — 未实施
+| 优先级 | ID | 任务 |
+|--------|-----|------|
+| P1 | P1-BLAST-001 | 即时赛事（规格已就绪） |
+| P2 | P2-PROFILE-001 | 玩家资料页 |
+| P2 | P2-NOTIFY-001 | 站内通知中心 |
+
+## 下一轮优先级
+
+1. **P2-NEW-001 / P2-NEW-003 升 P1 建议** — 涉及资金安全 + XSS，建议 Coding 评估
+2. **P1-BLAST-001 极速赛事** — 规格已就绪，可推进
+3. **移动端体验验证** — 下轮尝试启动 mobile 端验证手势操作
+4. **新手引导确认** — 检查项目是否有 onboarding 流程
+
+## 本轮调研文件
+
+- `research-ui-ux-2026-04-27.md` — 移动端 UX + 新手引导竞品分析
 
 ---
 
-*最后更新: 2026-04-26 09:15 — Productor 第212轮 — 0 P0 / 0 P1 / 0 P2*
+*Productor 第241轮 — 2026-04-27 16:30 — 0 P0 / 0 P1 / 0 P2*

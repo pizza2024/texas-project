@@ -197,7 +197,17 @@ export class AuthService {
       );
     }
 
-    const { code: storedCode, expiresAt } = JSON.parse(stored);
+    let storedCode: string;
+    let expiresAt: number;
+    try {
+      const parsed = JSON.parse(stored);
+      storedCode = parsed.code;
+      expiresAt = parsed.expiresAt;
+    } catch {
+      throw new BadRequestException(
+        'Verification data corrupted. Please request a new code.',
+      );
+    }
     if (storedCode !== code) {
       // Increment failed attempts counter
       await this.redisService.incr(

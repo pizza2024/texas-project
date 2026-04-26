@@ -359,27 +359,48 @@ export class DepositService {
       const amount = valueBN.dividedBy(USDT_DECIMALS_BN);
       const chips = amount.multipliedBy(USDT_TO_CHIPS_RATE);
 
-      const currentBalance = await this.walletService.getBalance(userId);
-      const newBalance = new BigNumber(currentBalance).plus(chips);
-
       this.logger.debug(
-        `[checkAddressDeposits] crediting: userId=${userId} currentBalance=${currentBalance} chips=${chips.toNumber()} newBalance=${newBalance.toNumber()}`,
+        `[checkAddressDeposits] crediting: userId=${userId} chips=${chips.toNumber()} txHash=${txHash}`,
       );
 
-      await this.walletService.setBalance(userId, newBalance.toNumber());
+      // Atomic: read balance + write (wallet + depositRecord + transaction) in a single transaction.
+      // This prevents race conditions where concurrent deposits for the same user could result
+      // in lost balance updates (double-spend on read-then-write gap).
+      await this.prisma.$transaction(async (tx) => {
+        // Read current wallet balance inside the transaction to hold a consistent snapshot
+        const wallet = await tx.wallet.findUnique({
+          where: { userId },
+          select: { chips: true },
+        });
+        const currentBalance = wallet?.chips ?? 0;
+        const newBalance = new BigNumber(currentBalance).plus(chips);
 
-      await this.prisma.depositRecord.create({
-        data: {
-          userId,
-          txHash,
-          amount: amount.toNumber(),
-          chips: chips.toNumber(),
-          status: 'CONFIRMED',
-        },
-      });
+        // Update wallet.chips and sync user.coinBalance
+        await tx.wallet.upsert({
+          where: { userId },
+          update: { chips: newBalance.toNumber() },
+          create: { userId, chips: newBalance.toNumber(), balance: 0, frozenChips: 0 },
+        });
+        await tx.user.update({
+          where: { id: userId },
+          data: { coinBalance: newBalance.toNumber() },
+        });
 
-      await this.prisma.transaction.create({
-        data: { userId, amount: chips.toNumber(), type: 'DEPOSIT' },
+        // Record the deposit
+        await tx.depositRecord.create({
+          data: {
+            userId,
+            txHash,
+            amount: amount.toNumber(),
+            chips: chips.toNumber(),
+            status: 'CONFIRMED',
+          },
+        });
+
+        // Log the transaction
+        await tx.transaction.create({
+          data: { userId, amount: chips.toNumber(), type: 'DEPOSIT' },
+        });
       });
 
       // First Deposit Bonus — delegated to MissionService

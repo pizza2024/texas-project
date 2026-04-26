@@ -38,11 +38,19 @@
 
 ---
 
-## P1 — 新发现（第207轮）
+## P1 — 新发现（第231轮）
 
 || ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| ~~P1-WS-STACK-VALIDATION~~ | `handlePlayerAction` server-side 未校验 `amount <= player.stack` | ❌ **已关闭** | ❌ 误报 — `table-player-ops.ts` 内部已用 `Math.min` 保护，raise/call 均有 cap，无溢出风险 |
+| P1-WITHDRAW-003 | `refundChips` REJECT 路径无事务保护 | ✅ 已修复 | commit ca66c4a — processWithdraw REJECT 路径原子化 |
+| P1-WITHDRAW-004 | `refundChips` handleWithdrawFailure 无事务保护 | ✅ 已修复 | commit ca66c4a — handleWithdrawFailure 原子化 |
+| P1-CHAT-XSS | 聊天室消息内容未转义（XSS） | ✅ 已修复 | commit ca66c4a — DOMPurify sanitize + dangerouslySetInnerHTML；components/chat + app/room 双文件 |
+
+## P1 — 新发现（第218轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-MISSION-TYPES | `missions/page.tsx` 缺少 `MissionStatus`/`MissionType` 类型定义和 `UserAvatar` import | ✅ 已修复 | commit e28e902 — 添加 type 定义 + UserAvatar import |
 
 ## P1 — 新发现（第201轮）
 
@@ -75,13 +83,15 @@
 
 ## P1 — 进行中
 
-|| ID | 任务 | 状态 | 备注 |
+||| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
+| P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
+| P1-FIRST-DEPOSIT | 首充奖金前端 UI | ✅ 已实现 | deposit/page.tsx — bonus status + wagering 进度条 |
+| P1-DAILY-MISSIONS | 每日任务前端 UI | ✅ 已实现 | missions/page.tsx — 522行，10个任务 |
 | P1-MISSION-WIRING | MissionService 游戏事件未连线 | ✅ 已修复 | commit 9de7619 — persistSettlementRecords 触发 onHandWon/onHandPlayed/onSettlement/onRakeContributed |
 | P1-WAGERING-WIRING | wagering 追踪未连线 | ✅ 已修复 | commit 9de7619 — depositService.addWagering() 于每局结算时调用 |
-|| P1-CHAT-001 | 房间内聊天 UI | ✅ 后端完成 | 后端: chat-message WS事件 + 1msg/5s速率限制; 前端: ChatPanel 集成（commit dd41bc8）；前端集成测试未实施 → P2-CHAT-FRONTEND-TEST |
-|| P1-SCHEDULE-001 | 赛事日历/时间表 | ✅ 后端完成 | 前端 UI 待实施 |
+| P1-CHAT-001 | 房间内聊天 UI | ✅ 后端完成 | 前端: ChatPanel 集成（commit dd41bc8）；前端集成测试未实施 → P2-CHAT-FRONTEND-TEST |
+| P1-SCHEDULE-001 | 赛事日历前端 UI | ✅ 已实现 | commit 3f29993 — schedule/page.tsx + [id]/page.tsx + 4 components + lobby-header nav |
 
 ## P1 — 规格就绪（待 Coding 实施）
 
@@ -114,24 +124,40 @@
 
 ## P2 — 进行中
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
-|| P2-WEB-SPEC | Web 端 0 个测试文件 | 🔍 待实施 | AuthProvider/ActionBar/ChatPanel/SocketSessionProvider 均无覆盖 |
-|| P2-TOURNAMENT-SPEC | Tournament 模块仅 1 个 spec | 🔍 待补充 | Matchmaking/wallet/friend 模块同样缺失 |
-|| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | 🔍 建议优化 | room/[id]/page.tsx:328 |
-|| P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | 🔍 建议优化 | 迁移至 httpOnly cookie |
-|| P2-CHAT-INJECTION | Chat username 未验证 userId | 🔍 建议优化 | ChatPanel.tsx:68-71 |
-|| P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
-|| P2-EMOJI-001 | 表情反应系统 | 📋 规格已就绪 | WSOP SnapCam 类低成本互动功能 |
-|| P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
-|| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
+| P2-WEB-SPEC | Web 端 0 个测试文件 | 🔍 待实施 | AuthProvider/ActionBar/ChatPanel/SocketSessionProvider 均无覆盖 |
+| P2-TOURNAMENT-SPEC | Tournament 模块仅 1 个 spec | 🔍 待补充 | Matchmaking/wallet/friend 模块同样缺失 |
+| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | 🔍 建议优化 | room/[id]/page.tsx:328 |
+| P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | 🔍 建议优化 | 迁移至 httpOnly cookie |
+| P2-CHAT-INJECTION | Chat username 未验证 userId | 🔍 建议优化 | ChatPanel.tsx:68-71 |
+| P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
+| P2-DEPOSIT-ATOMIC | `checkAddressDeposits` 每事件非原子 | 🔍 待认领 | deposit.service.ts:357 |
+| P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | 🔍 待认领 | deposit.service.ts:62 |
+| P2-CHAT-IDEMPOTENCY | 聊天消息无幂等键 | 🔍 待认领 | game.handler.ts:560 |
+| P2-AUTH-OTP-PARSE | OTP JSON 解析无 try/catch | 🔍 待认领 | auth.service.ts:200 |
+| P2-WS-RATE-UNIT | PASSWORD_ATTEMPT_WINDOW_MS 单位混淆 | 🔍 待认领 | connection-state.service.ts:107 |
+| P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
+| P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
+| P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | 🔍 待认领 | 避免代码 drift |
+| P2-DEPOSIT-I18N | 成功消息硬编码中文 | 🔍 待认领 | deposit/page.tsx:145 |
+| P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |
+| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
+| P2-NEW-001 | `checkAddressDeposits` 余额更新非原子（竞态） | 🔍 待认领 | deposit.service.ts:362-369 — 同一地址并发充值可能丢余额 |
+| P2-NEW-002 | `JSON.parse(stored)` OTP 响应无 try/catch | 🔍 待认领 | auth.service.ts:200 — Redis 数据损坏时未捕获异常 |
+| P2-NEW-003 | JWT 存 localStorage（XSS Token 盗窃目标）| 🔍 待认领 | auth.ts/api.ts/auth-context.tsx — 建议迁移 httpOnly Cookie |
+| P2-NEW-004 | `getOrCreateDepositAddress` 索引分配存在竞态窗口 | 🔍 待认领 | deposit.service.ts:62-77 — 并发请求可能分配相同 index |
+| P2-TOURNAMENT-RANDOM | `generateId()` Math.random() 非密码学安全 | ✅ 已修复 | tournament-schedule.service.ts:612 — 已改用 `crypto.randomUUID()` |
+| P2-EMOJI-001 | 表情反应系统 | ✅ 已实现 | commit 75d5b5f — handleEmojiReaction + EmojiOverlay + ActionBar picker |
+| P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
+| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
 
 ## P2 — 已完成（本轮更新）
 
 || ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
-|| P2-CHAT-001 | chat-message rate limit | ✅ 已实现 | commit cfb5851 |
-|| ~~P1-WS-STACK-VALIDATION~~ | `handlePlayerAction` stack 校验 | ❌ 已关闭 | ❌ 误报：引擎内部已有 Math.min 保护 |
+| P2-CHAT-001 | chat-message rate limit | ✅ 已实现 | commit cfb5851 |
+| P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
 
 ## P2 — 已完成
 
@@ -199,4 +225,4 @@
 
 ---
 
-*最后更新: 2026-04-27 07:30 — Test 第207轮 — 295 tests pass, 0 P0 / 0 P1 / 0 P2 — 首次完全清洁状态*
+*最后更新: 2026-04-26 14:45 — Coding 第233轮 — P2-EMOJI-001 已实现 *

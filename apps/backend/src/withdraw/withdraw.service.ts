@@ -363,11 +363,15 @@ export class WithdrawService {
         const current = await tx.withdrawRequest.findUnique({ where: { id } });
         if (!current) throw new NotFoundException('Withdraw request not found');
         if (current.status !== 'PENDING') {
-          throw new BadRequestException('Only PENDING requests can be processed');
+          throw new BadRequestException(
+            'Only PENDING requests can be processed',
+          );
         }
 
         // Refund chips to user (idempotent — uses upsert)
-        const wallet = await tx.wallet.findUnique({ where: { userId: current.userId } });
+        const wallet = await tx.wallet.findUnique({
+          where: { userId: current.userId },
+        });
         const currentBalance = wallet?.chips ?? 0;
         const newBalance = currentBalance + current.amountChips;
 
@@ -619,7 +623,9 @@ export class WithdrawService {
       });
 
       // Refund chips (uses upsert for idempotency)
-      const wallet = await tx.wallet.findUnique({ where: { userId: request.userId } });
+      const wallet = await tx.wallet.findUnique({
+        where: { userId: request.userId },
+      });
       const currentBalance = wallet?.chips ?? 0;
       const newBalance = currentBalance + request.amountChips;
 

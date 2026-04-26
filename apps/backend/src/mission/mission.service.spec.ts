@@ -1,13 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MissionService, MISSION_DEFINITIONS, MISSION_KEY_FIRST_DEPOSIT, MISSION_KEY_DAILY_PLAY, MISSION_KEY_DAILY_WIN, MISSION_KEY_DAILY_DEPOSIT, MISSION_KEY_DAILY_Rake, MISSION_KEY_DAILY_HOUR, MISSION_KEY_DAILY_BIG_POT, MISSION_KEY_WEEKLY_WINS, MISSION_KEY_WEEKLY_PROFIT } from './mission.service';
+import {
+  MissionService,
+  MISSION_DEFINITIONS,
+  MISSION_KEY_FIRST_DEPOSIT,
+  MISSION_KEY_DAILY_PLAY,
+  MISSION_KEY_DAILY_WIN,
+  MISSION_KEY_DAILY_DEPOSIT,
+  MISSION_KEY_DAILY_Rake,
+  MISSION_KEY_DAILY_HOUR,
+  MISSION_KEY_DAILY_BIG_POT,
+  MISSION_KEY_WEEKLY_WINS,
+  MISSION_KEY_WEEKLY_PROFIT,
+} from './mission.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 
 // Helper to build a mock mission
-function mockMission(overrides: Partial<{
-  id: string; key: string; title: string; description: string;
-  type: string; periodType: string | null; rewardChips: number; target: number;
-}> = {}) {
+function mockMission(
+  overrides: Partial<{
+    id: string;
+    key: string;
+    title: string;
+    description: string;
+    type: string;
+    periodType: string | null;
+    rewardChips: number;
+    target: number;
+  }> = {},
+) {
   return {
     id: 'mission-id-1',
     key: MISSION_KEY_DAILY_PLAY,
@@ -22,10 +42,18 @@ function mockMission(overrides: Partial<{
 }
 
 // Helper to build a mock userMission
-function mockUserMission(overrides: Partial<{
-  id: string; userId: string; missionId: string; status: string;
-  progress: number; completedAt: Date | null; claimedAt: Date | null; periodStart: Date;
-}> = {}) {
+function mockUserMission(
+  overrides: Partial<{
+    id: string;
+    userId: string;
+    missionId: string;
+    status: string;
+    progress: number;
+    completedAt: Date | null;
+    claimedAt: Date | null;
+    periodStart: Date;
+  }> = {},
+) {
   return {
     id: 'um-id-1',
     userId: 'user-1',
@@ -93,7 +121,9 @@ describe('MissionService', () => {
 
       await service.seedMissions();
 
-      expect(mockPrismaService.mission.upsert).toHaveBeenCalledTimes(MISSION_DEFINITIONS.length);
+      expect(mockPrismaService.mission.upsert).toHaveBeenCalledTimes(
+        MISSION_DEFINITIONS.length,
+      );
     });
 
     it('should upsert each definition with correct create data', async () => {
@@ -117,7 +147,9 @@ describe('MissionService', () => {
 
   describe('resetDailyMissions', () => {
     it('should updateMany daily missions with status ACTIVE or COMPLETED to EXPIRED', async () => {
-      mockPrismaService.userMission.updateMany.mockResolvedValue({ count: 5 } as any);
+      mockPrismaService.userMission.updateMany.mockResolvedValue({
+        count: 5,
+      } as any);
 
       const result = await service.resetDailyMissions();
 
@@ -138,7 +170,9 @@ describe('MissionService', () => {
 
   describe('resetWeeklyMissions', () => {
     it('should updateMany weekly missions with status ACTIVE or COMPLETED to EXPIRED', async () => {
-      mockPrismaService.userMission.updateMany.mockResolvedValue({ count: 2 } as any);
+      mockPrismaService.userMission.updateMany.mockResolvedValue({
+        count: 2,
+      } as any);
 
       const result = await service.resetWeeklyMissions();
 
@@ -163,7 +197,14 @@ describe('MissionService', () => {
 
     beforeEach(() => {
       mockPrismaService.mission.findUnique.mockResolvedValue(
-        mockMission({ id: 'mid-1', key: missionKey, type: 'DAILY', periodType: 'DAY', target: 1, rewardChips: 200 }),
+        mockMission({
+          id: 'mid-1',
+          key: missionKey,
+          type: 'DAILY',
+          periodType: 'DAY',
+          target: 1,
+          rewardChips: 200,
+        }),
       );
     });
 
@@ -178,7 +219,12 @@ describe('MissionService', () => {
     it('should create a new UserMission if none exists for the current period', async () => {
       mockPrismaService.userMission.findUnique.mockResolvedValue(null);
       mockPrismaService.userMission.create.mockResolvedValue(
-        mockUserMission({ id: 'new-um', missionId: 'mid-1', status: 'ACTIVE', progress: 0 }),
+        mockUserMission({
+          id: 'new-um',
+          missionId: 'mid-1',
+          status: 'ACTIVE',
+          progress: 0,
+        }),
       );
       mockPrismaService.userMission.update.mockResolvedValue({} as any);
       mockWalletService.addChips.mockResolvedValue(undefined);
@@ -209,7 +255,12 @@ describe('MissionService', () => {
     });
 
     it('should increment progress and auto-complete when target is reached', async () => {
-      const existingUm = mockUserMission({ id: 'um-1', missionId: 'mid-1', status: 'ACTIVE', progress: 0 });
+      const existingUm = mockUserMission({
+        id: 'um-1',
+        missionId: 'mid-1',
+        status: 'ACTIVE',
+        progress: 0,
+      });
       mockPrismaService.userMission.findUnique.mockResolvedValue(existingUm);
       mockPrismaService.userMission.update.mockResolvedValue({} as any);
       mockWalletService.addChips.mockResolvedValue(undefined);
@@ -231,7 +282,12 @@ describe('MissionService', () => {
     });
 
     it('should not exceed target when incrementing progress', async () => {
-      const existingUm = mockUserMission({ id: 'um-1', missionId: 'mid-1', status: 'ACTIVE', progress: 1 });
+      const existingUm = mockUserMission({
+        id: 'um-1',
+        missionId: 'mid-1',
+        status: 'ACTIVE',
+        progress: 1,
+      });
       mockPrismaService.userMission.findUnique.mockResolvedValue(existingUm);
       mockPrismaService.userMission.update.mockResolvedValue({} as any);
 
@@ -245,12 +301,24 @@ describe('MissionService', () => {
     });
 
     it('should NOT claim (auto-complete) for COMPLETED status missions', async () => {
-      const existingUm = mockUserMission({ id: 'um-1', missionId: 'mid-1', status: 'ACTIVE', progress: 0 });
+      const existingUm = mockUserMission({
+        id: 'um-1',
+        missionId: 'mid-1',
+        status: 'ACTIVE',
+        progress: 0,
+      });
       mockPrismaService.userMission.findUnique.mockResolvedValue(existingUm);
       mockPrismaService.userMission.update.mockResolvedValue({} as any);
       // Mission with target: 1 (easy to reach)
       mockPrismaService.mission.findUnique.mockResolvedValue(
-        mockMission({ id: 'mid-1', key: missionKey, type: 'DAILY', periodType: 'DAY', target: 1, rewardChips: 200 }),
+        mockMission({
+          id: 'mid-1',
+          key: missionKey,
+          type: 'DAILY',
+          periodType: 'DAY',
+          target: 1,
+          rewardChips: 200,
+        }),
       );
       mockWalletService.addChips.mockResolvedValue(undefined);
       mockPrismaService.transaction.create.mockResolvedValue({} as any);
@@ -283,9 +351,30 @@ describe('MissionService', () => {
 
     beforeEach(() => {
       mockPrismaService.mission.findMany.mockResolvedValue([
-        mockMission({ id: 'mid-daily', key: MISSION_KEY_DAILY_PLAY, type: 'DAILY', periodType: 'DAY', target: 3, rewardChips: 300 }),
-        mockMission({ id: 'mid-weekly', key: MISSION_KEY_WEEKLY_WINS, type: 'WEEKLY', periodType: 'WEEK', target: 20, rewardChips: 3000 }),
-        mockMission({ id: 'mid-onetime', key: MISSION_KEY_FIRST_DEPOSIT, type: 'ONE_TIME', periodType: null, target: 1, rewardChips: 10000 }),
+        mockMission({
+          id: 'mid-daily',
+          key: MISSION_KEY_DAILY_PLAY,
+          type: 'DAILY',
+          periodType: 'DAY',
+          target: 3,
+          rewardChips: 300,
+        }),
+        mockMission({
+          id: 'mid-weekly',
+          key: MISSION_KEY_WEEKLY_WINS,
+          type: 'WEEKLY',
+          periodType: 'WEEK',
+          target: 20,
+          rewardChips: 3000,
+        }),
+        mockMission({
+          id: 'mid-onetime',
+          key: MISSION_KEY_FIRST_DEPOSIT,
+          type: 'ONE_TIME',
+          periodType: null,
+          target: 1,
+          rewardChips: 10000,
+        }),
       ]);
     });
 
@@ -294,22 +383,34 @@ describe('MissionService', () => {
       dailyStart.setUTCHours(0, 0, 0, 0);
 
       mockPrismaService.userMission.findMany.mockResolvedValue([
-        mockUserMission({ id: 'um-1', missionId: 'mid-daily', status: 'ACTIVE', progress: 2, periodStart: dailyStart }),
+        mockUserMission({
+          id: 'um-1',
+          missionId: 'mid-daily',
+          status: 'ACTIVE',
+          progress: 2,
+          periodStart: dailyStart,
+        }),
       ]);
 
       const result = await service.getUserMissions(userId);
 
       expect(result).toHaveLength(3);
 
-      const dailyMission = result.find((m) => m.key === MISSION_KEY_DAILY_PLAY)!;
+      const dailyMission = result.find(
+        (m) => m.key === MISSION_KEY_DAILY_PLAY,
+      )!;
       expect(dailyMission.progress).toBe(2);
       expect(dailyMission.status).toBe('ACTIVE');
 
-      const weeklyMission = result.find((m) => m.key === MISSION_KEY_WEEKLY_WINS)!;
+      const weeklyMission = result.find(
+        (m) => m.key === MISSION_KEY_WEEKLY_WINS,
+      )!;
       expect(weeklyMission.progress).toBe(0); // default when no userMission
       expect(weeklyMission.status).toBe('ACTIVE');
 
-      const onetimeMission = result.find((m) => m.key === MISSION_KEY_FIRST_DEPOSIT)!;
+      const onetimeMission = result.find(
+        (m) => m.key === MISSION_KEY_FIRST_DEPOSIT,
+      )!;
       expect(onetimeMission.progress).toBe(0);
       expect(onetimeMission.status).toBe('ACTIVE');
     });
@@ -321,12 +422,22 @@ describe('MissionService', () => {
       const claimedAt = new Date();
 
       mockPrismaService.userMission.findMany.mockResolvedValue([
-        mockUserMission({ id: 'um-1', missionId: 'mid-daily', status: 'COMPLETED', progress: 3, completedAt, claimedAt: null, periodStart: dailyStart }),
+        mockUserMission({
+          id: 'um-1',
+          missionId: 'mid-daily',
+          status: 'COMPLETED',
+          progress: 3,
+          completedAt,
+          claimedAt: null,
+          periodStart: dailyStart,
+        }),
       ]);
 
       const result = await service.getUserMissions(userId);
 
-      const dailyMission = result.find((m) => m.key === MISSION_KEY_DAILY_PLAY)!;
+      const dailyMission = result.find(
+        (m) => m.key === MISSION_KEY_DAILY_PLAY,
+      )!;
       expect(dailyMission.status).toBe('COMPLETED');
       expect(dailyMission.completedAt).toBe(completedAt);
       expect(dailyMission.claimedAt).toBeNull();
@@ -343,9 +454,17 @@ describe('MissionService', () => {
       dailyStart.setUTCHours(0, 0, 0, 0);
 
       const mockUserMissions = [
-        mockUserMission({ id: 'um-1', missionId: 'mid-1', status: 'ACTIVE', progress: 2, periodStart: dailyStart }),
+        mockUserMission({
+          id: 'um-1',
+          missionId: 'mid-1',
+          status: 'ACTIVE',
+          progress: 2,
+          periodStart: dailyStart,
+        }),
       ];
-      mockPrismaService.userMission.findMany.mockResolvedValue(mockUserMissions as any);
+      mockPrismaService.userMission.findMany.mockResolvedValue(
+        mockUserMissions as any,
+      );
 
       const result = await service.getActiveMissions(userId);
 
@@ -377,7 +496,10 @@ describe('MissionService', () => {
 
     it('should return true when user has CLAIMED the first deposit mission', async () => {
       mockPrismaService.mission.findUnique.mockResolvedValue(
-        mockMission({ id: 'mid-first-deposit', key: MISSION_KEY_FIRST_DEPOSIT }),
+        mockMission({
+          id: 'mid-first-deposit',
+          key: MISSION_KEY_FIRST_DEPOSIT,
+        }),
       );
       mockPrismaService.userMission.findUnique.mockResolvedValue(
         mockUserMission({ missionId: 'mid-first-deposit', status: 'CLAIMED' }),
@@ -390,7 +512,10 @@ describe('MissionService', () => {
 
     it('should return false when user has not claimed the first deposit mission', async () => {
       mockPrismaService.mission.findUnique.mockResolvedValue(
-        mockMission({ id: 'mid-first-deposit', key: MISSION_KEY_FIRST_DEPOSIT }),
+        mockMission({
+          id: 'mid-first-deposit',
+          key: MISSION_KEY_FIRST_DEPOSIT,
+        }),
       );
       mockPrismaService.userMission.findUnique.mockResolvedValue(
         mockUserMission({ missionId: 'mid-first-deposit', status: 'ACTIVE' }),
@@ -403,7 +528,10 @@ describe('MissionService', () => {
 
     it('should return false when user has no userMission record', async () => {
       mockPrismaService.mission.findUnique.mockResolvedValue(
-        mockMission({ id: 'mid-first-deposit', key: MISSION_KEY_FIRST_DEPOSIT }),
+        mockMission({
+          id: 'mid-first-deposit',
+          key: MISSION_KEY_FIRST_DEPOSIT,
+        }),
       );
       mockPrismaService.userMission.findUnique.mockResolvedValue(null);
 
@@ -417,53 +545,87 @@ describe('MissionService', () => {
 
   describe('onHandWon', () => {
     it('should progress DAILY_PLAY, DAILY_WIN, WEEKLY_WINS missions', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onHandWon('user-1', 500);
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_PLAY);
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_WIN);
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_WEEKLY_WINS);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_PLAY,
+      );
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_WIN,
+      );
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_WEEKLY_WINS,
+      );
     });
 
     it('should also progress DAILY_BIG_POT when potSize >= 1000', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onHandWon('user-1', 1500);
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_BIG_POT);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_BIG_POT,
+      );
     });
 
     it('should NOT progress DAILY_BIG_POT when potSize < 1000', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onHandWon('user-1', 500);
 
-      expect(progressMissionSpy).not.toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_BIG_POT);
+      expect(progressMissionSpy).not.toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_BIG_POT,
+      );
     });
   });
 
   describe('onHandPlayed', () => {
     it('should progress DAILY_PLAY mission', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onHandPlayed('user-1');
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_PLAY);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_PLAY,
+      );
     });
   });
 
   describe('onSettlement', () => {
     it('should progress WEEKLY_PROFIT only when chipDelta is positive', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onSettlement('user-1', 500);
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_WEEKLY_PROFIT, 500);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_WEEKLY_PROFIT,
+        500,
+      );
     });
 
     it('should NOT progress any mission when chipDelta is negative', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onSettlement('user-1', -200);
 
@@ -471,7 +633,9 @@ describe('MissionService', () => {
     });
 
     it('should NOT progress any mission when chipDelta is zero', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onSettlement('user-1', 0);
 
@@ -481,32 +645,52 @@ describe('MissionService', () => {
 
   describe('onDeposit', () => {
     it('should progress FIRST_DEPOSIT and DAILY_DEPOSIT missions', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onDeposit('user-1');
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_FIRST_DEPOSIT);
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_DEPOSIT);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_FIRST_DEPOSIT,
+      );
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_DEPOSIT,
+      );
     });
   });
 
   describe('onRakeContributed', () => {
     it('should progress DAILY_RAKE mission with the rake amount as increment', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onRakeContributed('user-1', 50);
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_Rake, 50);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_Rake,
+        50,
+      );
     });
   });
 
   describe('onPlayTimeUpdated', () => {
     it('should progress DAILY_HOUR mission with totalMinutes as increment', async () => {
-      const progressMissionSpy = jest.spyOn(service, 'progressMission').mockResolvedValue({ completed: false, rewardChips: 0 });
+      const progressMissionSpy = jest
+        .spyOn(service, 'progressMission')
+        .mockResolvedValue({ completed: false, rewardChips: 0 });
 
       await service.onPlayTimeUpdated('user-1', 30);
 
-      expect(progressMissionSpy).toHaveBeenCalledWith('user-1', MISSION_KEY_DAILY_HOUR, 30);
+      expect(progressMissionSpy).toHaveBeenCalledWith(
+        'user-1',
+        MISSION_KEY_DAILY_HOUR,
+        30,
+      );
     });
   });
 
@@ -522,7 +706,13 @@ describe('MissionService', () => {
       const completed = true;
       const rewardChips = 300;
 
-      await service.emitMissionUpdate(userId, missionKey, completed, rewardChips, mockServer);
+      await service.emitMissionUpdate(
+        userId,
+        missionKey,
+        completed,
+        rewardChips,
+        mockServer,
+      );
 
       expect(toMock).toHaveBeenCalledWith(userId);
       expect(emitMock).toHaveBeenCalledWith('mission_updated', {
