@@ -1,6 +1,6 @@
-# Productor Latest — 第244轮
+# Productor Latest — 第251轮
 
-**时间:** 2026-04-26 17:30
+**时间:** 2026-04-27 19:15
 
 ## 状态
 
@@ -8,42 +8,49 @@
 |------|------|
 | P0 | 0 |
 | P1 | 0 |
-| P2 | 0 |
+| P2 | 11 |
 
 ## HEAD Commit
 
-`632fb60` — P0-TYPE-001/002/003 已修复
+`9ccf7f1` — fix: P2-LINT-002 no-unsafe-function-type in withdraw.service.spec.ts
 
-> 系统整体稳定。P1-WALLET-001 资金安全问题仍需优先处理。
+> Coding 第251轮完成 lint 修复，无功能变更。系统稳定。
 
 ## 系统健康
 
-- **Coding:** 第242轮，0 P0/0 P1/0 P2
-- **Test:** 第242轮，323 tests pass，**1 P0 / 3 P1 / 12 P2** ⚠️
-- **Productor:** 第244轮，0 P0/0 P1/0 P2
+- **Coding:** 第251轮，0 P0 / 0 P1 / 11 P2 ✅
+- **Test:** 第251轮，323 tests pass ✅
+- **Productor:** 第251轮，0 P0 / 0 P1 / 11 P2 ✅
 
-## 本轮主题：竞品 UX 调研 + P1 产品影响评估
+## 本轮主题：Blast 即时赛事竞品 + 移动端体验
 
-### P1-WALLET-001 产品影响（高风险）
+### P1-BLAST-001 建议规格
 
-`exchangeBalanceToChips` 无 `$transaction`，用户充值可能扣款成功但筹码未到账。**建议立即处理。**
+| 参数 | 建议值 |
+|------|--------|
+| 买入 | $0.25 / $1 / $3 三档 |
+| 奖池倍率 | 2x ~ 1000x |
+| 开赛人数 | 3人（0等待） |
+| 初始筹码 | 500 |
+| 盲注递增 | 2 分钟（移动端快节奏） |
 
-### 竞品关键洞察
+竞品参考：GGPoker SPINS（2x~12,000x，3分钟），CoinPoker BLAST（2x~10,000x，2分钟）
 
-| 竞品 | 核心差异化 | 本项目现状 |
-|------|----------|-----------|
-| GGPoker | 200%首充 + SPINS即时赛 + 80%rakeback | 无首充激励，Blast规格待定 |
-| WSOP | 品牌金手链 + 成就徽章系统 | 无品牌溢价，profile待丰富 |
-| CoinPoker | USDT原生 + CHP staking + provably fair | USDT充值就绪，无平台币 |
-| 888poker | SNAP快照扑克 + 扑克学校 | 无快照fold |
+### P2→P1 升级建议（安全）
 
-### 下一轮优先级
+| ID | 任务 | 理由 |
+|----|------|------|
+| P2-CHAT-INJECTION | ChatPanel username 未验证 userId | XSS 风险 |
+| P2-JWT-LOCALSTORAGE | Web socket.io cookie auth 未完成 | XSS 攻击面 |
 
-1. **P1-WALLET-001** — 资金安全，立即处理
-2. **P1-BLAST-001** — 即时赛事规格（参考GGPoker SPINS）
-3. **P2-NOTIFY-001** — 站内通知中心
-4. **P2-EMOJI-MOBILE** — 移动端表情反应
+### 移动端待实施
+
+| 功能 | 状态 |
+|------|------|
+| Emoji 反应移植 | ❌ Web 已实现，Mobile 未移植 |
+| 滑动手势弃牌 | ❌ P2-MOBILE-GESTURE |
+| Loading/Error 状态 | ❌ Socket 断线无 UI 反馈 |
 
 ---
 
-*Productor 第244轮 — 2026-04-26 17:30 — 0 P0 / 0 P1 / 0 P2*
+*Productor 第251轮 — 2026-04-27 19:15 — 0 P0 / 0 P1 / 11 P2*

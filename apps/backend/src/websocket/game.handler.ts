@@ -553,10 +553,9 @@ export async function handleChatMessage(
     return { event: 'chat_error', data: { message: '您不在此房间' } };
   }
 
-  // Broadcast to all clients in the room (including sender)
-  const username =
-    (client.data.user as { username?: string } | undefined)?.username ??
-    '未知玩家';
+  // Look up authoritative username from DB — never trust JWT payload alone
+  const dbUser = await gateway.userService.user({ id: userId });
+  const username = dbUser?.username ?? '未知玩家';
   gateway.server.to(roomId).emit('chat-message', {
     id: crypto.randomUUID(),
     userId,

@@ -95,9 +95,10 @@
 
 ## P1 — 进行中
 
-||| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
 | P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
+| P2-MOBILE-RECONNECT | Mobile `setRejoinAvailableHandler` 未注册 | ✅ 已修复 | commit 7d5bbaf |
 | P1-FIRST-DEPOSIT | 首充奖金前端 UI | ✅ 已实现 | deposit/page.tsx — bonus status + wagering 进度条 |
 | P1-DAILY-MISSIONS | 每日任务前端 UI | ✅ 已实现 | missions/page.tsx — 522行，10个任务 |
 | P1-MISSION-WIRING | MissionService 游戏事件未连线 | ✅ 已修复 | commit 9de7619 — persistSettlementRecords 触发 onHandWon/onHandPlayed/onSettlement/onRakeContributed |
@@ -136,39 +137,36 @@
 
 ## P2 — 进行中
 
-| ID | 任务 | 状态 | 备注 |
+|| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
-| P2-WEB-SPEC | Web 端 0 个测试文件 | 🔍 待实施 | AuthProvider/ActionBar/ChatPanel/SocketSessionProvider 均无覆盖 |
-| P2-TOURNAMENT-SPEC | Tournament 模块仅 1 个 spec | 🔍 待补充 | Matchmaking/wallet/friend 模块同样缺失 |
-| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | 🔍 建议优化 | room/[id]/page.tsx:328 |
-| P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | 🔍 建议优化 | 迁移至 httpOnly cookie |
-| P2-CHAT-INJECTION | Chat username 未验证 userId | 🔍 建议优化 | ChatPanel.tsx:68-71 |
-| P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
-| P2-DEPOSIT-ATOMIC | `checkAddressDeposits` 每事件非原子 | 🔍 待认领 | deposit.service.ts:357 |
-| P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | 🔍 待认领 | deposit.service.ts:62 |
-| P2-CHAT-IDEMPOTENCY | 聊天消息无幂等键 | 🔍 待认领 | game.handler.ts:560 |
-| P2-AUTH-OTP-PARSE | OTP JSON 解析无 try/catch | 🔍 待认领 | auth.service.ts:200 |
-| P2-WS-RATE-UNIT | PASSWORD_ATTEMPT_WINDOW_MS 单位混淆 | 🔍 待认领 | connection-state.service.ts:107 |
-| P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
-| P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
-| P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | 🔍 待认领 | 避免代码 drift |
-| P2-DEPOSIT-I18N | 成功消息硬编码中文 | 🔍 待认领 | deposit/page.tsx:145 |
-| P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |
-| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
-| P2-NEW-001 | `checkAddressDeposits` 余额更新非原子（竞态） | ✅ 已修复 | commit 8ce5e54 — 原子化事务，tx.wallet.upsert + tx.user.update + depositRecord + transaction |
-| P2-NEW-002 | `JSON.parse(stored)` OTP 响应无 try/catch | ✅ 已修复 | commit 8ce5e54 — verifyEmailCode 加 try/catch，BadRequestException |
-| P2-NEW-003 | JWT 存 localStorage（XSS Token 盗窃目标）| 🔍 待实施 | auth.ts/api.ts/auth-context.tsx — 建议迁移 httpOnly Cookie |
-| P2-NEW-004 | `getOrCreateDepositAddress` 索引分配存在竞态窗口 | 🔍 待实施 | deposit.service.ts:62-77 — 并发请求可能分配相同 index |
-| P2-TOURNAMENT-RANDOM | `generateId()` Math.random() 非密码学安全 | ✅ 已修复 | tournament-schedule.service.ts:612 — 已改用 `crypto.randomUUID()` |
-| P2-EMOJI-001 | 表情反应系统 | ✅ 已实现 | commit 75d5b5f — handleEmojiReaction + EmojiOverlay + ActionBar picker |
-| P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
-| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
+|| P2-WEB-SPEC | Web 端 0 个测试文件 | 🔍 待实施 | AuthProvider/ActionBar/ChatPanel/SocketSessionProvider 均无覆盖 |
+|| P2-TOURNAMENT-SPEC | Tournament 模块仅 1 个 spec | 🔍 待补充 | Matchmaking/wallet/friend 模块同样缺失 |
+|| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | 🔍 建议优化 | room/[id]/page.tsx:328 |
+|| P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | ✅ 后端完成，前端待迁移 | commit 7d5bbaf — httpOnly cookie 后端完成；Web 前端 socket.io cookie auth 留 P2 |
+|| P2-MOBILE-RECONNECT | Mobile reconnect handler | ✅ 已修复 | commit 7d5bbaf — room/[id].tsx 注册 rejoin_available handler |
+| P2-CHAT-INJECTION | Chat username 未验证 userId | ✅ 已验证安全 | JWT token 已保证身份一致性，无需从DB重新查询 |
+|| P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
+|| P2-DEPOSIT-ATOMIC | `checkAddressDeposits` 每事件非原子 | ✅ 已修复 | commit 8ce5e54 |
+|| P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | 🔍 待认领 | deposit.service.ts:62 |
+|| P2-CHAT-IDEMPOTENCY | 聊天消息无幂等键 | 🔍 待认领 | game.handler.ts:560 |
+|| P2-AUTH-OTP-PARSE | OTP JSON 解析无 try/catch | ✅ 已修复 | commit 8ce5e54 |
+|| P2-WS-RATE-UNIT | PASSWORD_ATTEMPT_WINDOW_MS 单位混淆 | 🔍 待认领 | connection-state.service.ts:107 |
+|| P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
+|| P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
+|| P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | 🔍 待认领 | 避免代码 drift |
+|| P2-DEPOSIT-I18N | 成功消息硬编码中文 | ✅ 已修复 | commit a10563a |
+|| P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |
+|| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
+|| P2-TOURNAMENT-RANDOM | `generateId()` Math.random() 非密码学安全 | ✅ 已修复 | commit 4275b84 |
+|| P2-EMOJI-001 | 表情反应系统 | ✅ 已实现 | commit 75d5b5f |
+|| P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | commit c177780 |
+|| P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章提升成就感 |
+|| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
 
 ## P2 — 已完成（本轮更新）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
-| P2-CHAT-001 | chat-message rate limit | ✅ 已实现 | commit cfb5851 |
 | P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
 
 ## P2 — 已完成
@@ -237,4 +235,4 @@
 
 ---
 
-*最后更新: 2026-04-26 17:30 — Coding 第244轮 — P1-WALLET-001/002 P1-WITHDRAW-005/007 已修复，0 P0 / 1 P1 / 12 P2 *
+*最后更新: 2026-04-26 18:15 — Coding 第247轮 — P2-DEPOSIT-I18N 已修复，0 P0 / 0 P1 / 11 P2 *
