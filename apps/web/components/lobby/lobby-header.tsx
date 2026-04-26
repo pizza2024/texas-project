@@ -166,6 +166,22 @@ export function LobbyHeader({
           🏠 {t('club.title', 'Clubs')}
         </Button>
 
+        {/* Tournament Schedule button — sm+ only */}
+        <Button
+          onClick={() => router.push('/schedule')}
+          className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+          style={{
+            background:
+              'linear-gradient(135deg, #1c0533 0%, #3b0764 40%, #7c3aed 100%)',
+            color: '#f3e8ff',
+            border: 'none',
+            boxShadow:
+              '0 0 20px rgba(124,58,237,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+          }}
+        >
+          🏆 Tournament
+        </Button>
+
         {/* User dropdown */}
         <UserDropdown
           nickname={nickname}
