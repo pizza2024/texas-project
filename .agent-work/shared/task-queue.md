@@ -55,7 +55,7 @@
 || P1-NEW-007 | `register` 用户创建和钱包创建非原子 | ✅ 已修复 | commit 9c48a17 — user+wallet 同事务创建 |
 || P1-NEW-008 | `registerWithEmail` 同上 | ✅ 已修复 | commit 9c48a17 — user+wallet 同事务创建 |
 || P1-NEW-009 | `rejectWithdrawRequest` 状态检查在事务外 — 并发双重退款 | ✅ 已修复 | commit 9c48a17 — 整体流程原子化 |
-|| P1-NEW-010 | `checkStaleProcessing` 无幂等保护 — 可能重复入队 | 🟡 待认领 | withdraw.service.ts:744-773 |
+|| P1-NEW-010 | `checkStaleProcessing` 无幂等保护 — 可能重复入队 | ✅ 已修复 | commit 45e0053 — isInQueue 幂等检查 |
 || P1-NEW-011 | `createWithdraw` 测试回归 — "balance insufficient" 测试失败 | ✅ 已修复 | commit c5da1b7 — mock tx.wallet.findUnique 代替 walletService.getAvailableBalance |
 
 ## P1 — 新发现（第244轮）
