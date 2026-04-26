@@ -575,7 +575,12 @@ export async function handleEmojiReaction(
   client: Socket,
   data: { emoji: string },
 ) {
-  const validated = validate(EmojiReactionSchema, data, client, 'emoji_reaction');
+  const validated = validate(
+    EmojiReactionSchema,
+    data,
+    client,
+    'emoji_reaction',
+  );
   if (!validated) {
     return { event: 'error', data: 'Invalid request' };
   }
@@ -608,6 +613,7 @@ export async function handleEmojiReaction(
     userId,
     username,
     emoji: validated.emoji,
+    roomId,
     timestamp: Date.now(),
   });
 }
