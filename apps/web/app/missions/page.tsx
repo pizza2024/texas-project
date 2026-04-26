@@ -27,11 +27,6 @@ interface Mission {
   status: MissionStatus;
 }
 
-interface ClaimResult {
-  claimedAmount: number;
-  newChipsBalance: number;
-}
-
 const pageBg: React.CSSProperties = {
   background:
     "radial-gradient(ellipse at 50% 20%, #0d2818 0%, #060e10 55%, #020406 100%)",
