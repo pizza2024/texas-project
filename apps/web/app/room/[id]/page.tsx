@@ -332,8 +332,8 @@ export default function RoomPage() {
     const roomPassword = sessionStorage.getItem(passwordKey) ?? undefined;
 
     socket.on('connect', () => {
-      sessionStorage.removeItem(passwordKey);
       socket.emit('join_room', { roomId: id as string, password: roomPassword });
+      sessionStorage.removeItem(passwordKey);
     });
 
     socket.on('room_update', (data: TableState) => {

@@ -141,10 +141,10 @@
 |----|------|------|-------|
 || P2-WEB-SPEC | Web 端 0 个测试文件 | 🔍 待实施 | AuthProvider/ActionBar/ChatPanel/SocketSessionProvider 均无覆盖 |
 || P2-TOURNAMENT-SPEC | Tournament 模块仅 1 个 spec | 🔍 待补充 | Matchmaking/wallet/friend 模块同样缺失 |
-|| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | 🔍 建议优化 | room/[id]/page.tsx:328 |
+| P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | ✅ 已修复 | room/[id]/page.tsx — join后 removeItem |
 || P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | ✅ 后端完成，前端待迁移 | commit 7d5bbaf — httpOnly cookie 后端完成；Web 前端 socket.io cookie auth 留 P2 |
 || P2-MOBILE-RECONNECT | Mobile reconnect handler | ✅ 已修复 | commit 7d5bbaf — room/[id].tsx 注册 rejoin_available handler |
-| P2-CHAT-INJECTION | Chat username 未验证 userId | ✅ 已验证安全 | JWT token 已保证身份一致性，无需从DB重新查询 |
+| P2-CHAT-INJECTION | Chat username 未验证 userId | ✅ 已修复 | commit 88af108 — DB lookup via userService.user({ id }) |
 || P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
 || P2-DEPOSIT-ATOMIC | `checkAddressDeposits` 每事件非原子 | ✅ 已修复 | commit 8ce5e54 |
 || P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | 🔍 待认领 | deposit.service.ts:62 |
@@ -153,7 +153,7 @@
 || P2-WS-RATE-UNIT | PASSWORD_ATTEMPT_WINDOW_MS 单位混淆 | 🔍 待认领 | connection-state.service.ts:107 |
 || P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
 || P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
-|| P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | 🔍 待认领 | 避免代码 drift |
+|| P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | ✅ 已修复 | commit — 删除 ./components/ChatPanel.tsx，统一使用 @/components/chat/ChatPanel |
 || P2-DEPOSIT-I18N | 成功消息硬编码中文 | ✅ 已修复 | commit a10563a |
 || P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |
 || P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
@@ -235,4 +235,4 @@
 
 ---
 
-*最后更新: 2026-04-26 18:15 — Coding 第247轮 — P2-DEPOSIT-I18N 已修复，0 P0 / 0 P1 / 11 P2 *
+*最后更新: 2026-04-26 19:30 — Coding 第252轮 — P1-CHAT-INJECTION 已修复，0 P0 / 0 P1 / 10 P2 *
