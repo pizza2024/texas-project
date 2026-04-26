@@ -218,7 +218,19 @@ describe('WithdrawService', () => {
     });
 
     it('should throw BadRequestException when balance insufficient', async () => {
-      walletService.getAvailableBalance.mockResolvedValue(100);
+      // P1-NEW-011: balance check moved INSIDE $transaction (P1-NEW-005)
+      // so we mock tx.wallet.findUnique directly via prisma.$transaction mock
+      const lowBalanceWallet = { chips: 100, frozenChips: 0, userId: mockUserId };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<unknown>) => {
+        const tx = {
+          wallet: { findUnique: jest.fn().mockResolvedValue(lowBalanceWallet) },
+          user: { update: jest.fn() },
+          transaction: { create: jest.fn() },
+          withdrawRequest: { create: jest.fn() },
+          adminLog: { create: jest.fn() },
+        };
+        return fn(tx);
+      });
 
       await expect(
         service.createWithdraw(mockUserId, {
