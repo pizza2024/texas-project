@@ -3,7 +3,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useRef } from 'react';
 import { ALLOWED_EMOJIS, type AllowedEmoji } from '@/lib/use-game-socket';
 import { TableState } from './types';
 

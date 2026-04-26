@@ -26,7 +26,7 @@ import { ActionBar } from './components/ActionBar';
 import { AllInConfirmModal } from './components/AllInConfirmModal';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { EmojiOverlay, EmojiOverlayStyles } from './components/EmojiOverlay';
-import { useGameSocket, type AllowedEmoji } from '@/lib/use-game-socket';
+
 import { calculateEquity } from '@texas/shared';
 
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
@@ -441,6 +441,7 @@ export default function RoomPage() {
       socket.off('rejoin_available', rejoinAvailableHandler);
       disconnectSocket();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router, t, redirectToLogin, redirectForExpiredToken]);
 
   // Token expiry timer
