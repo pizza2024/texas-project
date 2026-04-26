@@ -445,34 +445,51 @@ export class WalletService {
 
   /**
    * Admin: reject a withdraw request and refund the chips.
+   * P1-NEW-009: entire flow wrapped in $transaction to prevent concurrent double-refund
    */
   async rejectWithdrawRequest(withdrawId: string): Promise<void> {
-    const request = await this.prisma.withdrawRequest.findUnique({
-      where: { id: withdrawId },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      // Re-check status inside transaction to prevent race condition
+      const request = await tx.withdrawRequest.findUnique({
+        where: { id: withdrawId },
+      });
 
-    if (!request) {
-      throw new NotFoundException('Withdraw request not found');
-    }
+      if (!request) {
+        throw new NotFoundException('Withdraw request not found');
+      }
 
-    if (request.status !== 'PENDING') {
-      throw new BadRequestException('Can only reject pending requests');
-    }
+      if (request.status !== 'PENDING') {
+        throw new BadRequestException('Can only reject pending requests');
+      }
 
-    const currentBalance = await this.getBalance(request.userId);
-    await this.setBalance(request.userId, currentBalance + request.amountChips);
+      // Read wallet balance inside transaction
+      const wallet = await tx.wallet.findUnique({
+        where: { userId: request.userId },
+      });
+      const currentBalance = wallet?.chips ?? 0;
+      const newBalance = currentBalance + request.amountChips;
 
-    await this.prisma.withdrawRequest.update({
-      where: { id: withdrawId },
-      data: { status: 'REJECTED' },
-    });
-
-    await this.prisma.transaction.create({
-      data: {
-        userId: request.userId,
-        amount: request.amountChips,
-        type: 'WITHDRAW_REFUND',
-      },
+      // Update wallet + user.coinBalance + withdrawRequest status + transaction log — all atomic
+      await tx.wallet.upsert({
+        where: { userId: request.userId },
+        update: { chips: newBalance },
+        create: { userId: request.userId, chips: newBalance },
+      });
+      await tx.user.update({
+        where: { id: request.userId },
+        data: { coinBalance: newBalance },
+      });
+      await tx.withdrawRequest.update({
+        where: { id: withdrawId },
+        data: { status: 'REJECTED' },
+      });
+      await tx.transaction.create({
+        data: {
+          userId: request.userId,
+          amount: request.amountChips,
+          type: 'WITHDRAW_REFUND',
+        },
+      });
     });
   }
 

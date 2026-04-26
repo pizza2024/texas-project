@@ -6,6 +6,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { EmailService } from '../email/email.service';
 import { TableManagerService } from '../table-engine/table-manager.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -45,6 +46,14 @@ describe('AuthService', () => {
           provide: TableManagerService,
           useValue: {
             leaveCurrentRoom: jest.fn(),
+          },
+        },
+        {
+          provide: PrismaService,
+          useValue: {
+            $transaction: jest.fn((cb) => cb()),
+            user: { create: jest.fn(), findUnique: jest.fn() },
+            wallet: { create: jest.fn(), upsert: jest.fn() },
           },
         },
       ],

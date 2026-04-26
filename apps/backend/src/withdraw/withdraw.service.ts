@@ -191,28 +191,31 @@ export class WithdrawService {
     // 1. Cooldown check
     await this.checkAndConsumeCooldown(userId);
 
-    // 2. Balance check
-    const available = await this.walletService.getAvailableBalance(userId);
-    if (available < dto.amountChips) {
-      throw new BadRequestException(
-        `余额不足：需要 ${dto.amountChips} chips，当前可用 ${available} chips`,
-      );
-    }
-
-    // 3. Minimum amount check
+    // 2. Minimum amount check (can stay outside tx — purely syntactic validation)
     if (dto.amountChips < MIN_WITHDRAW_CHIPS) {
       throw new BadRequestException(
         `最低提现 ${MIN_WITHDRAW_CHIPS} chips（${this.chipsToUsdt(MIN_WITHDRAW_CHIPS)} USDT）`,
       );
     }
 
-    // 4. Deduct chips immediately (atomic with request creation)
+    // 3. Deduct chips and create withdraw request (atomic — balance check inside tx)
     const amountUsdt = this.chipsToUsdt(dto.amountChips);
 
     const request = await this.prisma.$transaction(async (tx) => {
-      // Deduct chips from wallet
+      // P1-NEW-005: read wallet balance INSIDE transaction to prevent TOCTOU
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) throw new NotFoundException('Wallet not found');
+
+      // Balance check inside transaction — no concurrent request can drain balance between check and deduction
+      const availableChips = Math.max(
+        0,
+        wallet.chips - (wallet.frozenChips ?? 0),
+      );
+      if (availableChips < dto.amountChips) {
+        throw new BadRequestException(
+          `余额不足：需要 ${dto.amountChips} chips，当前可用 ${availableChips} chips`,
+        );
+      }
 
       const newBalance = Math.max(0, wallet.chips - dto.amountChips);
       await tx.wallet.update({

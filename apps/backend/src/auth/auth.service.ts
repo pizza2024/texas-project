@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { User } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -38,6 +39,7 @@ export class AuthService {
     private redisService: RedisService,
     private emailService: EmailService,
     private tableManagerService: TableManagerService,
+    private prisma: PrismaService,
   ) {}
 
   async validateUser(
@@ -93,13 +95,26 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthUserDto> {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    // P1-NEW-007: wrap user + wallet creation in a single transaction to prevent
+    // orphaned user records when wallet creation fails
     let user: User;
     try {
-      user = await this.userService.createUser({
-        username: registerDto.username,
-        nickname: registerDto.nickname || registerDto.username,
-        coinBalance: AuthService.STARTING_BALANCE,
-        password: hashedPassword,
+      user = await this.prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            username: registerDto.username,
+            nickname: registerDto.nickname || registerDto.username,
+            coinBalance: AuthService.STARTING_BALANCE,
+            password: hashedPassword,
+          },
+        });
+
+        // Create wallet with explicit chips value to ensure it starts at 10000
+        await tx.wallet.create({
+          data: { userId: newUser.id, chips: AuthService.STARTING_BALANCE },
+        });
+
+        return newUser;
       });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -118,9 +133,6 @@ export class AuthService {
       }
       throw error;
     }
-
-    // Create wallet separately with explicit chips value to ensure it starts at 10000
-    await this.walletService.setBalance(user.id, AuthService.STARTING_BALANCE);
 
     // Re-fetch user with wallet to return correct balance
     const userWithWallet = await this.userService.user({ id: user.id });
@@ -281,17 +293,27 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.userService.createUser({
-      username: dto.username,
-      nickname: dto.nickname,
-      email: normalizedEmail,
-      emailVerified: true,
-      coinBalance: AuthService.STARTING_BALANCE,
-      password: hashedPassword,
-    });
+    // P1-NEW-008: wrap user + wallet creation in a single transaction to prevent
+    // orphaned user records when wallet creation fails
+    const user = await this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          username: dto.username,
+          nickname: dto.nickname,
+          email: normalizedEmail,
+          emailVerified: true,
+          coinBalance: AuthService.STARTING_BALANCE,
+          password: hashedPassword,
+        },
+      });
 
-    // Create wallet separately with explicit chips value to ensure it starts at 10000
-    await this.walletService.setBalance(user.id, AuthService.STARTING_BALANCE);
+      // Create wallet with explicit chips value to ensure it starts at 10000
+      await tx.wallet.create({
+        data: { userId: newUser.id, chips: AuthService.STARTING_BALANCE },
+      });
+
+      return newUser;
+    });
 
     // Re-fetch user with wallet to return correct balance
     const userWithWallet = await this.userService.user({ id: user.id });
