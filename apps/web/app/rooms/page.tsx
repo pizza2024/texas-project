@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import type { NextRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import { disconnectSocket, getSocket } from '@/lib/socket';
@@ -933,8 +934,7 @@ export default function RoomsPage() {
         fetchRooms();
       }
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (router as any).events?.on("routeChangeComplete", handleRouteChange);
+    ((router as unknown) as NextRouter).events?.on("routeChangeComplete", handleRouteChange);
 
     return () => {
       cancelled = true;
