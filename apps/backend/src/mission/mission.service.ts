@@ -167,7 +167,7 @@ export class MissionService implements OnModuleInit {
 
   /** Ensures all mission definitions exist in the DB (upsert). */
   async seedMissions(): Promise<void> {
-    await Promise.all(
+    const results = await Promise.allSettled(
       MISSION_DEFINITIONS.map((def) =>
         this.prisma.mission.upsert({
           where: { key: def.key },
@@ -191,7 +191,19 @@ export class MissionService implements OnModuleInit {
         }),
       ),
     );
-    this.logger.log('Missions seeded');
+    const failures = results.filter((r) => r.status === 'rejected');
+    if (failures.length > 0) {
+      this.logger.error(
+        `seedMissions: ${failures.length}/${MISSION_DEFINITIONS.length} upserts failed`,
+      );
+      for (const f of failures) {
+        this.logger.error(f.reason);
+      }
+    } else {
+      this.logger.log(
+        `Missions seeded (${MISSION_DEFINITIONS.length} upserts)`,
+      );
+    }
   }
 
   // ── Period helpers ──────────────────────────────────────────────────────────

@@ -105,7 +105,9 @@ export default function DepositPage() {  const { t } = useTranslation();
         }
       } catch {
         if (!retry && !cancelled) {
-          setTimeout(() => { if (!cancelled) void loadData(true); }, 800);
+          // Exponential backoff: 800ms → 1600ms → 3200ms → 6400ms (capped at 10s)
+          const backoffDelay = Math.min(800 * (2 ** 1), 10_000);
+          setTimeout(() => { if (!cancelled) void loadData(true); }, backoffDelay);
         } else if (!cancelled) {
           setError(t('deposit.loadError'));
           setLoading(false);

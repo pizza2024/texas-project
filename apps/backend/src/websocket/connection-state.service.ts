@@ -58,7 +58,7 @@ export class ConnectionStateService {
 
   /**
    * Chat message rate limit — separate key from game action rate limit.
-   * Redis key: ws_chat:{userId} — TTL = CHAT_RATE_LIMIT_WINDOW_MS in seconds.
+   * Redis key: ws_chat:{userId} — TTL set to windowSec (CHAT_RATE_LIMIT_WINDOW_MS converted to seconds).
    * Allow 1 message per 5-second window to prevent spam.
    */
   async checkChatRateLimit(userId: string): Promise<boolean> {
