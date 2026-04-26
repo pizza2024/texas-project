@@ -7,9 +7,24 @@ import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { getRooms, deleteRoom, toggleRoomMaintenance, createRoom, updateRoom } from '@/lib/api';
 import { Search, ChevronLeft, ChevronRight, Trash2, Settings, Plus, X } from 'lucide-react';
 import Link from 'next/link';
+import type { Room, PaginatedResponse } from '@/lib/types';
 
-function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void; onSave: (data: any) => Promise<void> }) {
-  const [form, setForm] = useState({
+interface RoomFormData {
+  name: string;
+  blindSmall: number;
+  blindBig: number;
+  maxPlayers: number;
+  minBuyIn: number;
+  password: string;
+}
+
+interface RoomModalState {
+  open: boolean;
+  room?: Room;
+}
+
+function RoomModal({ room, onClose, onSave }: { room?: Room; onClose: () => void; onSave: (data: RoomFormData) => Promise<void> }) {
+  const [form, setForm] = useState<RoomFormData>({
     name: room?.name ?? '',
     blindSmall: room?.blindSmall ?? 5,
     blindBig: room?.blindBig ?? 10,
@@ -22,9 +37,9 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const payload = {
+    const payload: RoomFormData = {
       ...form,
-      ...(form.password ? { password: form.password } : {}),
+      ...(form.password ? { password: form.password } : { password: '' }),
     };
     await onSave(payload);
     setSaving(false);
@@ -50,7 +65,7 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
               <label className="block text-sm text-slate-400 mb-1">{label}</label>
               <input
                 type={type}
-                value={(form as any)[key]}
+                value={form[key as keyof RoomFormData] as string | number}
                 onChange={(e) => setForm(f => ({ ...f, [key]: type === 'number' ? parseFloat(e.target.value) : e.target.value }))}
                 className="w-full bg-[#0f1117] border border-[#1e2535] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
                 required
@@ -82,7 +97,7 @@ function RoomModal({ room, onClose, onSave }: { room?: any; onClose: () => void;
 }
 
 function RoomCard({ room, onEdit, onToggle, onDelete, selectable, selected, onSelect }: {
-  room: any; onEdit: () => void; onToggle: () => void; onDelete: () => void;
+  room: Room; onEdit: () => void; onToggle: () => void; onDelete: () => void;
   selectable?: boolean; selected?: boolean; onSelect?: (id: string) => void;
 }) {
   return (
@@ -132,19 +147,19 @@ function RoomCard({ room, onEdit, onToggle, onDelete, selectable, selected, onSe
 }
 
 export default function RoomsPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<PaginatedResponse<Room> | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [deleteDialog, setDeleteDialog] = useState<any>(null);
-  const [roomModal, setRoomModal] = useState<{ open: boolean; room?: any }>({ open: false });
+  const [deleteDialog, setDeleteDialog] = useState<Room | null>(null);
+  const [roomModal, setRoomModal] = useState<RoomModalState>({ open: false });
 
   // Batch delete state
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedRoomsMap, setSelectedRoomsMap] = useState<Map<string, any>>(new Map());
-  const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: any[] }>({ open: false, rooms: [] });
+  const [selectedRoomsMap, setSelectedRoomsMap] = useState<Map<string, Room>>(new Map());
+  const [batchDeleteDialog, setBatchDeleteDialog] = useState<{ open: boolean; rooms: Room[] }>({ open: false, rooms: [] });
   const [selectAllConfirm, setSelectAllConfirm] = useState(false);
 
   const fetchRooms = useCallback(async () => {
@@ -162,7 +177,7 @@ export default function RoomsPage() {
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
   const toggleSelect = useCallback((id: string) => {
-    const room = (data?.data ?? []).find((r: any) => r.id === id);
+    const room = (data?.data ?? []).find((r: Room) => r.id === id);
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -179,7 +194,7 @@ export default function RoomsPage() {
 
   const selectAllCurrentPage = useCallback(() => {
     const pageRooms = data?.data ?? [];
-    const pageIds = pageRooms.map((r: any) => r.id);
+    const pageIds = pageRooms.map((r: Room) => r.id);
     setSelectedIds(prev => {
       const next = new Set(prev);
       const allSelected = pageIds.every((id: string) => prev.has(id));
@@ -191,7 +206,7 @@ export default function RoomsPage() {
       const next = new Map(prev);
       const allSelected = pageIds.every((id: string) => prev.has(id));
       if (allSelected) pageIds.forEach((id: string) => next.delete(id));
-      else pageRooms.forEach((r: any) => { if (!next.has(r.id)) next.set(r.id, r); });
+      else pageRooms.forEach((r: Room) => { if (!next.has(r.id)) next.set(r.id, r); });
       return next;
     });
   }, [data?.data]);
@@ -205,13 +220,13 @@ export default function RoomsPage() {
     setLoading(true);
     try {
       const allIds: string[] = [];
-      const allRoomsMap = new Map<string, any>();
+      const allRoomsMap = new Map<string, Room>();
       let currentPage = 1;
       const limit = 20;
       while (true) {
         const res = await getRooms({ page: currentPage, limit, search: search || undefined });
-        res.data.forEach((r: any) => allRoomsMap.set(r.id, r));
-        allIds.push(...res.data.map((r: any) => r.id));
+        res.data.forEach((r: Room) => allRoomsMap.set(r.id, r));
+        allIds.push(...res.data.map((r: Room) => r.id));
         if (allIds.length >= res.total) break;
         currentPage++;
         if (currentPage > 100) break;
@@ -246,7 +261,7 @@ export default function RoomsPage() {
     setSelectedRoomsMap(new Map());
   }, []);
 
-  const currentPageAllSelected = data?.data?.length > 0 && (data?.data ?? []).every((r: any) => selectedIds.has(r.id));
+  const currentPageAllSelected = data?.data?.length > 0 && (data?.data ?? []).every((r: Room) => selectedIds.has(r.id));
 
   return (
     <AdminLayout>
@@ -310,7 +325,7 @@ export default function RoomsPage() {
           ) : data?.data?.length === 0 ? (
             <div className="text-center py-12 text-slate-500">暂无房间</div>
           ) : (
-            data?.data?.map((room: any) => (
+            data?.data?.map((room: Room) => (
               <RoomCard
                 key={room.id}
                 room={room}
@@ -363,7 +378,7 @@ export default function RoomsPage() {
                 ) : data?.data?.length === 0 ? (
                   <tr><td colSpan={isSelecting ? 8 : 7} className="text-center py-12 text-slate-500">暂无房间</td></tr>
                 ) : (
-                  data?.data?.map((room: any) => (
+                  data?.data?.map((room: Room) => (
                     <tr key={room.id} className={`border-b border-[#1e2535] hover:bg-white/2 transition-colors ${selectedIds.has(room.id) ? 'bg-red-500/5' : ''}`}>
                       {isSelecting && (
                         <td className="px-4 py-3">
@@ -483,7 +498,7 @@ export default function RoomsPage() {
           <RoomModal
             room={roomModal.room}
             onClose={() => setRoomModal({ open: false })}
-            onSave={async (data) => {
+            onSave={async (data: RoomFormData) => {
               if (roomModal.room) await updateRoom(roomModal.room.id, data);
               else await createRoom(data);
               fetchRooms();

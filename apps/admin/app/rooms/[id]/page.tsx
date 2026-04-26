@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import AdminLayout from '@/components/layout/admin-layout';
 import Badge from '@/components/ui/badge';
 import { getRoomById, toggleRoomMaintenance, deleteRoom } from '@/lib/api';
+import type { Room, Table } from '@/lib/types';
 import { ArrowLeft, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,7 @@ import ConfirmDialog from '@/components/ui/confirm-dialog';
 export default function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [room, setRoom] = useState<any>(null);
+  const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState(false);
 
@@ -95,7 +96,7 @@ export default function RoomDetailPage() {
                 {room.tables?.length === 0 ? (
                   <tr><td colSpan={3} className="text-center py-8 text-slate-500">暂无牌桌</td></tr>
                 ) : (
-                  room.tables?.map((table: any) => (
+                  room.tables?.map((table: Table) => (
                     <tr key={table.id} className="border-b border-[#1e2535]">
                       <td className="px-4 py-3 text-white font-mono text-xs">{table.id.slice(0, 8)}...</td>
                       <td className="px-4 py-3">

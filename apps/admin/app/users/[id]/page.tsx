@@ -5,14 +5,15 @@ import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/layout/admin-layout';
 import Badge from '@/components/ui/badge';
 import { getUserById, updateUser, getUserTransactions, banUser, unbanUser } from '@/lib/api';
+import type { User, Transaction, PaginatedResponse } from '@/lib/types';
 import { ArrowLeft, UserX, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [txs, setTxs] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [txs, setTxs] = useState<PaginatedResponse<Transaction> | null>(null);
   const [loading, setLoading] = useState(true);
   const [editRole, setEditRole] = useState('');
   const [saving, setSaving] = useState(false);
@@ -139,7 +140,7 @@ export default function UserDetailPage() {
                 {txs?.data?.length === 0 ? (
                   <tr><td colSpan={3} className="text-center py-8 text-slate-500">暂无流水</td></tr>
                 ) : (
-                  txs?.data?.map((tx: any) => (
+                  txs?.data?.map((tx: Transaction) => (
                     <tr key={tx.id} className="border-b border-[#1e2535]">
                       <td className="px-4 py-3">
                         <Badge variant={tx.amount > 0 ? 'success' : 'danger'}>

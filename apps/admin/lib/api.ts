@@ -1,10 +1,26 @@
+import type {
+  User,
+  Room,
+  PaginatedResponse,
+  Transaction,
+  AdminLog,
+  SystemStatus,
+  FinanceSummary,
+  OverviewStats,
+  RevenueItem,
+  GrowthItem,
+  HotRoom,
+  HandsStats,
+  PaginatedTransactions,
+} from './types';
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-interface QueryParams {
+interface ApiParams {
   [key: string]: string | number | boolean | undefined;
 }
 
-function buildQuery(params?: QueryParams): string {
+function buildQuery(params?: ApiParams): string {
   if (!params) return "";
   const clean = Object.fromEntries(
     Object.entries(params).filter(
@@ -64,86 +80,100 @@ export const login = (username: string, password: string) =>
   });
 
 // Users
-export const getUsers = (params?: Record<string, any>) =>
-  request<any>(`/admin/users${buildQuery(params)}`);
+export const getUsers = (params?: ApiParams) =>
+  request<PaginatedResponse<User>>(`/admin/users${buildQuery(params)}`);
 
-export const getUserById = (id: string) => request<any>(`/admin/users/${id}`);
+export const getUserById = (id: string) => request<User>(`/admin/users/${id}`);
 
-export const updateUser = (id: string, data: any) =>
-  request<any>(`/admin/users/${id}`, {
+export const updateUser = (id: string, data: { role?: string }) =>
+  request<User>(`/admin/users/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 
 export const banUser = (id: string) =>
-  request<any>(`/admin/users/${id}/ban`, { method: "POST" });
+  request<void>(`/admin/users/${id}/ban`, { method: "POST" });
 
 export const unbanUser = (id: string) =>
-  request<any>(`/admin/users/${id}/unban`, { method: "POST" });
+  request<void>(`/admin/users/${id}/unban`, { method: "POST" });
 
 export const adjustBalance = (id: string, amount: number, reason?: string) =>
-  request<any>(`/admin/users/${id}/balance`, {
+  request<void>(`/admin/users/${id}/balance`, {
     method: "POST",
     body: JSON.stringify({ amount, reason }),
   });
 
-export const getUserTransactions = (id: string, params?: Record<string, any>) =>
-  request<any>(`/admin/users/${id}/transactions${buildQuery(params)}`);
+export const getUserTransactions = (id: string, params?: ApiParams) =>
+  request<PaginatedResponse<Transaction>>(`/admin/users/${id}/transactions${buildQuery(params)}`);
 
 // Rooms
-export const getRooms = (params?: Record<string, any>) =>
-  request<any>(`/admin/rooms${buildQuery(params)}`);
+export const getRooms = (params?: ApiParams) =>
+  request<PaginatedResponse<Room>>(`/admin/rooms${buildQuery(params)}`);
 
-export const getRoomById = (id: string) => request<any>(`/admin/rooms/${id}`);
+export const getRoomById = (id: string) => request<Room>(`/admin/rooms/${id}`);
 
-export const createRoom = (data: any) =>
-  request<any>("/admin/rooms", { method: "POST", body: JSON.stringify(data) });
+export const createRoom = (data: {
+  name: string;
+  blindSmall?: number;
+  blindBig?: number;
+  maxPlayers?: number;
+  minBuyIn?: number;
+  password?: string;
+}) =>
+  request<Room>("/admin/rooms", { method: "POST", body: JSON.stringify(data) });
 
-export const updateRoom = (id: string, data: any) =>
-  request<any>(`/admin/rooms/${id}`, {
+export const updateRoom = (id: string, data: {
+  name?: string;
+  blindSmall?: number;
+  blindBig?: number;
+  maxPlayers?: number;
+  minBuyIn?: number;
+  password?: string;
+}) =>
+  request<Room>(`/admin/rooms/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 
 export const deleteRoom = (id: string) =>
-  request<any>(`/admin/rooms/${id}`, { method: "DELETE" });
+  request<void>(`/admin/rooms/${id}`, { method: "DELETE" });
 
 export const toggleRoomMaintenance = (id: string) =>
-  request<any>(`/admin/rooms/${id}/maintenance`, { method: "POST" });
+  request<Room>(`/admin/rooms/${id}/maintenance`, { method: "POST" });
 
 // Finance
-export const getTransactions = (params?: Record<string, any>) =>
-  request<any>(`/admin/finance/transactions${buildQuery(params)}`);
+export const getTransactions = (params?: ApiParams) =>
+  request<PaginatedTransactions>(`/admin/finance/transactions${buildQuery(params)}`);
 
-export const getFinanceSummary = () => request<any>("/admin/finance/summary");
+export const getFinanceSummary = () => request<FinanceSummary>("/admin/finance/summary");
 
 export const deposit = (userId: string, amount: number, reason?: string) =>
-  request<any>("/admin/finance/deposit", {
+  request<void>("/admin/finance/deposit", {
     method: "POST",
     body: JSON.stringify({ userId, amount, reason }),
   });
 
 export const withdraw = (userId: string, amount: number, reason?: string) =>
-  request<any>("/admin/finance/withdraw", {
+  request<void>("/admin/finance/withdraw", {
     method: "POST",
     body: JSON.stringify({ userId, amount, reason }),
   });
 
 // Analytics
-export const getOverview = () => request<any>("/admin/analytics/overview");
+export const getOverview = () => request<OverviewStats>("/admin/analytics/overview");
 export const getUserGrowth = (days = 30) =>
-  request<any>(`/admin/analytics/users?days=${days}`);
+  request<GrowthItem[]>(`/admin/analytics/users?days=${days}`);
 export const getRevenue = (period = "day", n = 30) =>
-  request<any>(`/admin/analytics/revenue?period=${period}&n=${n}`);
-export const getRoomHotList = () => request<any>("/admin/analytics/rooms");
-export const getHandsStats = () => request<any>("/admin/analytics/hands");
+  request<RevenueItem[]>(`/admin/analytics/revenue?period=${period}&n=${n}`);
+export const getRoomHotList = () => request<HotRoom[]>("/admin/analytics/rooms");
+export const getHandsStats = () => request<HandsStats>("/admin/analytics/hands");
 
 // System
-export const getSystemStatus = () => request<any>("/admin/system/status");
-export const getAdminLogs = (params?: Record<string, any>) =>
-  request<any>(`/admin/system/logs${buildQuery(params)}`);
+export const getSystemStatus = () => request<SystemStatus>("/admin/system/status");
+export const getAdminLogs = (params?: ApiParams) =>
+  request<PaginatedResponse<AdminLog>>(`/admin/system/logs${buildQuery(params)}`);
 export const toggleMaintenance = (enable?: boolean) =>
-  request<any>("/admin/system/maintenance", {
+  request<{ maintenanceMode: boolean }>("/admin/system/maintenance", {
     method: "POST",
     body: JSON.stringify({ enable }),
   });
@@ -151,24 +181,24 @@ export const sendBroadcast = (
   message: string,
   type?: "info" | "warning" | "error",
 ) =>
-  request<any>("/admin/system/broadcast", {
+  request<{ connectedCount: number }>("/admin/system/broadcast", {
     method: "POST",
     body: JSON.stringify({ message, type }),
   });
 
 // Withdraw Management
-export const getWithdrawRequests = (params?: Record<string, any>) =>
-  request<any>(`/admin/withdraw/requests${buildQuery(params)}`);
+export const getWithdrawRequests = (params?: ApiParams) =>
+  request<PaginatedResponse<import('./types').WithdrawRequest>>(`/admin/withdraw/requests${buildQuery(params)}`);
 
 export const getWithdrawRequest = (id: string) =>
-  request<any>(`/admin/withdraw/${id}`);
+  request<import('./types').WithdrawRequest>(`/admin/withdraw/${id}`);
 
 export const processWithdraw = (
   id: string,
   action: "APPROVE" | "REJECT",
   reason?: string,
 ) =>
-  request<any>(`/admin/withdraw/${id}/process`, {
+  request<void>(`/admin/withdraw/${id}/process`, {
     method: "PATCH",
     body: JSON.stringify({ action, reason }),
   });

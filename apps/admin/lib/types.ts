@@ -91,3 +91,39 @@ export interface OverviewStats {
   todayTransactions: number;
   todayFlow: number;
 }
+
+export interface RevenueItem {
+  date: string;
+  amount: number;
+}
+
+export interface GrowthItem {
+  date: string;
+  count: number;
+}
+
+export interface HotRoom {
+  id: string;
+  name: string;
+  status: string;
+  handCount: number;
+}
+
+export interface HandsStats {
+  total: number;
+  avgPot: number;
+  totalPot: number;
+}
+
+export interface FinanceSummary {
+  totalAssets: number;
+  dayFlow: number;
+  weekFlow: number;
+  monthFlow: number;
+}
+
+export interface PaginatedTransactions {
+  data: Transaction[];
+  total: number;
+  limit: number;
+}

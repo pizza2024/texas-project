@@ -8,6 +8,7 @@ import {
   toggleMaintenance,
   sendBroadcast,
 } from "@/lib/api";
+import type { SystemStatus, PaginatedResponse, AdminLog } from "@/lib/types";
 import Badge from "@/components/ui/badge";
 
 function formatUptime(seconds: number): string {
@@ -21,8 +22,8 @@ function formatUptime(seconds: number): string {
 }
 
 export default function SystemPage() {
-  const [status, setStatus] = useState<any>(null);
-  const [logs, setLogs] = useState<any>(null);
+  const [status, setStatus] = useState<SystemStatus | null>(null);
+  const [logs, setLogs] = useState<PaginatedResponse<AdminLog> | null>(null);
   const [loading, setLoading] = useState(true);
   const [maintenance, setMaintenance] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -69,7 +70,7 @@ export default function SystemPage() {
   }
 
   function actionBadge(action: string) {
-    const map: Record<string, any> = {
+    const map: Record<string, { variant: 'success' | 'danger' | 'warning' | 'info' | 'default'; label: string }> = {
       BAN_USER: { variant: "danger", label: "封禁用户" },
       UNBAN_USER: { variant: "success", label: "解封用户" },
       ADJUST_BALANCE: { variant: "warning", label: "调整余额" },
@@ -78,7 +79,7 @@ export default function SystemPage() {
       MAINTENANCE: { variant: "info", label: "维护模式" },
       BROADCAST: { variant: "default", label: "广播消息" },
     };
-    const a = map[action] ?? { variant: "default", label: action };
+    const a = map[action] ?? { variant: "default" as const, label: action };
     return <Badge variant={a.variant}>{a.label}</Badge>;
   }
 
@@ -221,7 +222,7 @@ export default function SystemPage() {
                   </td>
                 </tr>
               ) : (
-                logs?.data?.map((log: any) => (
+                logs?.data?.map((log: AdminLog) => (
                   <tr
                     key={log.id}
                     className="border-b border-[#1e2535] hover:bg-white/2"

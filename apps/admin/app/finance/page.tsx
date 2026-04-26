@@ -4,7 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import AdminLayout from '@/components/layout/admin-layout';
 import Badge from '@/components/ui/badge';
 import { getTransactions, getFinanceSummary, deposit, withdraw } from '@/lib/api';
+import type { PaginatedTransactions, FinanceSummary, Transaction } from '@/lib/types';
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+
+type TxVariant = 'success' | 'danger' | 'info' | 'warning' | 'default';
 
 function FinanceModal({ type, onClose, onConfirm }: { type: 'deposit' | 'withdraw'; onClose: () => void; onConfirm: (userId: string, amount: number, reason: string) => Promise<void> }) {
   const [userId, setUserId] = useState('');
@@ -60,8 +63,8 @@ function FinanceModal({ type, onClose, onConfirm }: { type: 'deposit' | 'withdra
 }
 
 export default function FinancePage() {
-  const [data, setData] = useState<any>(null);
-  const [summary, setSummary] = useState<any>(null);
+  const [data, setData] = useState<PaginatedTransactions | null>(null);
+  const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ export default function FinancePage() {
 
   const totalPages = data ? Math.ceil(data.total / data.limit) : 1;
 
-  const txTypeVariant: Record<string, any> = {
+  const txTypeVariant: Record<string, TxVariant> = {
     DEPOSIT: 'success', WITHDRAW: 'danger', GAME_WIN: 'info', GAME_LOSS: 'warning',
   };
 
@@ -145,7 +148,7 @@ export default function FinancePage() {
               ) : data?.data?.length === 0 ? (
                 <tr><td colSpan={4} className="text-center py-12 text-slate-500">暂无记录</td></tr>
               ) : (
-                data?.data?.map((tx: any) => (
+                data?.data?.map((tx: Transaction) => (
                   <tr key={tx.id} className="border-b border-[#1e2535] hover:bg-white/2">
                     <td className="px-4 py-3 text-white">{tx.user?.nickname ?? '-'}</td>
                     <td className="px-4 py-3"><Badge variant={txTypeVariant[tx.type] ?? 'default'}>{tx.type}</Badge></td>

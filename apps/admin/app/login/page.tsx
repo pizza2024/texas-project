@@ -19,11 +19,12 @@ export default function LoginPage() {
       const res = await login(username, password);
       setToken(res.access_token);
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "登录失败";
       setError(
-        err.message === "HTTP 401"
+        message === "HTTP 401"
           ? "用户名或密码错误，或无管理员权限"
-          : err.message,
+          : message,
       );
     } finally {
       setLoading(false);

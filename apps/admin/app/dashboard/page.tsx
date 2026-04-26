@@ -8,19 +8,20 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
+import type { OverviewStats, RevenueItem, GrowthItem } from '@/lib/types';
 
 export default function DashboardPage() {
-  const [overview, setOverview] = useState<any>(null);
-  const [revenue, setRevenue] = useState<any[]>([]);
-  const [growth, setGrowth] = useState<any[]>([]);
+  const [overview, setOverview] = useState<OverviewStats | null>(null);
+  const [revenue, setRevenue] = useState<RevenueItem[]>([]);
+  const [growth, setGrowth] = useState<GrowthItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([getOverview(), getRevenue('day', 14), getUserGrowth(14)])
       .then(([ov, rev, gr]) => {
         setOverview(ov);
-        setRevenue(rev.map((r: any) => ({ ...r, date: r.date.slice(5) })));
-        setGrowth(gr.map((g: any) => ({ ...g, date: g.date.slice(5) })));
+        setRevenue(rev.map((r: RevenueItem) => ({ ...r, date: r.date.slice(5) })));
+        setGrowth(gr.map((g: GrowthItem) => ({ ...g, date: g.date.slice(5) })));
       })
       .finally(() => setLoading(false));
   }, []);

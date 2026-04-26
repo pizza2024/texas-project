@@ -42,7 +42,7 @@ function roleBadge(role: string) {
   return <Badge variant={r.variant}>{r.label}</Badge>;
 }
 
-function UserCard({ user, onBan, onUnban, onBalance }: { user: any; onBan: () => void; onUnban: () => void; onBalance: () => void }) {
+function UserCard({ user, onBan, onUnban, onBalance }: { user: User; onBan: () => void; onUnban: () => void; onBalance: () => void }) {
   return (
     <div className="bg-[#161b27] border border-[#1e2535] rounded-xl p-4 space-y-3">
       <div className="flex items-start justify-between">
@@ -153,7 +153,7 @@ export default function UsersPage() {
           ) : data?.data?.length === 0 ? (
             <div className="text-center py-12 text-slate-500">暂无数据</div>
           ) : (
-            data?.data?.map((user: any) => (
+            data?.data?.map((user: User) => (
               <UserCard
                 key={user.id}
                 user={user}
@@ -203,7 +203,7 @@ export default function UsersPage() {
                     </td>
                   </tr>
                 ) : (
-                  data?.data?.map((user: any) => (
+                  data?.data?.map((user: User) => (
                     <tr
                       key={user.id}
                       className="border-b border-[#1e2535] hover:bg-white/2 transition-colors"

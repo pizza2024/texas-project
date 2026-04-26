@@ -293,7 +293,7 @@ export default function WithdrawPage() {
             className="bg-[#161b27] border border-[#1e2535] rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
             <option value="">全部状态</option>
             {['PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED'].map(s => (
-              <option key={s} value={s}>{statusLabel(s as any)}</option>
+              <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
           {pendingCount > 0 && (
