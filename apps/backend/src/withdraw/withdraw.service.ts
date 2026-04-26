@@ -754,7 +754,17 @@ export class WithdrawService {
 
     for (const request of stale) {
       if (!request.txHash) {
-        // No tx hash means transfer never started — re-enqueue for retry
+        // No tx hash means transfer never started.
+        // Guard: skip if already in queue to prevent re-enqueue of a
+        // completed/failed job that BullMQ has not yet cleaned up.
+        const alreadyQueued = await this.withdrawQueue.isInQueue(request.id);
+        if (alreadyQueued) {
+          this.logger.debug(
+            `Stale PROCESSING request ${request.id} is already in queue, skipping`,
+          );
+          continue;
+        }
+
         this.logger.warn(
           `Stale PROCESSING request without txHash: ${request.id}, re-enqueuing...`,
         );

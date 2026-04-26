@@ -1,47 +1,52 @@
-# Test Latest — 第273轮
+# Test Latest — 第295轮
 
-**时间:** 2026-04-28 01:00
-**HEAD:** `6f52aa5`
-**状态:** 0 P0 / 0 P1 / ~5 P2
-
----
-
-## 本轮发现
-
-### ✅ 无新增问题
-
-- `6f52aa5` wallet.spec.ts TS 类型修复 — `unknown[]` + `as unknown` cast
-- Admin lint: 0 errors / 6 warnings（非阻塞）
-- 31 suites / 410 tests ✅
-- TypeScript --noEmit clean ✅
-
-### Admin lint warnings（6项 P2 待清理）
-
-- `analytics/page.tsx:17` — `overview` unused
-- `finance/page.tsx:8` — `Search` unused import
-- `rooms/[id]/page.tsx:26` — useEffect missing `load` dep
-- `users/[id]/page.tsx:14` — `router` unused
-- `users/[id]/page.tsx:33` — useEffect missing `load` dep
-- `users/[id]/page.tsx:59` — `<img>` 应使用 `<Image />`
+**时间:** 2026-04-28 06:00
+**HEAD:** `c5da1b7` — 0 P0 / 2 P1 / 11 P2
+**测试状态:** ✅ 410 passed
 
 ---
 
-## 测试结果
+## 本轮结论
 
-- **31 suites / 410 tests** ✅ 全通过
-- **Lint:** 0 errors ✅
-- **TypeScript:** --noEmit clean ✅
-
----
-
-## 任务队列状态
-
-| 优先级 | 进行中 | 待认领 |
-|--------|--------|--------|
-| P0 | 0 | 0 |
-| P1 | 0 | 0 |
-| P2 | 0 | ~5 (Admin lint 清理 + 3 项历史遗留) |
+无新提交。深度扫描确认：
+- P1-NEW-004（exchangeChipsToBalance TOCTOU）确认为 **fund loss 漏洞**
+- P2-NEW-012（resolveFoldWin 绕过 side-pot）严重度高于预期，可能剥夺 all-in 玩家权益
 
 ---
 
-*Test 第273轮 — 2026-04-28 01:00*
+## 待 Coding 认领
+
+| 优先级 | ID | 任务 |
+|--------|-----|------|
+| P1 | P1-NEW-003 | `setBalances` Phase 2 非原子 — 将 Phase 1+2 合并为单一 `$transaction` |
+| P1 | P1-NEW-004 | `exchangeChipsToBalance` TOCTOU — 余额检查移至事务内 |
+
+---
+
+## 深度扫描发现（subagent 并行）
+
+### `wallet.service.ts`
+
+| # | 位置 | 问题 | 严重度 |
+|---|------|------|--------|
+| 1 | 275 | `exchangeChipsToBalance` — `getAvailableBalance` 在事务外读取，并发双花 | **High** |
+| 2 | 192–196 | `unfreezeBalance` — `frozenChips` 事务外捕获，事务内使用 | Medium |
+| 3 | 101–136 | `setBalances` Phase 2 非原子，Phase 1 成功后 Phase 2 失败导致 wallet/user 不一致 | High |
+
+### `withdraw.service.ts`
+
+| # | 位置 | 问题 | 严重度 |
+|---|------|------|--------|
+| 1 | 747–776 | `checkStaleProcessing` 无分布式锁（多实例重复入队），txHash 检测不完整，fallback 错误静默 | Medium |
+| 2 | 432–440 | APPROVE 路径 adminLog 在事务外（REJECT 正确在事务内） | Medium |
+
+### `table-round.ts`
+
+| # | 位置 | 问题 | 严重度 |
+|---|------|------|--------|
+| 1 | 295–324 | `resolveFoldWin` 跳过 `buildPots()`，side pot 中 all-in 玩家贡献被剥夺 | **High** |
+| 2 | — | `resetToWaiting` 不清理 `rakeAmount`/`rakePercent` | Low |
+
+---
+
+*Test 第295轮 — 2026-04-28 06:00*
