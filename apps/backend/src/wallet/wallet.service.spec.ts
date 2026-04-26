@@ -23,12 +23,17 @@ describe('WalletService', () => {
       // Support both array form and callback form
       if (Array.isArray(fn)) {
         // Array form: $transaction([prismaOp1, prismaOp2, ...])
-        const results = [];
+        const results: unknown[] = [];
         for (const op of fn) {
-          if (typeof op?.then === 'function') {
-            results.push(await op);
-          } else if (typeof op === 'function') {
-            results.push(await op(mockPrisma));
+          const pendingOp = op as unknown;
+          if (typeof (pendingOp as Promise<unknown>)?.then === 'function') {
+            results.push(await (pendingOp as Promise<unknown>));
+          } else if (typeof pendingOp === 'function') {
+            results.push(
+              await (pendingOp as (tx: typeof mockPrisma) => unknown)(
+                mockPrisma,
+              ),
+            );
           }
         }
         return results;
@@ -192,9 +197,9 @@ describe('WalletService', () => {
       await expect(service.exchangeBalanceToChips('user-1', 0)).rejects.toThrow(
         'Amount must be positive',
       );
-      await expect(service.exchangeBalanceToChips('user-1', -10)).rejects.toThrow(
-        'Amount must be positive',
-      );
+      await expect(
+        service.exchangeBalanceToChips('user-1', -10),
+      ).rejects.toThrow('Amount must be positive');
     });
 
     it('should throw BadRequestException when USDT balance is insufficient', async () => {
@@ -241,9 +246,9 @@ describe('WalletService', () => {
     it('should throw BadRequestException for zero USDT balance wallet (insufficient)', async () => {
       mockPrisma.wallet.findUnique.mockResolvedValue({ balance: 0 });
 
-      await expect(
-        service.exchangeBalanceToChips('user-1', 5),
-      ).rejects.toThrow('Insufficient USDT balance');
+      await expect(service.exchangeBalanceToChips('user-1', 5)).rejects.toThrow(
+        'Insufficient USDT balance',
+      );
     });
   });
 });
