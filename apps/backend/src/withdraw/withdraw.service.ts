@@ -238,17 +238,8 @@ export class WithdrawService {
       });
     });
 
-    // Set cooldown
+    // Set cooldown (outside tx — non-critical, doesn't affect financial consistency)
     await this.setCooldown(userId);
-
-    // Log transaction
-    await this.prisma.transaction.create({
-      data: {
-        userId,
-        amount: -dto.amountChips,
-        type: 'WITHDRAW',
-      },
-    });
 
     this.logger.log(
       `Withdraw created: user=${userId}, chips=${dto.amountChips}, usdt=${amountUsdt}, to=${dto.toAddress}`,
@@ -584,15 +575,38 @@ export class WithdrawService {
     // Wait for 1 confirmation
     await tx.wait(1);
 
-    // Save txHash, fromAddress, and status together after confirmation
-    await this.prisma.withdrawRequest.update({
-      where: { id: requestId },
-      data: {
-        txHash: tx.hash,
-        fromAddress: ownerWallet.address,
-        status: 'CONFIRMED',
-      },
-    });
+    // P1-WITHDRAW-007: wrap DB update in retry — chain tx is already mined,
+    // we must update DB status. Retry with exponential backoff.
+    const MAX_RETRIES = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await this.prisma.withdrawRequest.update({
+          where: { id: requestId },
+          data: {
+            txHash: tx.hash,
+            fromAddress: ownerWallet.address,
+            status: 'CONFIRMED',
+          },
+        });
+        break; // success
+      } catch (err) {
+        lastError = err;
+        this.logger.warn(
+          `executeChainWithdraw DB update attempt ${attempt}/${MAX_RETRIES} failed: ${(err as Error).message}`,
+        );
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+        }
+      }
+    }
+
+    // If all retries exhausted, the chain tx succeeded but DB is stale — alert and rethrow
+    if (lastError) {
+      const message = `executeChainWithdraw DB update failed after ${MAX_RETRIES} retries: ${(lastError as Error).message}. Chain tx ${tx.hash} is confirmed but DB status may be stale.`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
 
     this.logger.log(
       `Withdraw confirmed on-chain: id=${requestId}, txHash=${tx.hash}`,

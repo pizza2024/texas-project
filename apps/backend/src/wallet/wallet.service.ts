@@ -98,7 +98,7 @@ export class WalletService {
     }
 
     // Phase 2: Update user coinBalance individually (non-fatal if user doesn't exist, e.g., bots)
-    await Promise.all(
+    const phase2Results = await Promise.allSettled(
       entries.map(async ({ userId, balance }) => {
         const normalized = Math.max(0, balance);
         try {
@@ -114,16 +114,25 @@ export class WalletService {
             );
             return;
           }
+          // P1-WALLET-002: rethrow for real users — coinBalance consistency is critical
           if (error instanceof PrismaClientKnownRequestError) {
-            this.logger.warn(
+            this.logger.error(
               `Failed to update coinBalance for user ${userId}: ${error.code} - ${error.message}`,
             );
-            return;
+            throw error;
           }
           throw error;
         }
       }),
     );
+
+    // Log Phase 2 failures but don't fail the whole operation
+    const phase2Failures = phase2Results.filter((r) => r.status === 'rejected');
+    if (phase2Failures.length > 0) {
+      this.logger.error(
+        `setBalances Phase 2: ${phase2Failures.length}/${entries.length} users failed`,
+      );
+    }
   }
 
   /**
@@ -352,30 +361,33 @@ export class WalletService {
 
     const chipsToAdd = usdtAmount * CHIPS_TO_USDT_RATE;
 
-    await this.prisma.wallet.upsert({
-      where: { userId },
-      update: {
-        balance: { decrement: usdtAmount },
-        chips: { increment: chipsToAdd },
-      },
-      create: {
-        userId,
-        balance: -usdtAmount,
-        chips: chipsToAdd,
-      },
-    });
+    // P1-WALLET-001: wrap all DB writes in atomic transaction
+    await this.prisma.$transaction(async (tx) => {
+      await tx.wallet.upsert({
+        where: { userId },
+        update: {
+          balance: { decrement: usdtAmount },
+          chips: { increment: chipsToAdd },
+        },
+        create: {
+          userId,
+          balance: -usdtAmount,
+          chips: chipsToAdd,
+        },
+      });
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { coinBalance: { increment: chipsToAdd } },
-    });
+      await tx.user.update({
+        where: { id: userId },
+        data: { coinBalance: { increment: chipsToAdd } },
+      });
 
-    await this.prisma.transaction.create({
-      data: {
-        userId,
-        amount: chipsToAdd,
-        type: 'EXCHANGE',
-      },
+      await tx.transaction.create({
+        data: {
+          userId,
+          amount: chipsToAdd,
+          type: 'EXCHANGE',
+        },
+      });
     });
 
     return {

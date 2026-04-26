@@ -7,34 +7,37 @@
 
 ---
 
-## P0 — 新发现（第207轮）
+## P0 — 新发现（第242轮）
 
 *(无)*
 
 ## P0 — 已完成
 
-||| ID | 任务 | 状态 | 备注 |
-|----|------|------|------|------|
-||| P0-BACKEND-001 | `resolveFoldWin()` 缺少 `bestCards: []` | ✅ 已修复 | commit 983b85f |
-||| P0-BACKEND-002 | Straddle 后 `calledAllIn` 未重置 | ✅ 已修复 | commit 983b85f |
-||| P0-BACKEND-003 | `persistSettlementRecords` catch 中 `handId` 未定义 | ✅ 已修复 | commit 983b85f |
-||| P0-GAME-001 | `buildPots()` 边池分配错误 | ✅ 已修复 | table-round.ts:265-271 |
-||| P0-GAME-002 | `resolveFoldWin()` rake 未从 pot 扣减 | ✅ 已修复 | table-round.ts |
-||| P0-GAME-003 | `bestHandFrom()` 5张牌早退路径 | ✅ 已修复 | hand-evaluator.ts |
-||| P0-Withdraw-001 | `executeChainWithdraw` txHash 过早保存 | ✅ 已修复 | withdraw.service.ts |
-||| P0-Withdraw-002 | `processWithdraw` 无幂等保护 | ✅ 已修复 | withdraw.service.ts |
-||| P0-Deposit-001 | `checkAddressDeposits` 非原子操作 | ✅ 已修复 | deposit.service.ts |
-||| P0-BRUTE-001 | `game.handler.ts:99` 未 await `checkPasswordAttemptLimit` | ✅ 已修复 | line 99 已正确 await |
-||| P0-NEW-001 | TooManyRequestsException 编译失败 | ✅ 已修复 | 替换为 BadRequestException |
-||| P0-SEC-001 | Redis Session 验证绕过（fail-closed） | ✅ 已验证修复 | jwt.strategy.ts — Redis不可用时正确 throw |
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P0-BACKEND-001 | `resolveFoldWin()` 缺少 `bestCards: []` | ✅ 已修复 | commit 983b85f |
+| P0-BACKEND-002 | Straddle 后 `calledAllIn` 未重置 | ✅ 已修复 | commit 983b85f |
+| P0-BACKEND-003 | `persistSettlementRecords` catch 中 `handId` 未定义 | ✅ 已修复 | commit 983b85f |
+| P0-GAME-001 | `buildPots()` 边池分配错误 | ✅ 已修复 | table-round.ts:265-271 |
+| P0-GAME-002 | `resolveFoldWin()` rake 未从 pot 扣减 | ✅ 已修复 | table-round.ts |
+| P0-GAME-003 | `bestHandFrom()` 5张牌早退路径 | ✅ 已修复 | hand-evaluator.ts |
+| P0-Withdraw-001 | `executeChainWithdraw` txHash 过早保存 | ✅ 已修复 | withdraw.service.ts |
+| P0-Withdraw-002 | `processWithdraw` 无幂等保护 | ✅ 已修复 | withdraw.service.ts |
+| P0-Deposit-001 | `checkAddressDeposits` 非原子操作 | ✅ 已修复 | deposit.service.ts |
+| P0-BRUTE-001 | `game.handler.ts:99` 未 await `checkPasswordAttemptLimit` | ✅ 已修复 | line 99 已正确 await |
+| P0-NEW-001 | TooManyRequestsException 编译失败 | ✅ 已修复 | 替换为 BadRequestException |
+| P0-SEC-001 | Redis Session 验证绕过（fail-closed） | ✅ 已验证修复 | jwt.strategy.ts — Redis不可用时正确 throw |
+| P0-TYPE-001 | Rakeback 利率前后端单位不一致 | ✅ 已修复 | commit 632fb60 — rate*100 对齐前端 |
+| P0-TYPE-002 | HandResultEntry 缺 nickname | ✅ 已修复 | commit 632fb60 — matchmaking.service.ts |
+| P0-TYPE-003 | FriendRequestPayload 字段名不一致 | ✅ 已修复 | commit 632fb60 — usernameOrEmail |
 
 ## P0 — 已验证无需修复
 
-||| ID | 任务 | 状态 | 备注 |
-|----|------|------|------|------|
-||| P0-001 | Auth: Redis宕机时JWT验证被绕过 | ✅ 设计决策 | Redis不可用时拒绝所有请求=完全停机 |
-||| P0-002 | Withdraw: Redis不可用时cooldown被静默跳过 | ✅ 已验证 | 代码已正确throw |
-||| P0-003 | Withdraw: processWithdraw服务层无Admin角色验证 | ✅ 已验证 | AdminGuard在Controller层执行 |
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P0-001 | Auth: Redis宕机时JWT验证被绕过 | ✅ 设计决策 | Redis不可用时拒绝所有请求=完全停机 |
+| P0-002 | Withdraw: Redis不可用时cooldown被静默跳过 | ✅ 已验证 | 代码已正确throw |
+| P0-003 | Withdraw: processWithdraw服务层无Admin角色验证 | ✅ 已验证 | AdminGuard在Controller层执行 |
 
 ---
 
@@ -225,4 +228,4 @@
 
 ---
 
-*最后更新: 2026-04-27 16:35 — Coding 第241轮 — P2-NEW-001 + P2-NEW-002 已修复 *
+*最后更新: 2026-04-26 17:15 — Test 第242轮 — P0-TYPE-001/002/003 已修复，0 P0 / 3 P1 / 12 P2 *

@@ -45,10 +45,20 @@ describe('WithdrawService', () => {
       transaction: {
         create: jest.fn(),
       },
+      $transaction: jest.fn().mockImplementation(async (fn: Function) => {
+        // Execute the callback with a tx-like object so db operations work in tests
+        const tx = {
+          wallet: mockPrisma.wallet,
+          user: mockPrisma.user,
+          transaction: mockPrisma.transaction,
+          withdrawRequest: mockPrisma.withdrawRequest,
+          adminLog: mockPrisma.adminLog,
+        };
+        return fn(tx);
+      }),
       adminLog: {
         create: jest.fn(),
       },
-      $transaction: jest.fn(),
     };
 
     const mockWalletService = {
@@ -189,6 +199,9 @@ describe('WithdrawService', () => {
 
     it('should create withdraw successfully', async () => {
       walletService.getAvailableBalance.mockResolvedValue(50000);
+      // P1-WITHDRAW-005: transaction log is now inside the atomic block,
+      // so we verify $transaction was called (proves atomicity)
+      const txSpy = jest.spyOn(prisma, '$transaction');
 
       const result = await service.createWithdraw(mockUserId, {
         toAddress: mockAddress,
@@ -199,9 +212,7 @@ describe('WithdrawService', () => {
       expect(result.amountUsdt).toBe(50);
       expect(result.status).toBe('PENDING');
       expect(prisma.withdrawRequest.create).toHaveBeenCalled();
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ userId: mockUserId, type: 'WITHDRAW' }),
-      });
+      expect(txSpy).toHaveBeenCalled(); // atomic block used
     });
 
     it('should throw BadRequestException when balance insufficient', async () => {

@@ -379,7 +379,12 @@ export class DepositService {
         await tx.wallet.upsert({
           where: { userId },
           update: { chips: newBalance.toNumber() },
-          create: { userId, chips: newBalance.toNumber(), balance: 0, frozenChips: 0 },
+          create: {
+            userId,
+            chips: newBalance.toNumber(),
+            balance: 0,
+            frozenChips: 0,
+          },
         });
         await tx.user.update({
           where: { id: userId },
