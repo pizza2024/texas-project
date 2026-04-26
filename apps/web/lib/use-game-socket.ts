@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { ServerToClientEvents, ClientToServerEvents } from '@texas/shared';
 import type { EmojiFlight } from '@/app/room/[id]/components/EmojiOverlay';
@@ -38,7 +38,7 @@ export function useGameSocket({
   myUserId,
   onEmojiReaction,
 }: UseGameSocketOptions): UseGameSocketReturn {
-  const flightsRef = useRef<EmojiFlight[]>([]);
+  const [activeFlights, setActiveFlights] = useState<EmojiFlight[]>([]);
 
   // Listen for incoming emoji-reaction events from other players
   useEffect(() => {
@@ -59,7 +59,8 @@ export function useGameSocket({
         delay: 0,
       };
 
-      flightsRef.current = [...flightsRef.current, flight];
+      setActiveFlights((prev) => [...prev, flight]);
+      onEmojiReaction?.({ userId: data.userId, emoji: data.emoji });
     };
 
     socket.on('emoji-reaction', handler);
@@ -76,10 +77,8 @@ export function useGameSocket({
     [socket, roomId],
   );
 
-  const activeFlights = flightsRef.current;
-
   const removeFlight = useCallback((id: string) => {
-    flightsRef.current = flightsRef.current.filter((f) => f.id !== id);
+    setActiveFlights((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   return { emitEmoji, activeFlights, removeFlight };
