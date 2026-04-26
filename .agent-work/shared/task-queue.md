@@ -48,15 +48,15 @@
 
 || ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P1-NEW-003 | `setBalances` Phase 2 非原子 — wallet.chips 和 user.coinBalance 可能不一致 | 🟡 待认领 | wallet.service.ts:64-136 |
-|| P1-NEW-004 | `exchangeChipsToBalance` 余额检查在事务外 — TOCTOU | 🟡 待认领 | wallet.service.ts:275 |
-|| P1-NEW-005 | `createWithdraw` 余额检查 TOCTOU — 并发创建可超额提现 | ✅ 已修复 | commit 9c48a17 — 余额检查移至事务内 |
-|| P1-NEW-006 | `handleWithdrawFailure` 状态检查在事务外 — 并发双重退款 | ✅ 已修复 | commit 9c48a17 — 整体已原子化（状态更新+退款在同一tx） |
-|| P1-NEW-007 | `register` 用户创建和钱包创建非原子 | ✅ 已修复 | commit 9c48a17 — user+wallet 同事务创建 |
-|| P1-NEW-008 | `registerWithEmail` 同上 | ✅ 已修复 | commit 9c48a17 — user+wallet 同事务创建 |
-|| P1-NEW-009 | `rejectWithdrawRequest` 状态检查在事务外 — 并发双重退款 | ✅ 已修复 | commit 9c48a17 — 整体流程原子化 |
-|| P1-NEW-010 | `checkStaleProcessing` 无幂等保护 — 可能重复入队 | ✅ 已修复 | commit 45e0053 — isInQueue 幂等检查 |
-|| P1-NEW-011 | `createWithdraw` 测试回归 — "balance insufficient" 测试失败 | ✅ 已修复 | commit c5da1b7 — mock tx.wallet.findUnique 代替 walletService.getAvailableBalance |
+|| P1-NEW-003 | `setBalances` Phase 2 非原子 | ✅ 已修复 | commit 3cafbb2 |
+|| P1-NEW-004 | `exchangeChipsToBalance` TOCTOU | ✅ 已修复 | commit 3cafbb2 |
+|| P1-NEW-005 | `createWithdraw` 余额检查 TOCTOU | ✅ 已修复 | commit 9c48a17 |
+|| P1-NEW-006 | `handleWithdrawFailure` 状态检查在事务外 | ✅ 已修复 | commit 9c48a17 |
+|| P1-NEW-007 | `register` 非原子 | ✅ 已修复 | commit 9c48a17 |
+|| P1-NEW-008 | `registerWithEmail` 非原子 | ✅ 已修复 | commit 9c48a17 |
+|| P1-NEW-009 | `rejectWithdrawRequest` 状态检查在事务外 | ✅ 已修复 | commit 9c48a17 |
+|| P1-NEW-010 | `checkStaleProcessing` 无幂等保护 | ✅ 已修复 | commit 45e0053 |
+|| P1-NEW-011 | `createWithdraw` 测试回归 | ✅ 已修复 | commit c5da1b7 |
 
 ## P1 — 新发现（第244轮）
 
@@ -280,4 +280,4 @@
 
 ---
 
-*最后更新: 2026-04-27 05:45 — Coding 第294轮 — P0-E2E-002 已修复 — 410 tests ✅ *
+*最后更新: 2026-04-27 06:30 — Coding 第297轮 — P2-WEB-TS-001 已修复 — 410 tests ✅ *
