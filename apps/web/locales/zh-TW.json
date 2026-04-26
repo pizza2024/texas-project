@@ -271,6 +271,9 @@
     "failedReason": "失敗原因",
     "loadError": "載入提現資訊失敗，請稍後重試"
   },
+  "deposit": {
+    "faucetSuccess": "成功領取 {{amount}} USDT，約 30 秒後籌碼自動到賬"
+  },
   "rakeback": {
     "navButton": "回饋",
     "title": "回饋",

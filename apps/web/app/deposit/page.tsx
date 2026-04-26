@@ -142,7 +142,7 @@ export default function DepositPage() {  const { t } = useTranslation();
       const { txHash, amount } = res.data;
       setFaucetMsg({
         type: 'success',
-        text: `成功领取 ${amount} USDT，约 30 秒后筹码自动到账`,
+        text: t('deposit.faucetSuccess', { amount }),
         txHash,
       });
       // 60s cooldown countdown

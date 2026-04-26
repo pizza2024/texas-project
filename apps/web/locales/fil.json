@@ -252,6 +252,9 @@
     "failedReason": "Dahilan ng failure",
     "loadError": "Hindi ma-load ang withdraw info"
   },
+  "deposit": {
+    "faucetSuccess": "Matagumpay na nakatanggap ng {{amount}} USDT, chips ay mai-credit sa ~30 segundo"
+  },
   "rakeback": {
     "navButton": "Rakeback",
     "title": "Rakeback",

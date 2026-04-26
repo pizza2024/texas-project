@@ -252,6 +252,9 @@
     "failedReason": "Fehlergrund",
     "loadError": "Auszahlungsinformationen konnten nicht geladen werden"
   },
+  "deposit": {
+    "faucetSuccess": "{{amount}} USDT erfolgreisch erhalten, Chips werden in ~30 Sekunden gutgeschrieben"
+  },
   "rakeback": {
     "navButton": "Rakeback",
     "title": "Rakeback",

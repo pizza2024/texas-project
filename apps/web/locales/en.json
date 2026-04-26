@@ -266,6 +266,7 @@
   "deposit.noHistory": "No deposit records yet",
   "deposit.confirmed": "Confirmed",
   "deposit.loadError": "Failed to load deposit info. Please try again.",
+  "deposit.faucetSuccess": "Successfully received {{amount}} USDT, chips will be credited in ~30 seconds",
   "room.straddle": "Straddle",
   "room.sitOut": "Sit Out",
   "room.sitOutWithCount": "Sit Out ({{count}}/3)",

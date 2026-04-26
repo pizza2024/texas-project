@@ -272,6 +272,9 @@
     "failedReason": "失敗理由",
     "loadError": "引出し情報の読み込みに失敗しました"
   },
+  "deposit": {
+    "faucetSuccess": "{{amount}} USDTを受け取りました、約30秒でチップ自動チャージ"
+  },
   "rakeback": {
     "navButton": "リバベート",
     "title": "リバベート",

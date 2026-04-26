@@ -266,6 +266,7 @@
   "deposit.noHistory": "暂无充值记录",
   "deposit.confirmed": "已确认",
   "deposit.loadError": "加载充值信息失败，请稍后重试",
+  "deposit.faucetSuccess": "成功领取 {{amount}} USDT，约 30 秒后筹码自动到账",
   "room.straddle": "抓",
   "room.sitOut": "暂离",
   "room.sitOutWithCount": "暂离 ({{count}}/3)",
