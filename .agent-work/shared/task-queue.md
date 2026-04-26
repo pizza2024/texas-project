@@ -142,7 +142,7 @@
 | ~~P2-EMOJI-REF~~ | `use-game-socket.ts` ref 违规访问 | ✅ 已修复 | commit b72f640 — useRef → useState |
 | P2-WEB-SPEC | Web 页面组件测试 | 🟡 部分完成 | Jest 基础设施 + AuthProvider + SocketSessionProvider（15 tests） |
 | P2-TOURNAMENT-SPEC | Tournament spec | ✅ 已完成 | commit 745db4d — friend.service.spec.ts (41 tests) + match/wallet specs |
-| P2-WALLET-SPEC-TS | wallet.service.spec.ts `$transaction` mock TS 类型错误 | 🔍 待认领 | spec.ts:29,31 |
+| P2-WALLET-SPEC-TS | wallet.service.spec.ts `$transaction` mock TS 类型错误 | ✅ 已修复 | commit 77c41d9 — `unknown[]` + 类型断言解决 `never` 问题 |
 | P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
 | P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
 | P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | ⚠️ 建议关闭 | 架构决策，backend auto-claim |

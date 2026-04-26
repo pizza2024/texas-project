@@ -153,7 +153,9 @@ describe('MatchmakingService', () => {
     });
 
     it('should not throw when removing a non-existent player', () => {
-      expect(() => service.recordPlayerLeft('room-1', 'ghost-user')).not.toThrow();
+      expect(() =>
+        service.recordPlayerLeft('room-1', 'ghost-user'),
+      ).not.toThrow();
     });
   });
 
@@ -179,7 +181,10 @@ describe('MatchmakingService', () => {
       mockPrisma.room.findMany.mockResolvedValue([existingRoom]);
 
       // Pre-populate roomElos so isRoomSuitable passes ELO check
-      (service as any).roomElos.set('room-existing', new Map([['other-user', 1200]]));
+      (service as any).roomElos.set(
+        'room-existing',
+        new Map([['other-user', 1200]]),
+      );
 
       const result = await service.findOrCreateMatchmakingRoom(
         baseParams.userId,
@@ -300,7 +305,10 @@ describe('MatchmakingService', () => {
       };
 
       mockPrisma.room.findMany.mockResolvedValue([existingRoom]);
-      (service as any).roomElos.set('room-1', new Map([['existing-user', 1000]]));
+      (service as any).roomElos.set(
+        'room-1',
+        new Map([['existing-user', 1000]]),
+      );
       (service as any).roomIps.set('room-1', new Set(['existing-ip-hash']));
       mockPrisma.room.create.mockResolvedValue({ id: 'room-new' });
 
@@ -326,8 +334,14 @@ describe('MatchmakingService', () => {
 
       mockPrisma.room.findMany.mockResolvedValue([existingRoom]);
       // Existing player: 1200, new player: 1250 — diff = 50 < 200
-      (service as any).roomElos.set('room-elo-match', new Map([['existing-user', 1200]]));
-      (service as any).roomIps.set('room-elo-match', new Set(['existing-ip-hash']));
+      (service as any).roomElos.set(
+        'room-elo-match',
+        new Map([['existing-user', 1200]]),
+      );
+      (service as any).roomIps.set(
+        'room-elo-match',
+        new Set(['existing-ip-hash']),
+      );
 
       const result = await service.findOrCreateMatchmakingRoom(
         'new-user',
@@ -345,7 +359,9 @@ describe('MatchmakingService', () => {
 
   describe('updateElo', () => {
     it('should do nothing when handResult has fewer than 2 participants', async () => {
-      await service.updateElo([{ playerId: 'user-1', nickname: 'p1', winAmount: 100, totalBet: 50 }]);
+      await service.updateElo([
+        { playerId: 'user-1', nickname: 'p1', winAmount: 100, totalBet: 50 },
+      ]);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -366,7 +382,12 @@ describe('MatchmakingService', () => {
 
     it('should calculate correct ELO deltas for winner and loser', async () => {
       const entries = [
-        { playerId: 'user-1', nickname: 'winner', winAmount: 1000, totalBet: 200 },
+        {
+          playerId: 'user-1',
+          nickname: 'winner',
+          winAmount: 1000,
+          totalBet: 200,
+        },
         { playerId: 'user-2', nickname: 'loser', winAmount: 0, totalBet: 100 },
       ];
 
@@ -422,7 +443,10 @@ describe('MatchmakingService', () => {
 
       await service.updateElo(entries);
 
-      expect(logSpy).toHaveBeenCalledWith('Failed to update ELO', expect.any(Error));
+      expect(logSpy).toHaveBeenCalledWith(
+        'Failed to update ELO',
+        expect.any(Error),
+      );
     });
   });
 
@@ -482,7 +506,11 @@ describe('MatchmakingService', () => {
         { userId: 'user-4', _count: { handId: 5 } },
       ]);
 
-      const result = await service.checkCollusion('user-1', ['user-2', 'user-3', 'user-4']);
+      const result = await service.checkCollusion('user-1', [
+        'user-2',
+        'user-3',
+        'user-4',
+      ]);
 
       expect(result).toBe(true);
     });

@@ -183,6 +183,18 @@ export default function TournamentDetailPage() {
           >
             {sc.label}
           </span>
+          {tournament.isGuarantee && (
+            <span
+              className="px-3 py-1 rounded-lg text-sm font-bold"
+              style={{
+                background: 'rgba(249, 115, 22, 0.15)',
+                border: '1px solid rgba(249, 115, 22, 0.4)',
+                color: '#f97316',
+              }}
+            >
+              GTD
+            </span>
+          )}
         </div>
 
         {/* Tournament Name */}
@@ -218,7 +230,7 @@ export default function TournamentDetailPage() {
           <div className="grid grid-cols-2 gap-4">
             {[
               { label: "Buy-in", value: `${formatChips(tournament.buyin)} chips`, color: "text-yellow-400" },
-              { label: "Max Players", value: tournament.maxPlayers.toString() },
+              { label: "Players", value: `${tournament.registeredCount ?? 0} / ${tournament.maxPlayers}` },
               {
                 label: "Small Blind",
                 value: `${formatChips(tournament.smallBlind)}`,
@@ -226,6 +238,11 @@ export default function TournamentDetailPage() {
               {
                 label: "Big Blind",
                 value: `${formatChips(tournament.smallBlind * 2)}`,
+              },
+              {
+                label: "Total Prize",
+                value: `${formatChips(tournament.totalPrize)} chips`,
+                color: "text-green-400",
               },
               {
                 label: "Clock Interval",

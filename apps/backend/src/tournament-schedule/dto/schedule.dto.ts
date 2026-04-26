@@ -54,6 +54,12 @@ export class CreateScheduleDto {
   })
   @IsOptional()
   prizeDistribution?: readonly [number, number, number];
+
+  @ApiPropertyOptional({
+    description: 'Guaranteed prize pool (GTD) regardless of player count',
+  })
+  @IsOptional()
+  isGuarantee?: boolean;
 }
 
 /** Response DTO for a schedule entry */
@@ -84,6 +90,18 @@ export class ScheduleEntryResponseDto {
 
   @ApiProperty()
   prizeDistribution: readonly [number, number, number];
+
+  /** Total prize pool (buyin × maxPlayers) */
+  @ApiProperty()
+  totalPrize: number;
+
+  /** Whether the prize pool is guaranteed regardless of entries */
+  @ApiPropertyOptional()
+  isGuarantee?: boolean;
+
+  /** Current number of registered players */
+  @ApiPropertyOptional()
+  registeredCount?: number;
 
   @ApiProperty()
   status: TournamentScheduleStatus;

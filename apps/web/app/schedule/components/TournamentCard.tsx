@@ -23,6 +23,9 @@ export interface ScheduleEntry {
   clockIntervalSeconds: number;
   scheduledStartTime: string | null;
   prizeDistribution: readonly [number, number, number];
+  totalPrize: number;
+  isGuarantee?: boolean;
+  registeredCount?: number;
   status: TournamentScheduleStatus;
   createdAt: string;
   updatedAt: string;
@@ -154,6 +157,19 @@ export function TournamentCard({
             >
               {sc.label}
             </span>
+            {/* GTD badge */}
+            {tournament.isGuarantee && (
+              <span
+                className="px-2 py-0.5 rounded text-xs font-bold"
+                style={{
+                  background: 'rgba(249, 115, 22, 0.15)',
+                  border: '1px solid rgba(249, 115, 22, 0.4)',
+                  color: '#f97316',
+                }}
+              >
+                GTD
+              </span>
+            )}
             {isRegistered && (
               <span
                 className="px-2 py-0.5 rounded text-xs font-semibold"
@@ -185,7 +201,7 @@ export function TournamentCard({
           <div>
             <span className="text-gray-400">Players: </span>
             <span className="text-white font-medium">
-              {tournament.maxPlayers}
+              {tournament.registeredCount ?? 0}/{tournament.maxPlayers}
             </span>
           </div>
           <div>
@@ -198,7 +214,7 @@ export function TournamentCard({
           <div>
             <span className="text-gray-400">Prize: </span>
             <span className="text-white font-medium">
-              {prize[0]}% / {prize[1]}% / {prize[2]}%
+              {formatChips(tournament.totalPrize)} chips
             </span>
           </div>
         </div>

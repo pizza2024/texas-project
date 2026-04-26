@@ -1,43 +1,62 @@
-# Productor Latest — 第271轮
+# Productor Latest — 第273轮
 
-**时间:** 2026-04-28 00:30
-**HEAD:** `770ddcf` — 0 P0 / 0 P1 / ~4 P2 ✅
+**时间:** 2026-04-27 01:00
+**HEAD:** `6f52aa5` — 0 P0 / 0 P1 / ~5 P2
 
 ---
 
 ## 系统状态
 
-- **HEAD:** `770ddcf` — P2-CHAT-IDEMPOTENCY 已修复（Redis SET NX EX 60，clientMessageId 去重）
-- **测试:** 30 suites / 369 tests ✅
-- **P2:** ~4 项（详见 task-queue.md）
+- **HEAD:** `6f52aa5` — fix(wallet.spec): resolve TS type error in $transaction mock loop
+- **测试:** 31 suites / 410 tests ✅
+- **P2:** ~5 项（P2-WALLET-SPEC-TS, P2-WEB-SPEC, P2-ROOM-RETRY, P2-CODE-PATTERN, P2-WS-RATE-UNIT）
 
 ---
 
-## 本轮调研 — Tournament UI 竞品分析与改进建议
+## 本轮调研 — Tournament Prize Display UX
 
-### TournamentCard 竞品对比
+### 竞品对标
 
-| 字段 | GGPoker | PokerStars | 本项目 | 优先级 |
-|------|---------|------------|--------|--------|
-| 总奖池 | ✅ GTD 显示 | ✅ 显示 | ❌ 缺失 | **P1** |
-| 当前注册人数 | ✅ 实时 | ✅ 实时 | ❌ 缺失 | **P2** |
-| 奖励圈人数 | ✅ 显示 | ✅ 显示 | ❌ 缺失 | P2 |
-| 升盲时间表 | ✅ 可展开 | ✅ 可展开 | ❌ 缺失 | P3 |
+| 特性 | GGPoker | PokerStars Blast | 本项目 |
+|------|---------|------------------|--------|
+| 总奖池金额 | ✅ | ✅ | ❌ 缺失 |
+| GTD 标签 | ✅ | ✅ | ❌ 缺失 |
+| 已注册人数 | ✅ | ✅ | ❌ 缺失 |
+| 乘数揭示动画（SPINS） | ✅ | ✅ | ❌ 待实施 |
+| 5分钟强制 showdown | ✅ | ✅ | ❌ 待实施 |
 
-### 手牌复盘 ReplayModal Phase 2 评估
+---
 
-| 组件 | 功能 | 状态 |
-|------|------|------|
-| EquityCurveChart | equity 曲线 | ✅ |
-| PotOddsTooltip | 悬停赔率 | ✅ |
-| PlaybackControls | 播放控制 | ✅ |
-| SpeedSelector | 速度选择 | ✅ |
-| AutoPlayPanel | 自动播放 | ✅ |
-| ReplayActionLog | 操作时间线 | ✅ |
+## P1-PRIZE-DISPLAY 规格建议
 
-**改进建议：**
-- P2: 手牌复盘"分享"功能（GGPoker/PokerStars 均有）
-- P2: SHOWDOWN 阶段显示胜率百分比
+### 当前 ScheduleEntry 缺失字段
+- `prizePool` — 总奖池金额
+- `isGuarantee` — 是否有 GTD 保障
+- `registeredCount` — 当前报名人数
+
+### 建议前端 TournamentCard 变更
+```tsx
+// 总奖池 + GTD 标签
+{prizePool && (
+  <div className="flex items-center gap-2">
+    <span className="text-yellow-400 font-bold text-lg">
+      {formatChips(prizePool)} chips
+    </span>
+    {isGuarantee && (
+      <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-bold">
+        GTD
+      </span>
+    )}
+  </div>
+)}
+
+// 已注册人数
+{registeredCount !== undefined && (
+  <span className="text-gray-400 text-sm">
+    {registeredCount}/{maxPlayers} registered
+  </span>
+)}
+```
 
 ---
 
@@ -45,21 +64,23 @@
 
 | ID | 描述 | 状态 |
 |----|------|------|
-| P2-CHAT-IDEMPOTENCY | 聊天幂等键 | ✅ 已修复 (770ddcf) |
-| P2-TOURNAMENT-SPEC | Tournament spec | ✅ 已完成 (1ac7258) |
-| P2-WALLET-SPEC | Wallet spec | ✅ 已完成 (1ac7258) |
+| P2-CHAT-IDEMPOTENCY | 聊天幂等键 | ✅ 已修复 |
+| P2-TOURNAMENT-SPEC | Tournament spec | ✅ 已完成 |
+| P2-WALLET-SPEC | Wallet spec | ✅ 已完成 |
 | P2-WEB-SPEC | Web 测试覆盖 | 🟡 部分完成 |
 | P2-WS-RATE-UNIT | 时间单位注释混淆 | 🔍 待认领 |
 | P2-CODE-PATTERN | Promise.all 优化 | 🔍 待认领 |
 | P2-ROOM-RETRY | 重试无指数退避 | 🔍 待认领 |
+| P2-WALLET-SPEC-TS | $transaction mock TS 类型错误 | 🔍 待认领 |
 
 ---
 
 ## 下轮调研
 
-1. **P1-PRIZE-DISPLAY** — TournamentCard 奖池金额 + GTD 标签规格
-2. **Blast/SPINS** — GGPoker SPINS 3人即开型奖池机制详细规格
-3. **CoinPoker 链上验证** — crypto verifiability 差异化
+1. **CoinPoker 链上验证功能深度研究** — verifiable shuffle 技术
+2. **WSOP Mobile UX 截图分析** — 竞品移动端界面
+3. **P1-PRIZE-DISPLAY 实施追踪** — 确认 Coding 认领状态
+4. **Blast 奖池 UI 设计** — 参考 GGPoker SPINS 动画
 
 ---
 
@@ -67,7 +88,7 @@
 
 | 规格 | 状态 |
 |------|------|
-| SPINS/Blast | 📋 P1-BLAST-001 规格待定义 |
+| SPINS/Blast | 📋 P1-BLAST-001 规格已完成，待 Coding 实施 |
 | 每日任务 | ✅ |
 | 首充奖励 | ✅ |
 | 好友/聊天 | ✅ |
@@ -77,17 +98,9 @@
 | Rakeback 5层 | ✅ |
 | Matchmaking/Wallet spec | ✅ |
 | P2-CHAT-IDEMPOTENCY | ✅ |
+| FriendService spec | ✅ |
+| Admin lint 0 warnings | ✅ |
 
 ---
 
-## 新增 P1 建议
-
-### P1-PRIZE-DISPLAY — TournamentCard 奖池显示
-
-**问题:** 玩家只能看到奖励百分比，看不到总奖池金额。
-
-**建议:** `ScheduleEntry` 增加 `prizePool` + `isGuarantee` + `registeredCount` 字段，TournamentCard 显示实际金额和 GTD 标签。
-
----
-
-*Productor 第271轮 — 2026-04-28 00:30*
+*Productor 第273轮 — 2026-04-27 01:00*

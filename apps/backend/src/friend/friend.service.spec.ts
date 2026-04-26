@@ -74,7 +74,10 @@ describe('FriendService', () => {
     });
 
     it('should throw BadRequestException when sending request to yourself', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue({ ...addressee, id: requesterId });
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...addressee,
+        id: requesterId,
+      });
 
       await expect(
         service.sendFriendRequest(requesterId, usernameOrEmail),
@@ -159,7 +162,10 @@ describe('FriendService', () => {
         avatar: null,
       });
 
-      const result = await service.sendFriendRequest(requesterId, usernameOrEmail);
+      const result = await service.sendFriendRequest(
+        requesterId,
+        usernameOrEmail,
+      );
 
       expect(result).toEqual(createdFriend);
       expect(mockPrisma.friend.create).toHaveBeenCalledWith({
@@ -209,7 +215,10 @@ describe('FriendService', () => {
         createdAt: new Date(),
       };
       mockPrisma.friend.create.mockResolvedValue(createdFriend);
-      mockPrisma.user.findUnique.mockResolvedValue({ nickname: 'User One', avatar: null });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        nickname: 'User One',
+        avatar: null,
+      });
 
       await service.sendFriendRequest(requesterId, 'alice@example.com');
 
@@ -281,7 +290,12 @@ describe('FriendService', () => {
         }));
       mockPrisma.friend.findMany.mockResolvedValue(records);
 
-      const result = await service.getReceivedRequests(userId, 'PENDING', undefined, 20);
+      const result = await service.getReceivedRequests(
+        userId,
+        'PENDING',
+        undefined,
+        20,
+      );
 
       expect(result.data).toHaveLength(20);
       expect(result.nextCursor).toBe('friend-19');
@@ -495,8 +509,18 @@ describe('FriendService', () => {
           createdAt: new Date(),
           requesterId: userId,
           addresseeId: 'user-2',
-          requester: { id: userId, nickname: 'Me', avatar: null, status: 'ONLINE' },
-          addressee: { id: 'user-2', nickname: 'Bob', avatar: 'avatar-bob', status: 'ONLINE' },
+          requester: {
+            id: userId,
+            nickname: 'Me',
+            avatar: null,
+            status: 'ONLINE',
+          },
+          addressee: {
+            id: 'user-2',
+            nickname: 'Bob',
+            avatar: 'avatar-bob',
+            status: 'ONLINE',
+          },
         },
         {
           id: 'friend-2',
@@ -504,8 +528,18 @@ describe('FriendService', () => {
           createdAt: new Date(),
           requesterId: 'user-3',
           addresseeId: userId,
-          requester: { id: 'user-3', nickname: 'Charlie', avatar: null, status: 'OFFLINE' },
-          addressee: { id: userId, nickname: 'Me', avatar: null, status: 'ONLINE' },
+          requester: {
+            id: 'user-3',
+            nickname: 'Charlie',
+            avatar: null,
+            status: 'OFFLINE',
+          },
+          addressee: {
+            id: userId,
+            nickname: 'Me',
+            avatar: null,
+            status: 'ONLINE',
+          },
         },
       ];
       mockPrisma.friend.findMany.mockResolvedValue(records);
@@ -544,8 +578,18 @@ describe('FriendService', () => {
           createdAt: new Date(),
           requesterId: userId,
           addresseeId: `user-${i}`,
-          requester: { id: userId, nickname: 'Me', avatar: null, status: 'ONLINE' },
-          addressee: { id: `user-${i}`, nickname: `User ${i}`, avatar: null, status: 'ONLINE' },
+          requester: {
+            id: userId,
+            nickname: 'Me',
+            avatar: null,
+            status: 'ONLINE',
+          },
+          addressee: {
+            id: `user-${i}`,
+            nickname: `User ${i}`,
+            avatar: null,
+            status: 'ONLINE',
+          },
         }));
       mockPrisma.friend.findMany.mockResolvedValue(records);
 
@@ -650,7 +694,11 @@ describe('FriendService', () => {
           requesterId: 'user-3',
           addresseeId: userId,
           status: 'ACCEPTED',
-          requester: { id: 'user-3', nickname: 'Charlie', avatar: 'avatar-charlie' },
+          requester: {
+            id: 'user-3',
+            nickname: 'Charlie',
+            avatar: 'avatar-charlie',
+          },
           addressee: { id: userId, nickname: 'Me', avatar: null },
         },
       ];

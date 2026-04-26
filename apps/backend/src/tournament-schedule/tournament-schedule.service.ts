@@ -53,6 +53,9 @@ interface ScheduleEntry {
   clockIntervalSeconds: number;
   scheduledStartTime: string | null;
   prizeDistribution: readonly [number, number, number];
+  totalPrize: number;
+  isGuarantee?: boolean;
+  registeredCount?: number;
   status: TournamentScheduleStatus;
   roomId: string | null;
   createdAt: string;
@@ -125,6 +128,9 @@ export class TournamentScheduleService
         (dto.type === TournamentType.BTC ? BTC_CLOCK_INTERVAL_SECONDS : 180),
       scheduledStartTime: dto.scheduledStartTime ?? null,
       prizeDistribution: dto.prizeDistribution ?? [60, 30, 10],
+      totalPrize: dto.buyin * dto.maxPlayers,
+      isGuarantee: dto.isGuarantee ?? false,
+      registeredCount: 0,
       status: TournamentScheduleStatus.SCHEDULED,
       roomId: null,
       createdAt: now,
@@ -646,6 +652,9 @@ export class TournamentScheduleService
       clockIntervalSeconds: entry.clockIntervalSeconds,
       scheduledStartTime: entry.scheduledStartTime,
       prizeDistribution: entry.prizeDistribution,
+      totalPrize: entry.totalPrize,
+      isGuarantee: entry.isGuarantee,
+      registeredCount: entry.registeredCount,
       status: entry.status,
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
