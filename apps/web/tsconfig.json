@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@texas/shared": ["../../packages/shared/src"],
+      "@texas/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [
