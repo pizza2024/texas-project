@@ -50,7 +50,7 @@ export interface ClientToServerEvents {
   quick_match: (data: { tier: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM' }) => void;
   show_cards: (data: { roomId: string }) => void;
   /** 发送聊天消息 */
-  'chat-message': (data: { roomId: string; content: string }) => void;
+  'chat-message': (data: { roomId: string; content: string; clientMessageId?: string }) => void;
   /** 发送表情反应 */
   'emoji-reaction': (data: { roomId: string; emoji: string }) => void;
 }

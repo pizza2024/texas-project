@@ -133,6 +133,10 @@ export class AppGateway
     return this.connectionState.checkChatRateLimit(userId);
   }
 
+  async checkMessageProcessed(clientMessageId: string) {
+    return this.connectionState.isMessageProcessed(clientMessageId);
+  }
+
   async checkEmojiRateLimit(userId: string) {
     return this.connectionState.checkEmojiRateLimit(userId);
   }

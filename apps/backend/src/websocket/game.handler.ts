@@ -519,16 +519,27 @@ export async function handleShowCards(gateway: AppGateway, client: Socket) {
 export async function handleChatMessage(
   gateway: AppGateway,
   client: Socket,
-  data: { roomId: string; content: string },
+  data: { roomId: string; content: string; clientMessageId?: string },
 ) {
   const userId = client.data.user?.sub as string;
   if (!userId) {
     return { event: 'error', data: 'Unauthorized' };
   }
 
-  const { roomId, content } = data ?? {};
+  const { roomId, content, clientMessageId } = data ?? {};
   if (!roomId || typeof content !== 'string' || !content.trim()) {
     return { event: 'error', data: 'Invalid message' };
+  }
+
+  // ── Idempotency guard: reject duplicate clientMessageId within 60s window ──
+  if (clientMessageId) {
+    const isNew = await gateway.checkMessageProcessed(clientMessageId);
+    if (!isNew) {
+      client.emit('chat_error', {
+        message: '消息已发送，请勿重复提交',
+      });
+      return;
+    }
   }
 
   const trimmed = content.trim();

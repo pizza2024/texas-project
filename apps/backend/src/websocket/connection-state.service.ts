@@ -94,6 +94,40 @@ export class ConnectionStateService {
     return false;
   }
 
+  /**
+   * Check if a chat message has already been processed (idempotency guard).
+   * Uses Redis SET NX EX — atomic set-if-not-exists with TTL.
+   * Returns true if the message is NEW (not a duplicate); false if already processed.
+   * Fails closed (deny duplicate) if Redis unavailable.
+   * Redis key: chat_idem:{clientMessageId}, TTL = 60 seconds.
+   */
+  async isMessageProcessed(clientMessageId: string): Promise<boolean> {
+    if (!this.redisService.isAvailable || !this.redisService['client']) {
+      // Redis unavailable — fail closed: treat as already-processed to prevent duplicates
+      this.logger.warn(
+        `[CHAT-IDEM] Redis unavailable — denying duplicate check for msg=${clientMessageId} (fail-closed)`,
+      );
+      return false;
+    }
+    try {
+      // SET key value NX EX 60 — only sets if key doesn't exist, with 60s TTL
+      const result = await this.redisService['client'].set(
+        `chat_idem:${clientMessageId}`,
+        '1',
+        'EX',
+        60,
+        'NX',
+      );
+      // 'OK' means the key was set (new message); null means it already existed (duplicate)
+      return result === 'OK';
+    } catch {
+      this.logger.warn(
+        `[CHAT-IDEM] Redis error for msg=${clientMessageId} — denying as duplicate (fail-closed)`,
+      );
+      return false;
+    }
+  }
+
   // ── Password brute-force check ──────────────────────────────────────────
 
   /**
