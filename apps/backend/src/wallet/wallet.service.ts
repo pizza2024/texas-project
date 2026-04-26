@@ -67,12 +67,16 @@ export class WalletService {
   ): Promise<void> {
     if (entries.length === 0) return;
 
+    // P1-NEW-003: Combine Phase 1 (wallet) + Phase 2 (user.coinBalance) into a
+    // single atomic transaction. Previously they were separate $transaction calls —
+    // if Phase 2 failed after Phase 1 succeeded, wallet.chips and user.coinBalance
+    // would diverge, leaving the DB in an inconsistent state.
     try {
-      // Phase 1: Upsert wallet records (this works for bots and real users)
       await this.prisma.$transaction(
-        entries.map(({ userId, balance }) => {
+        entries.flatMap(({ userId, balance }) => {
           const normalized = Math.max(0, balance);
-          return this.prisma.wallet.upsert({
+          // Upsert wallet record (works for bots and real users)
+          const walletOp = this.prisma.wallet.upsert({
             where: { userId },
             update: {
               chips: normalized,
@@ -84,54 +88,29 @@ export class WalletService {
               frozenChips: frozen ? normalized : 0,
             },
           });
+
+          // Sync user.coinBalance — skip for bot users (no User record).
+          // Bot users are identified by BOT_ID_PREFIX and are skipped here
+          // so that failures don't propagate; real users MUST have coinBalance in sync.
+          if (userId.startsWith(BOT_ID_PREFIX)) {
+            return [walletOp];
+          }
+          const userOp = this.prisma.user.update({
+            where: { id: userId },
+            data: { coinBalance: normalized },
+          });
+          return [walletOp, userOp];
         }),
       );
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         this.logger.error(
-          `Prisma error in setBalances (wallet phase): ${error.code} - ${error.message}`,
+          `Prisma error in setBalances: ${error.code} - ${error.message}`,
           error.stack,
         );
         return;
       }
       throw error;
-    }
-
-    // Phase 2: Update user coinBalance individually (non-fatal if user doesn't exist, e.g., bots)
-    const phase2Results = await Promise.allSettled(
-      entries.map(async ({ userId, balance }) => {
-        const normalized = Math.max(0, balance);
-        try {
-          await this.prisma.user.update({
-            where: { id: userId },
-            data: { coinBalance: normalized },
-          });
-        } catch (error) {
-          // Bot users don't have User records — this is expected
-          if (userId.startsWith(BOT_ID_PREFIX)) {
-            this.logger.debug(
-              `Skipping coinBalance update for bot user: ${userId}`,
-            );
-            return;
-          }
-          // P1-WALLET-002: rethrow for real users — coinBalance consistency is critical
-          if (error instanceof PrismaClientKnownRequestError) {
-            this.logger.error(
-              `Failed to update coinBalance for user ${userId}: ${error.code} - ${error.message}`,
-            );
-            throw error;
-          }
-          throw error;
-        }
-      }),
-    );
-
-    // Log Phase 2 failures but don't fail the whole operation
-    const phase2Failures = phase2Results.filter((r) => r.status === 'rejected');
-    if (phase2Failures.length > 0) {
-      this.logger.error(
-        `setBalances Phase 2: ${phase2Failures.length}/${entries.length} users failed`,
-      );
     }
   }
 
@@ -272,18 +251,14 @@ export class WalletService {
       );
     }
 
-    const availableChips = await this.getAvailableBalance(userId);
-    if (chipsAmount > availableChips) {
-      throw new BadRequestException('Insufficient available chips');
-    }
-
     const usdtAmount = chipsAmount / CHIPS_TO_USDT_RATE;
 
     // Atomic: deduct chips and create withdraw request in a single transaction.
-    // This prevents the race condition where chips are deducted but no request
-    // is created (or vice versa), which could lead to lost or duplicated funds.
+    // P1-NEW-004: Balance check (availableChips) must be INSIDE the transaction to
+    // prevent TOCTOU double-spend — concurrent requests reading the same balance
+    // before either writes would both pass the check and create duplicate withdraws.
     const withdrawRequest = await this.prisma.$transaction(async (tx) => {
-      // Read current wallet balance
+      // Read current wallet balance and frozen chips inside transaction
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       // Fallback chain mirrors WalletService.getBalance(): wallet.chips → user.coinBalance → STARTING_BALANCE
       const currentBalance =
@@ -295,6 +270,13 @@ export class WalletService {
           })
         )?.coinBalance ??
         WalletService.STARTING_CHIPS;
+
+      // Check available chips INSIDE transaction — prevents concurrent double-spend
+      const frozenChips = wallet?.frozenChips ?? 0;
+      const availableChips = Math.max(0, currentBalance - frozenChips);
+      if (chipsAmount > availableChips) {
+        throw new BadRequestException('Insufficient available chips');
+      }
 
       // Deduct chips
       const newBalance = Math.max(0, currentBalance - chipsAmount);
@@ -315,7 +297,7 @@ export class WalletService {
         data: {
           userId,
           amountChips: chipsAmount,
-          amountUsdt: usdtAmount,
+          amountUsdt,
           toAddress: trimmed,
           status: 'PENDING',
         },
