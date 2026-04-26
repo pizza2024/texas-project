@@ -51,9 +51,16 @@ describe('DepositService E2E', () => {
     });
 
     mockPrisma = {
+      $transaction: jest
+        .fn()
+        .mockImplementation(async (cb: (tx: any) => Promise<unknown>) => {
+          return cb(mockPrisma);
+        }),
+      $executeRaw: jest.fn().mockResolvedValue(undefined),
       depositAddress: {
         findUnique: jest.fn(),
         create: jest.fn(),
+        createMany: jest.fn(),
         aggregate: jest.fn().mockResolvedValue({ _max: { index: 0 } }),
       },
       depositRecord: {
@@ -111,7 +118,7 @@ describe('DepositService E2E', () => {
   };
 
   afterEach(async () => {
-    jest.restoreAllMocks();
+    jest.resetAllMocks();
     if (module) {
       await module.close();
     }
@@ -203,17 +210,22 @@ describe('DepositService E2E', () => {
 
     it('creates deposit address for new user', async () => {
       await setupModule();
-      mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.create.mockResolvedValue({
-        userId: 'user-1',
-        address: '0xnewaddress',
-        index: 1,
-      });
+      mockPrisma.depositAddress.findUnique
+        .mockResolvedValueOnce(null) // fast path
+        .mockResolvedValueOnce(null) // re-check inside tx
+        .mockResolvedValueOnce({
+          // final findUnique after createMany
+          userId: 'user-1',
+          address: '0xnewaddress',
+          index: 1,
+        });
+      mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
       await service.faucet('user-1');
 
-      expect(mockPrisma.depositAddress.create).toHaveBeenCalledWith({
+      expect(mockPrisma.depositAddress.createMany).toHaveBeenCalledWith({
         data: { userId: 'user-1', address: expect.any(String), index: 1 },
+        skipDuplicates: true,
       });
     });
 
@@ -282,7 +294,9 @@ describe('DepositService E2E', () => {
       const address = await service.getOrCreateDepositAddress('user-1');
 
       expect(address).toBe('0xexisting');
+      // Fast path: no transaction needed, so neither create nor createMany is called
       expect(mockPrisma.depositAddress.create).not.toHaveBeenCalled();
+      expect(mockPrisma.depositAddress.createMany).not.toHaveBeenCalled();
     });
 
     it('creates new address for new user with correct HD wallet index', async () => {
@@ -295,53 +309,67 @@ describe('DepositService E2E', () => {
           provider,
         }),
       });
-      mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({
-        _max: { index: 0 },
-      });
-      mockPrisma.depositAddress.create.mockResolvedValue({
-        userId: 'user-1',
-        address: '0xderivedaddress1',
-        index: 1,
-      });
+      // Fast path: no existing address
+      mockPrisma.depositAddress.findUnique
+        .mockResolvedValueOnce(null) // fast path
+        .mockResolvedValueOnce(null) // re-check inside tx
+        .mockResolvedValueOnce({
+          // final findUnique after createMany
+          userId: 'user-1',
+          address: '0xderivedaddress1',
+          index: 1,
+        });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: null } });
+      mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
       const address = await service.getOrCreateDepositAddress('user-1');
 
       expect(address).toBe('0xderivedaddress1');
-      expect(mockPrisma.depositAddress.create).toHaveBeenCalledWith({
+      expect(mockPrisma.depositAddress.createMany).toHaveBeenCalledWith({
         data: { userId: 'user-1', address: '0xderivedaddress1', index: 1 },
+        skipDuplicates: true,
       });
     });
 
     it('user addresses start at index 1 (index 0 reserved for owner wallet)', async () => {
       await setupModule();
-      mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({
-        _max: { index: 10 },
-      });
-      mockPrisma.depositAddress.create.mockResolvedValue({
-        userId: 'user-1',
-        address: '0xnewaddress11',
-        index: 11,
-      });
+      // Fast path: no existing address
+      mockPrisma.depositAddress.findUnique
+        .mockResolvedValueOnce(null) // fast path
+        .mockResolvedValueOnce(null) // re-check inside tx
+        .mockResolvedValueOnce({
+          // final findUnique after createMany
+          userId: 'user-1',
+          address: '0xnewaddress11',
+          index: 11,
+        });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: 10 } });
+      mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
       await service.getOrCreateDepositAddress('user-1');
 
       // Owner wallet is at index 0; next available is 11
-      expect(mockPrisma.depositAddress.create).toHaveBeenCalledWith({
+      expect(mockPrisma.depositAddress.createMany).toHaveBeenCalledWith({
         data: { userId: 'user-1', address: expect.any(String), index: 11 },
+        skipDuplicates: true,
       });
     });
 
-    it('handles P2002 uniqueness error gracefully (race condition)', async () => {
+    it('returns correct address when another request inserted first (skipDuplicates)', async () => {
       await setupModule();
+      // Fast path: no existing address
       mockPrisma.depositAddress.findUnique.mockResolvedValue(null);
-      mockPrisma.depositAddress.create.mockRejectedValueOnce({ code: 'P2002' });
-      mockPrisma.depositAddress.findUnique.mockResolvedValueOnce({
-        userId: 'user-1',
-        address: '0xraceaddress',
-        index: 1,
-      });
+      // Inside tx: re-check returns null, createMany skips (another request committed
+      // a row with the same userId already), final findUnique returns winner's record
+      mockPrisma.depositAddress.findUnique
+        .mockResolvedValueOnce(null) // re-check inside tx
+        .mockResolvedValueOnce({
+          // final findUnique after createMany — winner's record
+          userId: 'user-1',
+          address: '0xraceaddress',
+          index: 1,
+        });
+      mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 0 }); // skipped
 
       const address = await service.getOrCreateDepositAddress('user-1');
 

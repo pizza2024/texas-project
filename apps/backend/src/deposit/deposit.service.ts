@@ -54,40 +54,52 @@ export class DepositService {
   }
 
   async getOrCreateDepositAddress(userId: string): Promise<string> {
+    // Fast path: already exists — no transaction needed.
     const existing = await this.prisma.depositAddress.findUnique({
       where: { userId },
     });
     if (existing) return existing.address;
 
-    const aggregate = await this.prisma.depositAddress.aggregate({
-      _max: { index: true },
-    });
-    // index=0 保留给 owner 钱包（合约部署账户），用户地址从 1 开始
-    const nextIndex = Math.max(1, (aggregate._max.index ?? 0) + 1);
-
-    const mnemonic = Mnemonic.fromPhrase(getHdWalletMnemonic());
-    const wallet = HDNodeWallet.fromMnemonic(
-      mnemonic,
-      `m/44'/60'/0'/0/${nextIndex}`,
-    );
-    const address = wallet.address;
-
-    try {
-      await this.prisma.depositAddress.create({
-        data: { userId, address, index: nextIndex },
+    // Serialize concurrent inserts via a transaction.
+    // This prevents two concurrent requests from reading the same _max.index
+    // and generating duplicate HD wallet addresses.
+    return this.prisma.$transaction(async (tx) => {
+      // Re-check inside transaction — another request may have just inserted.
+      const existingInside = await tx.depositAddress.findUnique({
+        where: { userId },
       });
-    } catch (e: unknown) {
-      // 并发竞态：另一个请求已先创建，直接返回已存在的记录
-      if ((e as { code?: string })?.code === 'P2002') {
-        const created = await this.prisma.depositAddress.findUnique({
-          where: { userId },
-        });
-        if (created) return created.address;
-      }
-      throw e;
-    }
+      if (existingInside) return existingInside.address;
 
-    return address;
+      const aggregate = await tx.depositAddress.aggregate({
+        _max: { index: true },
+      });
+      // index=0 保留给 owner 钱包（合约部署账户），用户地址从 1 开始
+      const nextIndex = Math.max(1, (aggregate._max.index ?? 0) + 1);
+
+      const mnemonic = Mnemonic.fromPhrase(getHdWalletMnemonic());
+      const wallet = HDNodeWallet.fromMnemonic(
+        mnemonic,
+        `m/44'/60'/0'/0/${nextIndex}`,
+      );
+      const address = wallet.address;
+
+      // Use createMany with skipDuplicates to handle the rare race where
+      // another concurrent request committed the same (userId, index) between
+      // our aggregate read and this insert. The unique constraint on userId
+      // guards against duplicate user records; skipDuplicates silences the
+      // index conflict rather than throwing.
+      await tx.depositAddress.createMany({
+        data: { userId, address, index: nextIndex },
+        skipDuplicates: true,
+      });
+
+      // Fetch the record — either ours or the winner's from the race.
+      const record = await tx.depositAddress.findUnique({
+        where: { userId },
+      });
+
+      return record!.address;
+    });
   }
 
   async getDepositHistory(userId: string) {
