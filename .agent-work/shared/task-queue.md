@@ -41,6 +41,15 @@
 
 ---
 
+## P1 — 新发现（第244轮）
+
+|| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P1-WALLET-001 | `exchangeBalanceToChips` 缺少 `$transaction` | ✅ 已修复 | commit a8442a0 — wallet.upsert + user.update + transaction.create 原子化 |
+|| P1-WITHDRAW-005 | `createWithdraw` transaction log 在原子块外 | ✅ 已修复 | commit a8442a0 — 移除外部 transaction.create |
+|| P1-WALLET-002 | `setBalances` Phase 2 失败静默吞掉 | ✅ 已修复 | commit a8442a0 — Promise.allSettled + rethrow non-bot errors |
+|| P1-WITHDRAW-007 | `executeChainWithdraw` 链确认后 DB 更新无重试 | ✅ 已修复 | commit a8442a0 — 3× retry + exponential backoff |
+
 ## P1 — 新发现（第231轮）
 
 || ID | 任务 | 状态 | 备注 |
@@ -228,4 +237,4 @@
 
 ---
 
-*最后更新: 2026-04-26 17:15 — Test 第242轮 — P0-TYPE-001/002/003 已修复，0 P0 / 3 P1 / 12 P2 *
+*最后更新: 2026-04-26 17:30 — Coding 第244轮 — P1-WALLET-001/002 P1-WITHDRAW-005/007 已修复，0 P0 / 1 P1 / 12 P2 *
