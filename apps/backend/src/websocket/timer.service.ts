@@ -4,7 +4,7 @@ import { TableManagerService } from '../table-engine/table-manager.service';
 import { MatchmakingService } from '../matchmaking/matchmaking.service';
 import { BroadcastService } from './broadcast.service';
 import { GameStage } from '../table-engine/table';
-
+import { MissionService } from '../mission/mission.service';
 /**
  * TimerService extracts round-timer management from AppGateway.
  * Manages three timer types: action timeouts, settlement delays, and auto-start countdowns.

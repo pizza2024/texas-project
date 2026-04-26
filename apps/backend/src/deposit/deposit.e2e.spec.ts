@@ -8,6 +8,7 @@ import { DepositService } from './deposit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
+import { MissionService } from '../mission/mission.service';
 
 describe('DepositService E2E', () => {
   let service: DepositService;
@@ -17,6 +18,7 @@ describe('DepositService E2E', () => {
   let mockMint: jest.Mock;
   let mockWait: jest.Mock;
   let mockRedisService: any;
+  let mockMissionService: any;
 
   beforeEach(() => {
     mockMint = jest.fn();
@@ -74,6 +76,10 @@ describe('DepositService E2E', () => {
       get: jest.fn().mockResolvedValue(null),
       incr: jest.fn().mockResolvedValue(null),
     };
+
+    mockMissionService = {
+      progressMission: jest.fn().mockResolvedValue({ completed: false, rewardChips: 0 }),
+    };
   });
 
   const setupModule = async (overrides: Record<string, string> = {}) => {
@@ -94,6 +100,7 @@ describe('DepositService E2E', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: WalletService, useValue: mockWalletService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: MissionService, useValue: mockMissionService },
       ],
     }).compile();
 

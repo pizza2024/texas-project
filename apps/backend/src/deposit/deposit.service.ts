@@ -10,7 +10,11 @@ import BigNumber from 'bignumber.js';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
+import { MissionService, MISSION_KEY_FIRST_DEPOSIT } from '../mission/mission.service';
 import { getHdWalletMnemonic } from '../config/jwt.config';
+
+// Bonus wagering multiplier: user must wager 5× the bonus amount before unlocking it
+const BONUS_WAGERING_MULTIPLIER = 5;
 
 // 不使用科学计数法，精度足够大
 BigNumber.config({ EXPONENTIAL_AT: 1e9, DECIMAL_PLACES: 18 });
@@ -36,6 +40,7 @@ export class DepositService {
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
     private readonly redisService: RedisService,
+    private readonly missionService: MissionService,
   ) {}
 
   private get usdtContractAddress(): string {
@@ -88,6 +93,78 @@ export class DepositService {
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
+  }
+
+  // ── Bonus status ─────────────────────────────────────────────────────────────
+
+  /**
+   * Returns the user's first-deposit bonus status and wagering progress.
+   * Returns null if no bonus has been created yet.
+   */
+  async getBonusStatus(userId: string) {
+    const bonus = await this.prisma.depositBonus.findUnique({
+      where: { userId },
+    });
+    if (!bonus) return null;
+
+    const wageringRemaining = Math.max(
+      0,
+      bonus.wageringRequirement - bonus.wageringProgress,
+    );
+    const isCompleted = bonus.status === 'COMPLETED';
+
+    return {
+      depositAmount: bonus.depositAmount,
+      bonusAmount: bonus.bonusAmount,
+      wageringRequirement: bonus.wageringRequirement,
+      wageringProgress: bonus.wageringProgress,
+      wageringRemaining,
+      status: bonus.status,
+      isUnlocked: isCompleted,
+      createdAt: bonus.createdAt,
+      completedAt: bonus.completedAt,
+    };
+  }
+
+  // ── Wagering tracking ────────────────────────────────────────────────────────
+
+  /**
+   * Called by the table engine after each hand to credit wagering progress
+   * toward the active deposit bonus rollover requirement.
+   *
+   * Only chips actually risked (not just the bet amount) count here — a fold
+   * with no chips put in does NOT count. The table engine should pass the
+   * total chips the player put at risk during the hand.
+   *
+   * Idempotent: once the bonus is COMPLETED, subsequent calls are no-ops.
+   */
+  async addWagering(userId: string, chipsWagered: number): Promise<void> {
+    if (chipsWagered <= 0) return;
+
+    const bonus = await this.prisma.depositBonus.findUnique({
+      where: { userId },
+    });
+
+    if (!bonus || bonus.status !== 'ACTIVE') return;
+
+    const newProgress = Math.min(
+      bonus.wageringProgress + chipsWagered,
+      bonus.wageringRequirement,
+    );
+    const isComplete = newProgress >= bonus.wageringRequirement;
+
+    await this.prisma.depositBonus.update({
+      where: { id: bonus.id },
+      data: {
+        wageringProgress: newProgress,
+        status: isComplete ? 'COMPLETED' : 'ACTIVE',
+        completedAt: isComplete ? new Date() : undefined,
+      },
+    });
+
+    this.logger.debug(
+      `[addWagering] user=${userId} chipsWagered=${chipsWagered} progress=${newProgress}/${bonus.wageringRequirement} completed=${isComplete}`,
+    );
   }
 
   async faucet(userId: string): Promise<{ txHash: string; amount: number }> {
@@ -302,38 +379,40 @@ export class DepositService {
         data: { userId, amount: chips.toNumber(), type: 'DEPOSIT' },
       });
 
-      // First Deposit Bonus: 100% match up to 100 USDT (10000 chips)
-      const user = await this.prisma.user.findUnique({
+      // First Deposit Bonus — delegated to MissionService
+      // (also sets hasReceivedFirstDepositBonus flag on User for backwards compat)
+      const userForBonus = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { hasReceivedFirstDepositBonus: true },
       });
+      if (!userForBonus?.hasReceivedFirstDepositBonus) {
+        // Retrieve the mission definition to know the bonus amount
+        const mission = await this.prisma.mission.findUnique({
+          where: { key: MISSION_KEY_FIRST_DEPOSIT },
+        });
+        const bonusAmount = mission?.rewardChips ?? 10000;
 
-      if (user && !user.hasReceivedFirstDepositBonus) {
-        const bonusUsdt = Math.min(amount.toNumber(), 100);
-        const bonusChips = bonusUsdt * USDT_TO_CHIPS_RATE; // 100 chips per USDT
+        await this.missionService.progressMission(userId, MISSION_KEY_FIRST_DEPOSIT);
 
-        const currentBalanceAfterDeposit =
-          await this.walletService.getBalance(userId);
-        const newBalanceWithBonus = new BigNumber(
-          currentBalanceAfterDeposit,
-        ).plus(bonusChips);
-
-        await this.walletService.setBalance(
-          userId,
-          newBalanceWithBonus.toNumber(),
-        );
+        // Create the DepositBonus wagering record for this first deposit
+        await this.prisma.depositBonus.create({
+          data: {
+            userId,
+            depositAmount: amount.toNumber(),
+            bonusAmount,
+            wageringRequirement: bonusAmount * BONUS_WAGERING_MULTIPLIER,
+            wageringProgress: 0,
+            status: 'ACTIVE',
+          },
+        });
 
         await this.prisma.user.update({
           where: { id: userId },
           data: { hasReceivedFirstDepositBonus: true },
         });
 
-        await this.prisma.transaction.create({
-          data: { userId, amount: bonusChips, type: 'BONUS' },
-        });
-
         this.logger.log(
-          `First Deposit Bonus: ${bonusUsdt.toFixed()} USDT → ${bonusChips.toFixed()} chips for user ${userId}`,
+          `First Deposit Bonus: triggered P1-FIRST-DEPOSIT mission + created DepositBonus for user ${userId} (${bonusAmount} chips, ${BONUS_WAGERING_MULTIPLIER}× wagering)`,
         );
       }
 

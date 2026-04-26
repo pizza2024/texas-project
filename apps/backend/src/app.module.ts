@@ -13,6 +13,7 @@ import { AdminModule } from './admin/admin.module';
 import { RedisModule } from './redis/redis.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { DepositModule } from './deposit/deposit.module';
+import { MissionModule } from './mission/mission.module';
 import { WithdrawModule } from './withdraw/withdraw.module';
 import { HealthController } from './health/health.controller';
 import { BotModule } from './bot/bot.module';
@@ -35,6 +36,7 @@ import { TournamentModule } from './tournament/tournament.module';
     AdminModule,
     MatchmakingModule,
     DepositModule,
+    MissionModule,
     WithdrawModule,
     BotModule,
     FriendModule,

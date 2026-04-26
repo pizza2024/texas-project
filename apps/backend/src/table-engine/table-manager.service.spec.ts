@@ -78,6 +78,8 @@ describe('TableManagerService', () => {
       prisma as any,
       redis as any,
       {} as any, // rakebackService
+      {} as any, // missionService
+      {} as any, // depositService
     );
   });
 

@@ -10,6 +10,8 @@ import { WalletService } from '../wallet/wallet.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { RakebackService } from '../rakeback/rakeback.service';
+import { MissionService } from '../mission/mission.service';
+import { DepositService } from '../deposit/deposit.service';
 
 /** Redis key for a table snapshot; TTL = 24 h */
 const TABLE_KEY = (roomId: string) => `table:${roomId}`;
@@ -31,6 +33,8 @@ export class TableManagerService implements OnModuleInit {
     private prisma: PrismaService,
     private redis: RedisService,
     private rakebackService: RakebackService,
+    private missionService: MissionService,
+    private depositService: DepositService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -364,6 +368,64 @@ export class TableManagerService implements OnModuleInit {
             settlement.userId,
             settlement.rakeAmount,
           );
+          // Track daily rake mission contribution
+          void this.missionService
+            .onRakeContributed(settlement.userId, settlement.rakeAmount)
+            .catch((err) =>
+              this.logger.error(
+                `onRakeContributed failed for user=${settlement.userId}`,
+                err,
+              ),
+            );
+        }
+      }
+
+      // ── Mission + Wagering wiring (fire-and-forget, non-blocking) ─────────
+      // Primary winner triggers hand-won missions (DAILY-WIN, DAILY-BIG-POT, etc.)
+      if (primaryWinner.winAmount > 0) {
+        void this.missionService
+          .onHandWon(primaryWinner.playerId, primaryWinner.winAmount)
+          .catch((err) =>
+            this.logger.error(
+              `onHandWon failed for user=${primaryWinner.playerId}`,
+              err,
+            ),
+          );
+      }
+
+      // Every participant (winner or not) gets hand-played credit
+      for (const r of handResult) {
+        // Only players who put chips at risk count toward P1-FIRST-HAND
+        if (r.totalBet > 0) {
+          void this.missionService
+            .onHandPlayed(r.playerId)
+            .catch((err) =>
+              this.logger.error(
+                `onHandPlayed failed for user=${r.playerId}`,
+                err,
+              ),
+            );
+          // Track wagering toward first-deposit bonus (chips actually risked)
+          void this.depositService
+            .addWagering(r.playerId, r.totalBet)
+            .catch((err) =>
+              this.logger.error(
+                `addWagering failed for user=${r.playerId}`,
+                err,
+              ),
+            );
+        }
+        // Settlement profit/loss for weekly profit mission
+        const chipDelta = r.winAmount - r.totalBet;
+        if (chipDelta !== 0) {
+          void this.missionService
+            .onSettlement(r.playerId, chipDelta)
+            .catch((err) =>
+              this.logger.error(
+                `onSettlement failed for user=${r.playerId}`,
+                err,
+              ),
+            );
         }
       }
     } catch (err) {

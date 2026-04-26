@@ -50,6 +50,7 @@ import { ConnectionStateService } from './connection-state.service';
 import { BroadcastService } from './broadcast.service';
 import { TimerService } from './timer.service';
 import { TournamentService } from '../tournament/tournament.service';
+import { MissionService } from '../mission/mission.service';
 
 @WebSocketGateway({
   namespace: '/ws',

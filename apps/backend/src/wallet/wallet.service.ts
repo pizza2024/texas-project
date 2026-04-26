@@ -385,6 +385,28 @@ export class WalletService {
   }
 
   /**
+   * Add chips to a user's wallet (e.g., from mission rewards).
+   * Creates a MISSION_REWARD transaction log entry.
+   */
+  async addChips(userId: string, amount: number): Promise<void> {
+    if (amount <= 0) return;
+    await this.prisma.$transaction([
+      this.prisma.wallet.upsert({
+        where: { userId },
+        update: { chips: { increment: amount } },
+        create: { userId, chips: amount, balance: 0, frozenChips: 0 },
+      }),
+      this.prisma.transaction.create({
+        data: {
+          userId,
+          amount,
+          type: 'MISSION_REWARD',
+        },
+      }),
+    ]);
+  }
+
+  /**
    * Get withdraw request history for a user.
    */
   async getWithdrawHistory(userId: string) {

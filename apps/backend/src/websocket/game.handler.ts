@@ -19,6 +19,7 @@ import {
   PlayerActionSchema,
   QuickMatchSchema,
 } from '@texas/shared/validation';
+import { MissionService } from '../mission/mission.service';
 
 import {
   SOLO_READY_COUNTDOWN_MS,

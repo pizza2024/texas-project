@@ -49,6 +49,9 @@ model User {
   clubChats       ClubChat[]
   clubInviteCodes ClubInviteCode[] @relation("ClubInviteCreator")
 
+  userMissions  UserMission[]
+  depositBonuses DepositBonus[]
+
   @@map("users")
 }
 
@@ -313,4 +316,68 @@ model ClubInviteCode {
 
   @@index([clubId])
   @@index([code])
+}
+
+// ── Missions ────────────────────────────────────────────────────────────────
+
+// Defines every mission available in the game.
+// type: ONE_TIME | DAILY | WEEKLY
+// periodType: DAY | WEEK | null (null = not a recurring mission)
+// Each mission has a fixed chip reward paid out when the user completes it.
+model Mission {
+  id          String   @id @default(uuid())
+  key         String   @unique // P1-FIRST-DEPOSIT | P1-DAILY-PLAY | P2-WEEKLY-WINS | etc.
+  title       String
+  description String
+  type        String   // ONE_TIME | DAILY | WEEKLY
+  periodType  String?  // DAY | WEEK | null (null only for ONE_TIME)
+  rewardChips Float
+  target      Int      @default(1) // e.g. deposit 1 time, play 3 hands, win 5 hands
+  createdAt   DateTime @default(now())
+
+  userMissions UserMission[]
+
+  @@map("missions")
+}
+
+// Tracks per-user mission state: completion status, progress, period tracking, and rewards claimed.
+// For DAILY/WEEKLY missions, a new UserMission row is created each period.
+model UserMission {
+  id          String    @id @default(uuid())
+  userId      String
+  missionId   String
+  status      String    @default("ACTIVE") // ACTIVE | COMPLETED | CLAIMED | EXPIRED
+  progress    Int       @default(0)
+  completedAt DateTime?
+  claimedAt   DateTime?
+  periodStart DateTime  @default(now()) // Start of the period this record belongs to (midnight UTC for daily, Monday UTC for weekly)
+  createdAt   DateTime  @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  // Unique per user+mission+period to allow multiple UserMission rows for recurring missions
+  @@unique([userId, missionId, periodStart])
+  @@map("user_missions")
+}
+
+// Tracks a user's first-deposit bonus and its wagering (rollover) progress.
+// When a user makes their first deposit, a DepositBonus record is created with
+// the bonus chips awarded by the P1-FIRST-DEPOSIT mission. The user must wager
+// (risk at the poker table) a multiple of the bonus amount before the bonus
+// is unlocked and becomes withdrawable.
+model DepositBonus {
+  id                    String    @id @default(uuid())
+  userId                String    @unique // One bonus per user
+  depositAmount         Float     // The USDT deposit amount that triggered the bonus
+  bonusAmount           Float     // Chip bonus awarded (mirrors mission reward)
+  wageringRequirement  Float     // Total chips that must be wagered (e.g. 5× bonusAmount)
+  wageringProgress      Float     @default(0) // Chips wagered so far toward the requirement
+  status                String    @default("ACTIVE") // ACTIVE | COMPLETED | CANCELLED
+  createdAt             DateTime  @default(now())
+  completedAt           DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposit_bonuses")
 }

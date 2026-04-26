@@ -35,4 +35,30 @@ export class DepositController {
     }
     return this.depositService.faucet(req.user.userId);
   }
+
+  // ── Bonus status / progress ────────────────────────────────────────────────
+
+  /**
+   * GET deposit/bonus/status
+   * Returns the user's first-deposit bonus wagering progress.
+   */
+  @Get('bonus/status')
+  async getBonusStatus(@Request() req: { user: JwtUser }) {
+    return this.depositService.getBonusStatus(req.user.userId);
+  }
+
+  /**
+   * POST deposit/bonus/wagering
+   * Records chips wagered at a poker table toward the bonus rollover requirement.
+   * Called by the table engine after each hand.
+   */
+  @Post('bonus/wagering')
+  async addWagering(
+    @Request() req: { user: JwtUser },
+  ) {
+    // The actual chips wagered are determined server-side by the table engine;
+    // this endpoint is called by the engine after processing a hand.
+    // Clients should not call this directly — it is internal.
+    throw new ForbiddenException('This endpoint is internal to the server');
+  }
 }
