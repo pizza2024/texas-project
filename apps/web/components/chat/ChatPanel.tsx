@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import { getSocket } from '@/lib/socket';
 import { getStoredToken } from '@/lib/auth';
 
@@ -195,7 +196,7 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
               <div key={msg.id} className={`text-xs leading-relaxed ${textColor}`}>
                 <span className={`font-medium ${senderColor}`}>[{msg.username}]</span>
                 <span className="mx-1">:</span>
-                <span>{msg.content}</span>
+                <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }} />
                 <span className={`ml-2 ${mutedColor}`}>
                   {formatRelativeTime(msg.timestamp)}
                 </span>

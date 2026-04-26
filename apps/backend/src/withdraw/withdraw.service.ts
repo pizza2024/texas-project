@@ -358,31 +358,56 @@ export class WithdrawService {
     }
 
     if (action === 'REJECT') {
-      // Refund chips to user
-      await this.refundChips(
-        request.userId,
-        request.amountChips,
-        id,
-        reason ?? 'Rejected by admin',
-      );
+      // Wrap in transaction to prevent concurrent reject + lost update
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const current = await tx.withdrawRequest.findUnique({ where: { id } });
+        if (!current) throw new NotFoundException('Withdraw request not found');
+        if (current.status !== 'PENDING') {
+          throw new BadRequestException('Only PENDING requests can be processed');
+        }
 
-      const updated = await this.prisma.withdrawRequest.update({
-        where: { id },
-        data: {
-          status: 'FAILED',
-          failureReason: reason ?? 'Rejected by admin',
-          processedAt: new Date(),
-        },
-      });
+        // Refund chips to user (idempotent — uses upsert)
+        const wallet = await tx.wallet.findUnique({ where: { userId: current.userId } });
+        const currentBalance = wallet?.chips ?? 0;
+        const newBalance = currentBalance + current.amountChips;
 
-      await this.prisma.adminLog.create({
-        data: {
-          adminId,
-          action: 'WITHDRAW_REJECT',
-          targetType: 'USER',
-          targetId: request.userId,
-          detail: JSON.stringify({ requestId: id, reason }),
-        },
+        await tx.wallet.upsert({
+          where: { userId: current.userId },
+          update: { chips: newBalance },
+          create: { userId: current.userId, chips: newBalance },
+        });
+        await tx.user.update({
+          where: { id: current.userId },
+          data: { coinBalance: newBalance },
+        });
+        await tx.transaction.create({
+          data: {
+            userId: current.userId,
+            amount: current.amountChips,
+            type: 'WITHDRAW_REFUND',
+          },
+        });
+
+        const result = await tx.withdrawRequest.update({
+          where: { id },
+          data: {
+            status: 'FAILED',
+            failureReason: reason ?? 'Rejected by admin',
+            processedAt: new Date(),
+          },
+        });
+
+        await tx.adminLog.create({
+          data: {
+            adminId,
+            action: 'WITHDRAW_REJECT',
+            targetType: 'USER',
+            targetId: current.userId,
+            detail: JSON.stringify({ requestId: id, reason }),
+          },
+        });
+
+        return result;
       });
 
       this.logger.log(`Withdraw rejected: id=${id}, reason=${reason}`);
@@ -571,32 +596,51 @@ export class WithdrawService {
     return tx.hash;
   }
 
-  /** Handle chain withdrawal failure — refund chips */
+  /** Handle chain withdrawal failure — refund chips atomically */
   async handleWithdrawFailure(
     requestId: string,
     reason: string,
   ): Promise<void> {
-    const request = await this.prisma.withdrawRequest.findUnique({
-      where: { id: requestId },
+    await this.prisma.$transaction(async (tx) => {
+      const request = await tx.withdrawRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!request) return;
+      if (request.status === 'CONFIRMED' || request.status === 'FAILED') return;
+
+      // Update status first to prevent double-refund from concurrent calls
+      await tx.withdrawRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'FAILED',
+          failureReason: reason,
+        },
+      });
+
+      // Refund chips (uses upsert for idempotency)
+      const wallet = await tx.wallet.findUnique({ where: { userId: request.userId } });
+      const currentBalance = wallet?.chips ?? 0;
+      const newBalance = currentBalance + request.amountChips;
+
+      await tx.wallet.upsert({
+        where: { userId: request.userId },
+        update: { chips: newBalance },
+        create: { userId: request.userId, chips: newBalance },
+      });
+      await tx.user.update({
+        where: { id: request.userId },
+        data: { coinBalance: newBalance },
+      });
+      await tx.transaction.create({
+        data: {
+          userId: request.userId,
+          amount: request.amountChips,
+          type: 'WITHDRAW_REFUND',
+        },
+      });
     });
 
-    if (!request) return;
-    if (request.status === 'CONFIRMED' || request.status === 'FAILED') return;
-
-    await this.prisma.withdrawRequest.update({
-      where: { id: requestId },
-      data: {
-        status: 'FAILED',
-        failureReason: reason,
-      },
-    });
-
-    await this.refundChips(
-      request.userId,
-      request.amountChips,
-      requestId,
-      reason,
-    );
     this.logger.log(
       `Withdraw failed and refunded: id=${requestId}, reason=${reason}`,
     );
