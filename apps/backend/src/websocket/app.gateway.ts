@@ -45,6 +45,7 @@ import {
   handleQuickMatch,
   handleShowCards,
   handleChatMessage,
+  handleEmojiReaction,
 } from './game.handler';
 import { ConnectionStateService } from './connection-state.service';
 import { BroadcastService } from './broadcast.service';
@@ -130,6 +131,10 @@ export class AppGateway
 
   async checkChatRateLimit(userId: string) {
     return this.connectionState.checkChatRateLimit(userId);
+  }
+
+  async checkEmojiRateLimit(userId: string) {
+    return this.connectionState.checkEmojiRateLimit(userId);
   }
 
   async checkPasswordAttemptLimit(ip: string, roomId: string) {
@@ -604,5 +609,13 @@ export class AppGateway
     @MessageBody() data: { roomId: string; content: string },
   ) {
     return handleChatMessage(this, client, data);
+  }
+
+  @SubscribeMessage('emoji_reaction')
+  async handleEmojiReaction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { emoji: string },
+  ) {
+    return handleEmojiReaction(this, client, data);
   }
 }

@@ -22,6 +22,12 @@ export const CHAT_RATE_LIMIT_WINDOW_MS = 5_000;
 /** Maximum chat messages per window */
 export const CHAT_RATE_LIMIT_MAX = 1;
 
+/** Rate-limit window for emoji reactions (ms) — faster than chat */
+export const EMOJI_RATE_LIMIT_WINDOW_MS = 3_000;
+
+/** Maximum emoji reactions per window */
+export const EMOJI_RATE_LIMIT_MAX = 1;
+
 /** Maximum sane chip amount per action — prevents floating-point abuse and integer overflow */
 export const MAX_CHIP_AMOUNT = 1_000_000_000;
 

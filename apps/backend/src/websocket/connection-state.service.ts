@@ -5,6 +5,8 @@ import {
   RATE_LIMIT_MAX_ACTIONS,
   CHAT_RATE_LIMIT_WINDOW_MS,
   CHAT_RATE_LIMIT_MAX,
+  EMOJI_RATE_LIMIT_WINDOW_MS,
+  EMOJI_RATE_LIMIT_MAX,
 } from './constants';
 
 @Injectable()
@@ -69,6 +71,25 @@ export class ConnectionStateService {
 
     this.logger.warn(
       `[CHAT-RATE-LIMIT] Redis unavailable for user=${userId} — denying message (fail-closed)`,
+    );
+    return false;
+  }
+
+  /**
+   * Emoji reaction rate limit — separate key from game action and chat rate limits.
+   * Redis key: ws_emoji:{userId} — TTL = EMOJI_RATE_LIMIT_WINDOW_MS in seconds.
+   * Allow 1 emoji per 3-second window to prevent spam.
+   */
+  async checkEmojiRateLimit(userId: string): Promise<boolean> {
+    const windowSec = Math.ceil(EMOJI_RATE_LIMIT_WINDOW_MS / 1000);
+    const count = await this.redisService.incr(`ws_emoji:${userId}`, windowSec);
+
+    if (count !== null) {
+      return count <= EMOJI_RATE_LIMIT_MAX;
+    }
+
+    this.logger.warn(
+      `[EMOJI-RATE-LIMIT] Redis unavailable for user=${userId} — denying reaction (fail-closed)`,
     );
     return false;
   }

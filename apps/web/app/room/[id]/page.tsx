@@ -25,6 +25,8 @@ import { GameTable } from './components/GameTable';
 import { ActionBar } from './components/ActionBar';
 import { AllInConfirmModal } from './components/AllInConfirmModal';
 import { ChatPanel } from '@/components/chat/ChatPanel';
+import { EmojiOverlay, EmojiOverlayStyles } from './components/EmojiOverlay';
+import { useGameSocket, type AllowedEmoji } from '@/lib/use-game-socket';
 import { calculateEquity } from '@texas/shared';
 
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
@@ -71,6 +73,8 @@ export default function RoomPage() {
   const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
   const [showAllInConfirm, setShowAllInConfirm] = useState(false);
   const [allInConfirmAmount, setAllInConfirmAmount] = useState(0);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [emojiFlights, setEmojiFlights] = useState<Array<{ id: string; emoji: string; seatIndex: number; delay?: number }>>([]);
   const previousTableRef = useRef<TableState | null>(null);
   const dealCleanupRef = useRef<number | null>(null);
   const chipCleanupRef = useRef<number | null>(null);
@@ -334,6 +338,19 @@ export default function RoomPage() {
 
     socket.on('room_update', (data: TableState) => {
       setTable(data);
+    });
+
+    socket.on('emoji-reaction', (data: { roomId: string; userId: string; emoji: string }) => {
+      if (data.roomId !== id) return;
+      if (data.userId === myUserId) return; // Already shown locally
+
+      // Find the seat index of the reacting player
+      const seatIndex = table?.players.findIndex((p) => p?.id === data.userId) ?? -1;
+      const flightId = `emoji-flight-${Date.now()}-${data.userId}`;
+      setEmojiFlights((prev) => [
+        ...prev,
+        { id: flightId, emoji: data.emoji, seatIndex: seatIndex >= 0 ? seatIndex : -1 },
+      ]);
     });
 
     socket.on('already_in_room', async (data: {
@@ -825,6 +842,21 @@ export default function RoomPage() {
           setAllInConfirmAmount(amount);
           setShowAllInConfirm(true);
         }}
+        emojiPickerOpen={emojiPickerOpen}
+        onToggleEmojiPicker={() => setEmojiPickerOpen((v) => !v)}
+        onEmoji={(emoji) => {
+          const socket = getAuthorizedSocket();
+          if (!socket) return;
+          // Emit to server
+          socket.emit('emoji-reaction', { roomId: id as string, emoji });
+          // Show locally immediately
+          const mySeatIndex = table?.players.findIndex((p) => p?.id === myUserId) ?? -1;
+          const flightId = `emoji-flight-local-${Date.now()}-${myUserId}`;
+          setEmojiFlights((prev) => [
+            ...prev,
+            { id: flightId, emoji, seatIndex: mySeatIndex >= 0 ? mySeatIndex : -1 },
+          ]);
+        }}
       />
 
       <AllInConfirmModal
@@ -838,6 +870,13 @@ export default function RoomPage() {
         }}
         onCancel={() => setShowAllInConfirm(false)}
       />
+
+      {/* Emoji Overlay */}
+      <EmojiOverlay
+        flights={emojiFlights}
+        onFlightComplete={(id) => setEmojiFlights((prev) => prev.filter((f) => f.id !== id))}
+      />
+      <EmojiOverlayStyles />
 
       {/* Room Chat */}
       {typeof id === 'string' && (

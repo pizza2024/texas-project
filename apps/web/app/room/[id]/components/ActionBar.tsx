@@ -3,6 +3,8 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useState, useRef } from 'react';
+import { ALLOWED_EMOJIS, type AllowedEmoji } from '@/lib/use-game-socket';
 import { TableState } from './types';
 
 interface ActionBarProps {
@@ -31,6 +33,12 @@ interface ActionBarProps {
   consecutiveTimeouts?: number;
   /** Called when player clicks All-in; page shows confirmation modal */
   onRequestAllIn?: (allInAmount: number) => void;
+  /** Called when player selects an emoji to react with */
+  onEmoji?: (emoji: AllowedEmoji) => void;
+  /** Whether the emoji picker is open */
+  emojiPickerOpen?: boolean;
+  /** Toggles emoji picker visibility */
+  onToggleEmojiPicker?: () => void;
 }
 
 export function ActionBar({
@@ -57,9 +65,11 @@ export function ActionBar({
   myPlayerStack,
   consecutiveTimeouts = 0,
   onRequestAllIn,
+  onEmoji,
+  emojiPickerOpen = false,
+  onToggleEmojiPicker,
 }: ActionBarProps) {
   const { t } = useTranslation();
-
   const pot = table.pot ?? 0;
   const effectiveMinRaiseTo = Math.min(minRaiseTo, myPlayerStack);
   const halfPot = Math.min(Math.floor(pot * 0.5), myPlayerStack);
@@ -379,6 +389,53 @@ export function ActionBar({
                   : t('room.sitOut')}
               </Button>
             )}
+
+            {/* Emoji Reaction Button */}
+            <div className="relative">
+              <Button
+                onClick={onToggleEmojiPicker}
+                className="h-11 px-3 font-black tracking-wider text-xs uppercase rounded-lg transition-opacity disabled:opacity-30"
+                style={{
+                  background: emojiPickerOpen
+                    ? 'rgba(251,191,36,0.2)'
+                    : 'rgba(75,75,75,0.6)',
+                  border: `1px solid ${emojiPickerOpen ? 'rgba(251,191,36,0.5)' : 'rgba(156,163,175,0.25)'}`,
+                  color: emojiPickerOpen ? '#facc15' : 'rgba(156,163,175,0.9)',
+                }}
+                title={t('room.emojiReaction')}
+              >
+                😀
+              </Button>
+
+              {/* Emoji Picker Popup */}
+              {emojiPickerOpen && (
+                <div
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 flex gap-1 p-2 rounded-xl z-50"
+                  style={{
+                    background: 'rgba(12,22,16,0.97)',
+                    border: '1px solid rgba(234,179,8,0.3)',
+                    boxShadow: '0 0 24px rgba(0,0,0,0.6)',
+                    minWidth: '160px',
+                    justifyContent: 'center',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {ALLOWED_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        onEmoji?.(emoji as AllowedEmoji);
+                        onToggleEmojiPicker?.();
+                      }}
+                      className="w-9 h-9 flex items-center justify-center text-xl rounded-lg transition-all hover:scale-125 hover:bg-white/10 active:scale-110"
+                      style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

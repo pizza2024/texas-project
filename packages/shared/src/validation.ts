@@ -15,6 +15,12 @@ export const QuickMatchSchema = z.object({
   tier: z.enum(['MICRO', 'LOW', 'MEDIUM', 'HIGH', 'PREMIUM']),
 });
 
+/** 5 allowed emoji reactions */
+export const EmojiReactionSchema = z.object({
+  emoji: z.enum(['👍', '❤️', '😂', '😮', '🔥']),
+});
+
 export type JoinRoomInput = z.infer<typeof JoinRoomSchema>;
 export type PlayerActionInput = z.infer<typeof PlayerActionSchema>;
 export type QuickMatchInput = z.infer<typeof QuickMatchSchema>;
+export type EmojiReactionInput = z.infer<typeof EmojiReactionSchema>;

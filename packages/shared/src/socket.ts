@@ -37,6 +37,8 @@ export interface ServerToClientEvents {
   friend_request_received: (data: FriendRequestReceivedPayload) => void;
   /** 收到聊天消息 */
   'chat-message': (data: { id: string; userId: string; username: string; content: string; timestamp: number }) => void;
+  /** 收到表情反应（广播给桌上所有玩家） */
+  'emoji-reaction': (data: { roomId: string; userId: string; emoji: string }) => void;
   error: (message: string) => void;
 }
 
@@ -49,6 +51,8 @@ export interface ClientToServerEvents {
   show_cards: (data: { roomId: string }) => void;
   /** 发送聊天消息 */
   'chat-message': (data: { roomId: string; content: string }) => void;
+  /** 发送表情反应 */
+  'emoji-reaction': (data: { roomId: string; emoji: string }) => void;
 }
 
 // ── 连接管理 ─────────────────────────────────────────────────────────────────

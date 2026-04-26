@@ -18,6 +18,7 @@ import {
   PlayerActionInput,
   PlayerActionSchema,
   QuickMatchSchema,
+  EmojiReactionSchema,
 } from '@texas/shared/validation';
 import { MissionService } from '../mission/mission.service';
 
@@ -561,6 +562,52 @@ export async function handleChatMessage(
     userId,
     username,
     content: trimmed,
+    timestamp: Date.now(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Handler: emoji_reaction
+// ---------------------------------------------------------------------------
+
+export async function handleEmojiReaction(
+  gateway: AppGateway,
+  client: Socket,
+  data: { emoji: string },
+) {
+  const validated = validate(EmojiReactionSchema, data, client, 'emoji_reaction');
+  if (!validated) {
+    return { event: 'error', data: 'Invalid request' };
+  }
+
+  const userId = client.data.user?.sub as string;
+  if (!userId) {
+    return { event: 'error', data: 'Unauthorized' };
+  }
+
+  // Rate limit — 1 emoji per 3 seconds
+  if (!(await gateway.checkEmojiRateLimit(userId))) {
+    client.emit('rate_limited', {
+      message: '发送表情过于频繁，请稍后再试',
+    });
+    return;
+  }
+
+  const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+  if (!roomId) {
+    return { event: 'error', data: 'Not in any room' };
+  }
+
+  const username =
+    (client.data.user as { username?: string } | undefined)?.username ??
+    '未知玩家';
+
+  // Broadcast emoji reaction to all clients in the room (including sender)
+  gateway.server.to(roomId).emit('emoji-reaction', {
+    id: crypto.randomUUID(),
+    userId,
+    username,
+    emoji: validated.emoji,
     timestamp: Date.now(),
   });
 }
