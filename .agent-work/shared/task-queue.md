@@ -137,19 +137,16 @@
 
 ## P2 — 进行中
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
 | ~~P2-EMOJI-REF~~ | `use-game-socket.ts` ref 违规访问 | ✅ 已修复 | commit b72f640 — useRef → useState |
-| P2-WEB-SPEC | Web 端测试文件缺失 | 🟡 部分完成 | Jest 基础设施 + AuthProvider + SocketSessionProvider（15 tests） |
-| P2-TOURNAMENT-SPEC | Tournament 仅 1 spec | ✅ 已补充 | commit a2b3c4d — MatchmakingService spec (33 tests) |
-| P2-WALLET-SPEC | Wallet 模块无 spec | ✅ 已补充 | commit a2b3c4d — WalletService spec (13 tests) |
-| P2-CHAT-IDEMPOTENCY | 聊天消息无幂等键 | ✅ 已修复 | commit 770ddcf — Redis SET NX EX 60，clientMessageId 去重 |
-| P2-WS-RATE-UNIT | 时间单位注释混淆 | 🔍 待认领 | connection-state.service.ts:107 |
+| P2-WEB-SPEC | Web 页面组件测试 | 🟡 部分完成 | Jest 基础设施 + AuthProvider + SocketSessionProvider（15 tests） |
+| P2-TOURNAMENT-SPEC | Tournament spec | ✅ 已完成 | commit 745db4d — friend.service.spec.ts (41 tests) + match/wallet specs |
+| P2-WALLET-SPEC-TS | wallet.service.spec.ts `$transaction` mock TS 类型错误 | 🔍 待认领 | spec.ts:29,31 |
+| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
 | P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
 | P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | ⚠️ 建议关闭 | 架构决策，backend auto-claim |
-| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
-| P2-WALLET-SPEC-TS | wallet.service.spec.ts `$transaction` mock TS 类型错误 | 🔍 新发现 | spec.ts:29,31 — fn: any → op?.then 产生 never 类型 |
-| P2-WEB-LINT-WARNINGS | ActionBar/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 |
+| P2-WS-RATE-UNIT | 时间单位注释混淆 | 🔍 待认领 | connection-state.service.ts:107 |
 | P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章 |
 | P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
 | P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | ✅ 已修复 | room/[id]/page.tsx — join后 removeItem |
@@ -242,4 +239,4 @@
 
 ---
 
-*最后更新: 2026-04-27 00:30 — Test 第271轮 — P2-CHAT-IDEMPOTENCY 已验证，P2-WALLET-SPEC-TS 新发现，0 P0 / 0 P1 / ~6 P2 *
+*最后更新: 2026-04-28 00:40 — Coding 第271轮 — P2-TOURNAMENT-SPEC (friend.spec.ts 41 tests) + Admin lint 0 warnings，0 P0 / 0 P1 / ~5 P2 *
