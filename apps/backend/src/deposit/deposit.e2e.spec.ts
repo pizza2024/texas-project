@@ -320,7 +320,9 @@ describe('DepositService E2E', () => {
           index: 1,
         });
       mockPrisma.depositAddress.aggregate.mockReset();
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: null } });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({
+        _max: { index: null },
+      });
       mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
       const address = await service.getOrCreateDepositAddress('user-1');
@@ -345,7 +347,9 @@ describe('DepositService E2E', () => {
           index: 11,
         });
       mockPrisma.depositAddress.aggregate.mockReset();
-      mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: 10 } });
+      mockPrisma.depositAddress.aggregate.mockResolvedValue({
+        _max: { index: 10 },
+      });
       mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
       await service.getOrCreateDepositAddress('user-1');

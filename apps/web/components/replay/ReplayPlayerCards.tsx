@@ -25,11 +25,19 @@ function CardBack() {
   );
 }
 
+const SUIT_SYMBOLS: Record<string, string> = {
+  h: '♥',
+  d: '♦',
+  c: '♣',
+  s: '♠',
+};
+
 function CardFace({ card }: { card: string }) {
   if (!card || card === '??') return <CardBack />;
   const rank = card.slice(0, -1);
-  const suit = card.slice(-1);
-  const isRed = suit === 'h' || suit === 'd';
+  const suitKey = card.slice(-1);
+  const isRed = suitKey === 'h' || suitKey === 'd';
+  const suitSymbol = SUIT_SYMBOLS[suitKey] ?? suitKey;
   return (
     <span
       className="inline-flex flex-col items-center justify-center rounded font-black"
@@ -43,7 +51,7 @@ function CardFace({ card }: { card: string }) {
       }}
     >
       {rank}
-      <span style={{ fontSize: 14 }}>{suit}</span>
+      <span style={{ fontSize: 14 }}>{suitSymbol}</span>
     </span>
   );
 }
