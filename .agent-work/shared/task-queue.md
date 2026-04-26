@@ -147,12 +147,14 @@
 | P2-CHAT-INJECTION | Chat username 未验证 userId | ✅ 已修复 | commit 88af108 — DB lookup via userService.user({ id }) |
 || P2-CHAT-FRONTEND-TEST | P1-CHAT-001 前端集成测试未实现 | 🔍 待实施 | ChatPanel WS 组件测试 |
 || P2-DEPOSIT-ATOMIC | `checkAddressDeposits` 每事件非原子 | ✅ 已修复 | commit 8ce5e54 |
-|| P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | 🔍 待认领 | deposit.service.ts:62 |
+|| P2-DEPOSIT-TOCTOU | `getOrCreateDepositAddress` 索引竞争 | ✅ 已修复 | commit 31f4bba — $transaction + skipDuplicates + aggregate in tx |
 || P2-CHAT-IDEMPOTENCY | 聊天消息无幂等键 | 🔍 待认领 | game.handler.ts:560 |
 || P2-AUTH-OTP-PARSE | OTP JSON 解析无 try/catch | ✅ 已修复 | commit 8ce5e54 |
 || P2-WS-RATE-UNIT | PASSWORD_ATTEMPT_WINDOW_MS 单位混淆 | 🔍 待认领 | connection-state.service.ts:107 |
 || P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
-|| P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
+| P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | 🔍 待认领 | missions/page.tsx:300 |
+| P2-DEPOSIT-E2E-MOCK | `deposit.e2e.spec.ts` aggregate mock 需加 mockReset | 🔍 待认领 | getOrCreateDepositAddress 测试偶发失败 |
+| P2-DEPOSIT-DIAG-FILES | `debug-deposit.spec.ts` + `diag.spec.ts` 未清理 | 🔍 待认领 | DIAGNOSTIC ONLY 文件，可直接删除 |
 || P2-CHAT-DUP | 两个 ChatPanel 文件完全重复 | ✅ 已修复 | commit — 删除 ./components/ChatPanel.tsx，统一使用 @/components/chat/ChatPanel |
 || P2-DEPOSIT-I18N | 成功消息硬编码中文 | ✅ 已修复 | commit a10563a |
 || P2-ROUTER-ANY | `router.events` 使用 `as any` | 🔍 待认领 | rooms/page.tsx:937 |

@@ -319,6 +319,7 @@ describe('DepositService E2E', () => {
           address: '0xderivedaddress1',
           index: 1,
         });
+      mockPrisma.depositAddress.aggregate.mockReset();
       mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: null } });
       mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
@@ -343,6 +344,7 @@ describe('DepositService E2E', () => {
           address: '0xnewaddress11',
           index: 11,
         });
+      mockPrisma.depositAddress.aggregate.mockReset();
       mockPrisma.depositAddress.aggregate.mockResolvedValue({ _max: { index: 10 } });
       mockPrisma.depositAddress.createMany.mockResolvedValue({ count: 1 });
 
