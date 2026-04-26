@@ -609,7 +609,7 @@ export class TournamentScheduleService
   // ════════════════════════════════════════════════════════════════════════
 
   private generateId(): string {
-    return `ts_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    return crypto.randomUUID();
   }
 
   private async checkScheduleConflict(
