@@ -623,21 +623,19 @@ export class WithdrawService {
     reason: string,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      // Atomic update: only update if still PENDING — prevents double-refund race (P0-NEW-WITHDRAW-DOUBLE-REFUND)
+      const updated = await tx.withdrawRequest.updateMany({
+        where: { id: requestId, status: 'PENDING' },
+        data: { status: 'FAILED', failureReason: reason },
+      });
+
+      // If status was already non-PENDING, skip refund
+      if (updated.count === 0) return;
+
       const request = await tx.withdrawRequest.findUnique({
         where: { id: requestId },
       });
-
       if (!request) return;
-      if (request.status === 'CONFIRMED' || request.status === 'FAILED') return;
-
-      // Update status first to prevent double-refund from concurrent calls
-      await tx.withdrawRequest.update({
-        where: { id: requestId },
-        data: {
-          status: 'FAILED',
-          failureReason: reason,
-        },
-      });
 
       // Refund chips (uses upsert for idempotency)
       const wallet = await tx.wallet.findUnique({

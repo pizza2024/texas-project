@@ -211,10 +211,29 @@ export class TablePlayerOps {
       // They will be skipped in future hands until they interact again.
       // Reset counter so they start fresh if they manually return.
       player.consecutiveTimeouts = 0;
-      // Keep status as SITOUT — player stays sat out until they manually re-engage.
-      player.hasActed = true; // so they don't auto-fold again this hand
+      // Force-fold: player stays SITOUT for remainder of session.
+      player.status = PlayerStatus.FOLD;
+      player.hasActed = true;
       this.table.actionEndsAt = null;
-      return false;
+
+      // Check if this fold results in only one remaining player (fold-win)
+      const notFolded = this.table.players.filter(
+        (p) => p && p.status !== PlayerStatus.FOLD,
+      ) as Player[];
+      if (notFolded.length === 1) {
+        this.round.resolveFoldWin(notFolded[0]);
+        return false;
+      }
+
+      // Advance to the next active player — P0-NEW-TABLE-STUCK fix
+      if (this.round.isBettingRoundComplete()) {
+        this.round.advanceStreet();
+      } else {
+        this.table.activePlayerIndex = this.round.nextActiveFrom(
+          this.table.activePlayerIndex,
+        );
+      }
+      return true;
     }
 
     // Auto-fold: mark player as folded (normal case, under limit)

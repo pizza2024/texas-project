@@ -255,7 +255,8 @@ export class WalletService {
     if (!trimmed) {
       throw new BadRequestException('Withdraw address is required');
     }
-    const isTrc20 = /^T[A-HJ-NP-Za-km-z1-9]{33}$/.test(trimmed);
+    // Valid Base58Check for TRC20: T prefix + 33 alphanumeric chars
+    const isTrc20 = /^T[A-Za-z0-9]{33}$/.test(trimmed);
     const isErc20 = /^0x[A-Fa-f0-9]{40}$/.test(trimmed);
     if (!isTrc20 && !isErc20) {
       throw new BadRequestException(

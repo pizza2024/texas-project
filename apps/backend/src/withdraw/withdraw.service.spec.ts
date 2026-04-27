@@ -32,6 +32,7 @@ describe('WithdrawService', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
         count: jest.fn(),
       },
       wallet: {
@@ -440,7 +441,8 @@ describe('WithdrawService', () => {
       prisma.withdrawRequest.findUnique.mockResolvedValue(
         mockFailedRequest as any,
       );
-      prisma.withdrawRequest.update.mockResolvedValue({
+      prisma.withdrawRequest.updateMany.mockResolvedValue({
+        count: 1,
         ...mockFailedRequest,
         status: 'FAILED',
         failureReason: 'Chain transfer failed',
@@ -463,8 +465,8 @@ describe('WithdrawService', () => {
         'Chain transfer failed',
       );
 
-      expect(prisma.withdrawRequest.update).toHaveBeenCalledWith({
-        where: { id: 'req-fail-1' },
+      expect(prisma.withdrawRequest.updateMany).toHaveBeenCalledWith({
+        where: { id: 'req-fail-1', status: 'PENDING' },
         data: {
           status: 'FAILED',
           failureReason: 'Chain transfer failed',
@@ -474,40 +476,50 @@ describe('WithdrawService', () => {
       expect(prisma.wallet.upsert).toHaveBeenCalled();
     });
 
-    it('should early return if request not found', async () => {
+    it('should early return if not found (updateMany returns count=0)', async () => {
       prisma.withdrawRequest.findUnique.mockResolvedValue(null);
+      prisma.withdrawRequest.updateMany.mockResolvedValue({ count: 0 } as any);
 
       await service.handleWithdrawFailure(
         'non-existent',
         'Chain transfer failed',
       );
 
-      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+      // updateMany IS called (atomic check) but count=0 means refund skipped
+      expect(prisma.withdrawRequest.updateMany).toHaveBeenCalledWith({
+        where: { id: 'non-existent', status: 'PENDING' },
+        data: { status: 'FAILED', failureReason: 'Chain transfer failed' },
+      });
+      expect(prisma.wallet.upsert).not.toHaveBeenCalled();
     });
 
-    it('should early return if already CONFIRMED', async () => {
+    it('should early return if already CONFIRMED (updateMany count=0)', async () => {
       prisma.withdrawRequest.findUnique.mockResolvedValue({
         ...mockFailedRequest,
         status: 'CONFIRMED',
       } as any);
+      prisma.withdrawRequest.updateMany.mockResolvedValue({ count: 0 } as any);
 
       await service.handleWithdrawFailure(
         'req-fail-1',
         'Chain transfer failed',
       );
 
-      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+      expect(prisma.withdrawRequest.updateMany).toHaveBeenCalled();
+      expect(prisma.wallet.upsert).not.toHaveBeenCalled();
     });
 
-    it('should early return if already FAILED', async () => {
+    it('should early return if already FAILED (updateMany count=0)', async () => {
       prisma.withdrawRequest.findUnique.mockResolvedValue({
         ...mockFailedRequest,
         status: 'FAILED',
       } as any);
+      prisma.withdrawRequest.updateMany.mockResolvedValue({ count: 0 } as any);
 
       await service.handleWithdrawFailure('req-fail-1', 'Already failed');
 
-      expect(prisma.withdrawRequest.update).not.toHaveBeenCalled();
+      expect(prisma.withdrawRequest.updateMany).toHaveBeenCalled();
+      expect(prisma.wallet.upsert).not.toHaveBeenCalled();
     });
   });
 });
