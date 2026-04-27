@@ -76,6 +76,7 @@ export default function RoomPage() {
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [emojiFlights, setEmojiFlights] = useState<Array<{ id: string; emoji: string; seatIndex: number; delay?: number }>>([]);
   const previousTableRef = useRef<TableState | null>(null);
+  const actionPendingRef = useRef<boolean>(false); // P2-TEST-006: block duplicate submissions
   const dealCleanupRef = useRef<number | null>(null);
   const chipCleanupRef = useRef<number | null>(null);
   const chipActivationRef = useRef<number | null>(null);
@@ -606,9 +607,14 @@ export default function RoomPage() {
   }, []);
 
   const handleAction = (action: string, amount?: number) => {
+    // P2-TEST-006: debounce duplicate submissions
+    if (actionPendingRef.current) return;
     const socket = getAuthorizedSocket();
     if (!socket) return;
+    actionPendingRef.current = true;
     socket.emit('player_action', { roomId: id as string, action, amount });
+    // Reset when player's turn ends (next state update or timeout)
+    setTimeout(() => { actionPendingRef.current = false; }, 1000);
   };
 
   const handleReady = () => {

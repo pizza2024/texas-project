@@ -139,6 +139,7 @@ export default function MobileRoomPage() {
   const [winnerHighlights, setWinnerHighlights] = useState<string[]>([]);
   const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
   const autoActRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actionPendingRef = useRef<boolean>(false); // P2-TEST-006: block duplicate submissions
   const previousTableRef = useRef<TableState | null>(null);
   const chipCleanupRef = useRef<number | null>(null);
   const chipActivationRef = useRef<number | null>(null);
@@ -384,8 +385,12 @@ export default function MobileRoomPage() {
 
   // ── Actions ────────────────────────────────────────────────────────────
   const emit = (action: string, amount?: number) => {
+    // P2-TEST-006: debounce duplicate submissions
+    if (actionPendingRef.current) return;
     const token = getStoredToken(); if (!token) return;
+    actionPendingRef.current = true;
     getSocket(token).emit('player_action', { roomId: id as string, action, amount });
+    setTimeout(() => { actionPendingRef.current = false; }, 1000);
   };
   const handleReady = () => {
     const token = getStoredToken(); if (!token) return;
