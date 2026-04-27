@@ -1,4 +1,5 @@
 import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -377,8 +378,9 @@ export class BlastService {
       return;
     }
 
-    // Remove player from tracked list
-    game.playerIds = game.playerIds.filter((id) => id !== playerId);
+    // Remove player from tracked list — create new array to avoid mutating
+    // during iteration, then update the record for future queries
+    const remainingPlayerIds = game.playerIds.filter((id) => id !== playerId);
 
     // Get current table state
     const table = await this.tableManager.getTable(tableId);
@@ -400,17 +402,20 @@ export class BlastService {
       }
     }
 
+    // Update game record for tracking (so getActiveGame returns correct state)
+    game.playerIds = remainingPlayerIds;
+
     // Otherwise, the game continues. Player has already been removed from
     // the table via leaveCurrentRoom in TableManager.
     // Emit blast_player_forfeited to remaining players
     if (this.wsManager.getServer()) {
-      const remainingCount = game.playerIds.length;
-      for (const remainingId of game.playerIds) {
+      const remainingCount = remainingPlayerIds.length;
+      for (const remainingId of remainingPlayerIds) {
         this.wsManager.emitToUser(remainingId, 'blast_player_forfeited', {
           tableId,
           playerId,
           remainingCount,
-          remainingPlayerIds: game.playerIds,
+          remainingPlayerIds,
         });
       }
     }
@@ -427,10 +432,13 @@ export class BlastService {
    * the full multiplier range (2x–10,000x).
    */
   private drawMultiplier(): number {
-    const roll = Math.random() * 100;
-    if (roll < 60) {
+    // Use crypto.getRandomValues() for cryptographic security (博彩公平性)
+    // Math.random() is not cryptographically secure
+    const buf = crypto.randomBytes(4);
+    const roll = (buf.readUInt32BE(0) % 100) + 1; // 1-100 inclusive
+    if (roll <= 60) {
       return 2; // 60% chance: 2x
-    } else if (roll < 90) {
+    } else if (roll <= 90) {
       return 5; // 30% chance: 5x
     } else {
       return 10; // 10% chance: 10x
@@ -505,39 +513,42 @@ export class BlastService {
     totalPrizePool: number,
     rankings: Array<{ place: number; playerId: string; chips: number }>,
   ): Promise<void> {
-    for (
-      let i = 0;
-      i < rankings.length && i < BLAST_PRIZE_BASIS_POINTS.length;
-      i++
-    ) {
-      const { place, playerId } = rankings[i];
-      const basisPoints = BLAST_PRIZE_BASIS_POINTS[i];
+    // P1-BLAST-009: Wrap all DB writes in a transaction for atomicity
+    await this.prisma.$transaction(async (tx) => {
+      for (
+        let i = 0;
+        i < rankings.length && i < BLAST_PRIZE_BASIS_POINTS.length;
+        i++
+      ) {
+        const { place, playerId } = rankings[i];
+        const basisPoints = BLAST_PRIZE_BASIS_POINTS[i];
 
-      // prizeChips = totalPrizePool × (basisPoints / BASIS_POINTS_TOTAL)
-      // Using integer math: (totalPrizePool * basisPoints) / BASIS_POINTS_TOTAL
-      const prizeChips = Math.floor(
-        (totalPrizePool * basisPoints) / BASIS_POINTS_TOTAL,
-      );
-
-      if (prizeChips > 0) {
-        // Unfreeze original buyin and award prize chips
-        await this.walletService.unfreezeAndAward(playerId, prizeChips);
-
-        this.logger.log(
-          `Blast prize: player=${playerId} place=${place} prize=${prizeChips} chips ` +
-            `(${Math.round((basisPoints / BASIS_POINTS_TOTAL) * 100)}%)`,
+        // prizeChips = totalPrizePool × (basisPoints / BASIS_POINTS_TOTAL)
+        // Using integer math: (totalPrizePool * basisPoints) / BASIS_POINTS_TOTAL
+        const prizeChips = Math.floor(
+          (totalPrizePool * basisPoints) / BASIS_POINTS_TOTAL,
         );
 
-        // Record transaction for audit
-        await this.prisma.transaction.create({
-          data: {
-            userId: playerId,
-            amount: prizeChips,
-            type: 'GAME_WIN',
-          },
-        });
+        if (prizeChips > 0) {
+          // Unfreeze original buyin and award prize chips
+          await this.walletService.unfreezeAndAward(playerId, prizeChips);
+
+          this.logger.log(
+            `Blast prize: player=${playerId} place=${place} prize=${prizeChips} chips ` +
+              `(${Math.round((basisPoints / BASIS_POINTS_TOTAL) * 100)}%)`,
+          );
+
+          // Record transaction for audit (within same transaction)
+          await tx.transaction.create({
+            data: {
+              userId: playerId,
+              amount: prizeChips,
+              type: 'GAME_WIN',
+            },
+          });
+        }
       }
-    }
+    });
   }
 
   /**
@@ -548,9 +559,12 @@ export class BlastService {
     playerIds: string[],
     buyin: number,
   ): Promise<void> {
-    for (const playerId of playerIds) {
-      await this.walletService.unfreezeAndAward(playerId, buyin);
-    }
+    // P1-BLAST-010: Wrap all unfreezeAndAward calls in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      for (const playerId of playerIds) {
+        await this.walletService.unfreezeAndAward(playerId, buyin);
+      }
+    });
   }
 
   /**

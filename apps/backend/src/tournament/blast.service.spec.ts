@@ -53,6 +53,10 @@ describe('BlastService', () => {
     transaction: {
       create: jest.fn().mockResolvedValue({}),
     },
+    $transaction: jest.fn().mockImplementation(async (fn) => {
+      // Pass mockPrisma as the tx so tx.transaction.create === mockPrisma.transaction.create
+      return fn(mockPrisma);
+    }),
     user: {
       findUnique: jest.fn().mockResolvedValue({ nickname: 'TestUser' }),
     },
