@@ -325,7 +325,8 @@ export class TableRound {
       // 2. Listed in this pot's eligiblePlayerIds (not locked out by a side pot)
       const potEligible = eligible.filter(
         (p) =>
-          pot.eligiblePlayerIds.includes(p.id) && p.status !== PlayerStatus.FOLD,
+          pot.eligiblePlayerIds.includes(p.id) &&
+          p.status !== PlayerStatus.FOLD,
       );
       if (potEligible.length === 0) continue;
 
