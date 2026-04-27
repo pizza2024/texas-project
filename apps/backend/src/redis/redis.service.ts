@@ -158,4 +158,67 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       // non-fatal
     }
   }
+
+  /**
+   * Push a value to the head of a list (LPUSH).
+   */
+  async lpush(key: string, ...values: string[]): Promise<void> {
+    if (!this.available || !this.client) return;
+    try {
+      await this.client.lpush(key, ...values);
+    } catch {
+      // non-fatal
+    }
+  }
+
+  /**
+   * Get all members of a list (LRANGE 0 -1).
+   * Returns empty array if Redis unavailable.
+   */
+  async lrange(key: string): Promise<string[]> {
+    if (!this.available || !this.client) return [];
+    try {
+      return await this.client.lrange(key, 0, -1);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Remove a member from a list by value (LREM).
+   */
+  async lrem(key: string, value: string): Promise<void> {
+    if (!this.available || !this.client) return;
+    try {
+      await this.client.lrem(key, 1, value);
+    } catch {
+      // non-fatal
+    }
+  }
+
+  /**
+   * Set a hash field (HSET).
+   */
+  async hset(key: string, field: string, value: string): Promise<void> {
+    if (!this.available || !this.client) return;
+    try {
+      await this.client.hset(key, field, value);
+    } catch {
+      // non-fatal
+    }
+  }
+
+  /**
+   * Get all fields and values of a hash (HGETALL).
+   * Returns null if Redis unavailable or key doesn't exist.
+   */
+  async hgetall(key: string): Promise<Record<string, string> | null> {
+    if (!this.available || !this.client) return null;
+    try {
+      const result = await this.client.hgetall(key);
+      return Object.keys(result).length > 0 ? result : null;
+    } catch {
+      return null;
+    }
+  }
 }
