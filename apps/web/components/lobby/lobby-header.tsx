@@ -182,6 +182,22 @@ export function LobbyHeader({
           🏆 Tournament
         </Button>
 
+        {/* Blast button — sm+ only */}
+        <Button
+          onClick={() => router.push('/blast')}
+          className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
+          style={{
+            background:
+              'linear-gradient(135deg, #7c2d12 0%, #c2410c 40%, #f97316 100%)',
+            color: '#fff',
+            border: 'none',
+            boxShadow:
+              '0 0 20px rgba(249,115,22,0.3), 0 4px 10px rgba(0,0,0,0.4)',
+          }}
+        >
+          💥 BLAST
+        </Button>
+
         {/* User dropdown */}
         <UserDropdown
           nickname={nickname}
