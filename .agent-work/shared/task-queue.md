@@ -7,9 +7,11 @@
 
 ---
 
-## P0 — 新发现（第242轮）
+## P0 — 新发现（第305轮）
 
-*(无)*
+|| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P0-TEST-001 | `advanceStreet` 缺少 `return` 在 `eligible.length === 0` — NaN 进入 `winAmounts` | ✅ 已验证无问题 | table-round.ts:161-163 — return 语句已存在，eligible.length===0 时正确早退 |
 
 ## P0 — 已完成
 
@@ -94,11 +96,14 @@
 | P1-WEB-003 | SocketSessionProvider 重复注册 handler | ✅ 已修复 | commit b8f73d0 |
 | P1-BACKEND-002 | 3次超时后无视觉反馈 | ✅ 已修复 | commit b8f73d0 |
 
-## P1 — 进行中
+## P1 — 新发现（第305轮）
 
-| ID | 任务 | 状态 | 备注 |
+|| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-| P1-004 | Jest Worker 泄漏 | 🟡 监控中 | `--detectOpenHandles` 已启用 |
+| P1-TEST-001 | `client.leave()` 在 room lock 之前 — 广播竞态 | ✅ 设计决策 | game.handler.ts:377 — intentional leave-before-lock to avoid race with DB state |
+| P1-TEST-002 | `freezeBalance` 无 `availableBalance >= amount` 校验 | ✅ 已修复 | commit 7216be8 — guard + BadRequestException |
+| P1-TEST-003 | Bot prefix 碰撞导致 `coinBalance` 从不同步 | ✅ 已验证无问题 | bot_ UUID 唯一，setBalances 已跳过 BOT_ID_PREFIX 用户 |
+| P1-TEST-004 | Table 组件无 `React.memo` 导致级联 re-render | ✅ 已修复 | commit 7e756ba — GameTable wrapped with React.memo |
 | P2-MOBILE-RECONNECT | Mobile `setRejoinAvailableHandler` 未注册 | ✅ 已修复 | commit 7d5bbaf |
 | P1-FIRST-DEPOSIT | 首充奖金前端 UI | ✅ 已实现 | deposit/page.tsx — bonus status + wagering 进度条 |
 | P1-DAILY-MISSIONS | 每日任务前端 UI | ✅ 已实现 | missions/page.tsx — 522行，10个任务 |
@@ -135,6 +140,19 @@
 | P1-CLUB-TEST-001 | ClubService spec RedisService 依赖缺失 | ✅ 已修复 | commit dc3e4a |
 
 ---
+
+## P2 — 新发现（第305轮）
+
+|| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-TEST-001 | `exchangeBalanceToChips` 事务外读取 balance | 🔍 待认领 | wallet.service.ts |
+| P2-TEST-002 | ELO 边界强制分离事务 | 🔍 待认领 | matchmaking.service.ts |
+| P2-TEST-003 | `getBalance` 返回总额（依赖调用方 discipline） | 🔍 待认领 | wallet.service.ts |
+| P2-TEST-004 | WebSocket `socket.on` listeners 未 cleanup | 🔍 待认领 | web socket hooks |
+| P2-TEST-005 | `TableState`/`Player` 类型在 web/shared 间漂移 | 🔍 待认领 | types |
+| P2-TEST-006 | 操作按钮无重复提交保护 | 🔍 待认领 | ActionBar |
+| P2-TEST-007 | Token 过期用 `window.location.replace` 丢弃状态 | 🔍 待认领 | auth |
+| P2-TEST-008 | 无 refresh token 机制 | 🔍 待认领 | auth |
 
 ## P2 — 进行中
 
@@ -242,4 +260,4 @@
 
 ---
 
-*最后更新: 2026-04-28 08:17 — Coding 第274轮 — P2-NEW-012 ✅ — 0 P0 / 0 P1 / ~10 P2 *
+*最后更新: 2026-04-28 08:17 — Test 第305轮 — P0-TEST-001/1P1/8P2 新发现，P2-NEW-012 ✅ — 1 P0 / 4 P1 / ~20 P2 *
