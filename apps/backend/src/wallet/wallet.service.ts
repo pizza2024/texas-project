@@ -119,9 +119,21 @@ export class WalletService {
    * The entire stack is frozen so they cannot join a second table.
    * Also decrements User.coinBalance by the frozen amount so that the
    * user's reported balance accurately reflects the frozen state.
+   *
+   * @throws BadRequestException if available balance is insufficient
    */
   async freezeBalance(userId: string, amount: number): Promise<void> {
     const normalized = Math.max(0, amount);
+    if (normalized === 0) return;
+
+    // P1-TEST-002: Guard against freezing more than available
+    const available = await this.getAvailableBalance(userId);
+    if (available < normalized) {
+      throw new BadRequestException(
+        `Insufficient balance: ${available} < ${normalized}`,
+      );
+    }
+
     await this.prisma.$transaction([
       this.prisma.wallet.upsert({
         where: { userId },

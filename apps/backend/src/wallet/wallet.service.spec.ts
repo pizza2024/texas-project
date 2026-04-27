@@ -95,6 +95,11 @@ describe('WalletService', () => {
 
   describe('freezeBalance', () => {
     it('should upsert wallet with frozenChips and decrement user coinBalance', async () => {
+      // Provide enough available balance (chips - frozenChips >= 1000)
+      mockPrisma.wallet.findUnique.mockResolvedValue({
+        chips: 5000,
+        frozenChips: 3000,
+      });
       mockPrisma.wallet.upsert.mockResolvedValue({});
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -111,17 +116,26 @@ describe('WalletService', () => {
       });
     });
 
-    it('should normalize negative amounts to zero', async () => {
-      mockPrisma.wallet.upsert.mockResolvedValue({});
-      mockPrisma.user.update.mockResolvedValue({});
-
+    it('should normalize negative amounts to zero and return early', async () => {
       await service.freezeBalance('user-1', -500);
 
-      expect(mockPrisma.wallet.upsert).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        update: { frozenChips: 0 },
-        create: { userId: 'user-1', chips: 0, frozenChips: 0 },
+      // Should not upsert wallet for negative amounts
+      expect(mockPrisma.wallet.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when available balance is insufficient', async () => {
+      // Available balance = 500 - 400 = 100 < 1000
+      mockPrisma.wallet.findUnique.mockResolvedValue({
+        chips: 500,
+        frozenChips: 400,
       });
+
+      await expect(service.freezeBalance('user-1', 1000)).rejects.toThrow(
+        'Insufficient balance',
+      );
+      expect(mockPrisma.wallet.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
   });
 
