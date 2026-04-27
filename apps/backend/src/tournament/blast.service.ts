@@ -4,6 +4,7 @@ import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RoomService } from '../room/room.service';
 import { TournamentService } from './tournament.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 import { Prisma } from '@prisma/client';
 import {
   BLAST_MAX_PLAYERS,
@@ -77,6 +78,7 @@ export class BlastService {
     @Inject(forwardRef(() => TournamentService))
     private readonly tournamentService: TournamentService,
     private readonly tableManager: TableManagerService,
+    private readonly wsManager: WebSocketManager,
   ) {}
 
   // ─── startBlastGame ─────────────────────────────────────────────────────────
@@ -165,8 +167,12 @@ export class BlastService {
 
     // 6. Add players to the table with initial chips
     for (const playerId of playerIds) {
-      // TODO (Phase 3): Call table.addPlayer(playerId, BLAST_INITIAL_CHIPS)
-      // For now, players are seated through the existing join flow
+      const user = await this.prisma.user.findUnique({
+        where: { id: playerId },
+        select: { nickname: true },
+      });
+      const nickname = user?.nickname ?? `Player-${playerId.slice(0, 8)}`;
+      table.addPlayer({ sub: playerId, nickname }, BLAST_INITIAL_CHIPS);
       this.tableManager.registerPlayerRoom(playerId, lobbyId);
     }
 
@@ -198,8 +204,31 @@ export class BlastService {
         `buyin=${buyin} multiplier=${multiplier}x prizePool=${blastConfig.totalPrizePool} endsAt=${endsAt}`,
     );
 
-    // TODO (Phase 3): Schedule a timer to call endBlastGame when endsAt is reached
-    // TODO (Phase 3): Emit 'blast_game_started' WebSocket event to all players
+    // Schedule timer to end the game when time expires
+    const delayMs = Math.max(0, endsAt - Date.now());
+    setTimeout(() => {
+      this.endBlastGame(lobbyId).catch((err) =>
+        this.logger.error(`endBlastGame timer failed for ${lobbyId}: ${err}`),
+      );
+    }, delayMs);
+
+    // Emit blast_game_started to all players
+    if (this.wsManager.getServer()) {
+      for (const playerId of playerIds) {
+        this.wsManager.emitToUser(playerId, 'blast_game_started', {
+          lobbyId,
+          tableId: lobbyId,
+          playerIds,
+          multiplier,
+          totalPrizePool: blastConfig.totalPrizePool,
+          endsAt,
+          smallBlind: lobby.smallBlind,
+          bigBlind: lobby.bigBlind,
+          buyin,
+          startedAt: now,
+        });
+      }
+    }
 
     return gameRecord;
   }
@@ -312,8 +341,18 @@ export class BlastService {
           .join(' '),
     );
 
-    // TODO (Phase 3): Emit 'blast_game_ended' WebSocket event with results
-    // TODO (Phase 3): Persist BlastGame record to Prisma (Phase 3 schema change)
+    // Emit blast_game_ended with final rankings to all players
+    if (this.wsManager.getServer()) {
+      for (const { playerId } of rankings) {
+        this.wsManager.emitToUser(playerId, 'blast_game_ended', {
+          tableId,
+          rankings,
+          totalPrizePool: game.totalPrizePool,
+          multiplier: game.multiplier,
+          endedAt: Date.now(),
+        });
+      }
+    }
 
     await this.cleanupGame(tableId);
   }
@@ -363,7 +402,18 @@ export class BlastService {
 
     // Otherwise, the game continues. Player has already been removed from
     // the table via leaveCurrentRoom in TableManager.
-    // TODO (Phase 3): Emit 'blast_player_forfeited' WebSocket event
+    // Emit blast_player_forfeited to remaining players
+    if (this.wsManager.getServer()) {
+      const remainingCount = game.playerIds.length;
+      for (const remainingId of game.playerIds) {
+        this.wsManager.emitToUser(remainingId, 'blast_player_forfeited', {
+          tableId,
+          playerId,
+          remainingCount,
+          remainingPlayerIds: game.playerIds,
+        });
+      }
+    }
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────
@@ -438,12 +488,13 @@ export class BlastService {
     const remainingMs = Math.max(0, record.endsAt - Date.now());
     if (remainingMs === 0) return; // Already expired, don't persist
 
-    await this.redis.hset(
+    // Use redis.set with TTL (setex) for auto-expiry
+    const ttlSeconds = Math.ceil(remainingMs / 1000);
+    await this.redis.set(
       BLAST_GAME_KEY_PREFIX + record.tableId,
-      'data',
       JSON.stringify(record),
+      ttlSeconds,
     );
-    // TODO: Set TTL on the key using redis.setex when available
   }
 
   /**
@@ -513,7 +564,8 @@ export class BlastService {
       await this.redis.lrem(BLAST_LOBBY_QUEUE_KEY, tableId).catch(() => {});
     }
 
-    // TODO (Phase 3): Clear the table state via TableManager
+    // Clear the table state via TableManager
+    await this.tableManager.clearTableState(tableId);
   }
 
   // ─── Query methods (used by other services) ───────────────────────────────

@@ -11,6 +11,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { RoomService } from '../room/room.service';
 import { TournamentService } from './tournament.service';
 import { TableManagerService } from '../table-engine/table-manager.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 import {
   BLAST_MAX_PLAYERS,
   BLAST_INITIAL_CHIPS,
@@ -52,12 +53,16 @@ describe('BlastService', () => {
     transaction: {
       create: jest.fn().mockResolvedValue({}),
     },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ nickname: 'TestUser' }),
+    },
   };
 
   const mockRedisService = {
     isAvailable: true,
     hgetall: jest.fn(),
     hset: jest.fn().mockResolvedValue('OK'),
+    set: jest.fn().mockResolvedValue('OK'),
     lrem: jest.fn().mockResolvedValue(1),
     del: jest.fn().mockResolvedValue(1),
   };
@@ -88,6 +93,24 @@ describe('BlastService', () => {
   const mockTableManagerService = {
     getTable: jest.fn(),
     registerPlayerRoom: jest.fn(),
+    clearTableState: jest.fn().mockResolvedValue(undefined),
+    // Mock table instance returned by getTable
+    _mockTable: {
+      addPlayer: jest.fn(),
+      getPlayerCount: () => 0,
+    },
+  };
+
+  // Make getTable return the mock table by default
+  beforeEach(() => {
+    mockTableManagerService.getTable.mockReturnValue(
+      mockTableManagerService._mockTable,
+    );
+  });
+
+  const mockWebSocketManager = {
+    getServer: jest.fn().mockReturnValue(undefined),
+    emitToUser: jest.fn(),
   };
 
   // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -105,6 +128,7 @@ describe('BlastService', () => {
         { provide: RoomService, useValue: mockRoomService },
         { provide: TableManagerService, useValue: mockTableManagerService },
         { provide: TournamentService, useValue: mockTournamentService },
+        { provide: WebSocketManager, useValue: mockWebSocketManager },
       ],
     })
       .overrideProvider(TournamentService)
@@ -129,6 +153,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 0,
+        addPlayer: jest.fn(),
       });
     });
 
@@ -217,7 +242,8 @@ describe('BlastService', () => {
     it('persists game record to Redis', async () => {
       await service.startBlastGame(LOBBY_ID);
 
-      expect(mockRedisService.hset).toHaveBeenCalled();
+      // Uses redis.set with TTL (not hset) for auto-expiry
+      expect(mockRedisService.set).toHaveBeenCalled();
     });
 
     it('returns null and rolls back freezes when getTable fails', async () => {
@@ -247,6 +273,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_1, chips: 3000 },
@@ -271,6 +298,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 1,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_1, chips: 3000 },
@@ -289,6 +317,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
 
       await service.startBlastGame(LOBBY_ID);
@@ -317,6 +346,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 0,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([]);
 
@@ -332,6 +362,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_1, chips: 3000 },
@@ -368,6 +399,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_1, chips: 3000 },
@@ -395,6 +427,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_1, chips: 3000 },
@@ -429,6 +462,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
 
       await service.startBlastGame(LOBBY_ID);
@@ -447,6 +481,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 1, // 1 seat occupied on table
+        addPlayer: jest.fn(),
       });
       mockTournamentService.calculateFinalRankings.mockResolvedValue([
         { place: 1, playerId: PLAYER_2, chips: 3000 },
@@ -470,6 +505,7 @@ describe('BlastService', () => {
       });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
+        addPlayer: jest.fn(),
       });
     });
 
