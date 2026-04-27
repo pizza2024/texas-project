@@ -8,6 +8,7 @@ export enum TournamentType {
   SNG = 'SNG',
   MTT = 'MTT',
   BTC = 'BTC',
+  BLAST = 'BLAST',
 }
 
 /** SNG Buy-in levels */
@@ -67,7 +68,7 @@ export interface BtcConfig {
 }
 
 /** Tournament configuration - stored as JSON in Room.tournamentConfig */
-export type TournamentConfig = SngConfig | BtcConfig;
+export type TournamentConfig = SngConfig | BtcConfig | BlastConfig;
 
 /** Check if a tournament config is SNG type */
 export function isSngConfig(config: TournamentConfig): config is SngConfig {
@@ -134,6 +135,119 @@ export function createBtcBlindSchedule(startingBlind: number): BlindLevel[] {
 export const BTC_MAX_PLAYERS = 6;
 export const BTC_INITIAL_CHIPS = 1500;
 export const BTC_TOTAL_LEVELS = 20;
+
+// ── Blast (Instant Tournament) ─────────────────────────────────────────────────
+
+/**
+ * Blast is a 3-player instant tournament inspired by GGPoker SPINS.
+ * Key mechanics:
+ * - 3 players, 3-minute duration
+ * - Prize pool multiplier (2x–10,000x) revealed at start
+ * - Base prize pool = buyin × 3 × multiplier
+ * - Faster blind increases than SNG (every 2 minutes)
+ * - Auto-start when 3 players fill the room
+ */
+export const BLAST_MAX_PLAYERS = 3;
+export const BLAST_INITIAL_CHIPS = 1500;
+export const BLAST_BLIND_DURATION_SECONDS = 120; // 2 minutes
+export const BLAST_DEFAULT_DURATION_SECONDS = 180; // 3 minutes total
+
+/** Blast buy-in levels (in chips) */
+export const BLAST_BUYINS = [500, 1000, 2500, 5000, 10000] as const;
+export type BlastBuyin = (typeof BLAST_BUYINS)[number];
+
+/** Blast prize multiplier range */
+export const BLAST_MIN_MULTIPLIER = 2;
+export const BLAST_MAX_MULTIPLIER = 10000;
+
+/** Default Blast prize distribution: [1st place %, 2nd place %, 3rd place %] */
+export const BLAST_PRIZE_DISTRIBUTION = [70, 20, 10] as const;
+
+/** Blast tournament configuration stored in Room.blastConfig */
+export interface BlastConfig {
+  type: TournamentType.BLAST;
+  /** Buy-in amount in chips */
+  buyin: number;
+  maxPlayers: typeof BLAST_MAX_PLAYERS;
+  /** Prize distribution percentages [1st, 2nd, 3rd] */
+  prizeDistribution: readonly [number, number, number];
+  /** Multiplier drawn at tournament start (e.g., 10 for 10x) */
+  multiplier: number;
+  /** Unix timestamp (ms) when the tournament started */
+  startedAt: number;
+  /** Total duration in milliseconds */
+  durationMs: number;
+  /** Unix timestamp (ms) when the tournament ends */
+  endsAt: number;
+  /** 0-indexed current blind level */
+  currentBlindLevel: number;
+  /** Unix timestamp (ms) when the current blind level started */
+  blindLevelStartedAt: number;
+  /**
+   * Pre-computed prize pool = buyin × 3 × multiplier
+   * This is the total prize for ALL players combined (not per-player)
+   */
+  totalPrizePool: number;
+}
+
+/** Blind level definition for Blast (faster schedule than SNG) */
+export interface BlastBlindLevel {
+  level: number;
+  smallBlind: number;
+  bigBlind: number;
+  durationSeconds: number; // 120 (2 min) for Blast
+}
+
+/** Create the default blind schedule for Blast tournaments */
+export function createBlastBlindSchedule(startingBlind: number): BlastBlindLevel[] {
+  const levels: BlastBlindLevel[] = [];
+  let sb = startingBlind;
+  let bb = startingBlind * 2;
+
+  // Blast is 3 minutes max, blinds double every 2 minutes
+  // So we have at most 2 levels: level 1 and level 2 (final)
+  for (let level = 1; level <= 2; level++) {
+    levels.push({
+      level,
+      smallBlind: sb,
+      bigBlind: bb,
+      durationSeconds: BLAST_BLIND_DURATION_SECONDS,
+    });
+
+    // Double every level (faster than SNG)
+    sb = sb * 2;
+    bb = bb * 2;
+  }
+
+  return levels;
+}
+
+/** Draw a random prize multiplier for a Blast tournament */
+export function drawBlastMultiplier(): number {
+  // Multiplier tiers (inspired by GGPoker SPINS):
+  // 2x–10x: common (60%)
+  // 15x–100x: uncommon (30%)
+  // 250x–10000x: rare (10%)
+  const roll = Math.random() * 100;
+
+  if (roll < 60) {
+    // Common: 2x to 10x
+    return Math.floor(Math.random() * 9) + 2; // 2-10
+  } else if (roll < 90) {
+    // Uncommon: 15x to 100x
+    const tier = Math.floor(Math.random() * 6); // 0-5
+    return [15, 25, 50, 75, 100, 150][tier];
+  } else {
+    // Rare: 250x to 10000x
+    const tier = Math.floor(Math.random() * 5); // 0-4
+    return [250, 500, 1000, 5000, 10000][tier];
+  }
+}
+
+/** Check if a tournament config is Blast type */
+export function isBlastConfig(config: TournamentConfig): config is BlastConfig {
+  return config.type === TournamentType.BLAST;
+}
 
 /** Prize distribution entry for API responses */
 export interface PrizePosition {

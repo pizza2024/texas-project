@@ -21,6 +21,14 @@ import {
   PrizeDistributionResponse,
   PrizePosition,
   TournamentType,
+  BlastConfig,
+  BLAST_MAX_PLAYERS,
+  BLAST_BLIND_DURATION_SECONDS,
+  BLAST_PRIZE_DISTRIBUTION,
+  BLAST_INITIAL_CHIPS,
+  BLAST_DEFAULT_DURATION_SECONDS,
+  createBlastBlindSchedule,
+  drawBlastMultiplier,
 } from '@texas/shared/types/tournament';
 
 /** Redis key for tournament blind timer sorted set */
@@ -64,6 +72,31 @@ export class TournamentService implements OnModuleDestroy {
       currentBlindLevel: 0,
       blindLevelStartedAt: Date.now(),
       totalPrize,
+    };
+  }
+
+  /**
+   * Create a Blast tournament configuration.
+   * Draws a random multiplier at creation time (revealed when tournament starts).
+   * Base prize pool = buyin × 3 players × multiplier.
+   */
+  createBlastConfig(buyin: number, smallBlind: number): BlastConfig {
+    const multiplier = drawBlastMultiplier();
+    const now = Date.now();
+    const blindSchedule = createBlastBlindSchedule(smallBlind);
+
+    return {
+      type: TournamentType.BLAST,
+      buyin,
+      maxPlayers: BLAST_MAX_PLAYERS,
+      prizeDistribution: BLAST_PRIZE_DISTRIBUTION,
+      multiplier,
+      startedAt: now,
+      durationMs: BLAST_DEFAULT_DURATION_SECONDS * 1000,
+      endsAt: now + BLAST_DEFAULT_DURATION_SECONDS * 1000,
+      currentBlindLevel: 0,
+      blindLevelStartedAt: now,
+      totalPrizePool: buyin * BLAST_MAX_PLAYERS * multiplier,
     };
   }
 

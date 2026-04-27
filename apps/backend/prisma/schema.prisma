@@ -92,8 +92,10 @@ model Room {
   isMatchmaking    Boolean  @default(false)    // true = auto-created for quick-match
   isClubOnly       Boolean  @default(false)    // true = only accessible to club members
   tier             String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
-  isTournament     Boolean  @default(false)    // true = SNG/MTT tournament room
+  isTournament     Boolean  @default(false)    // true = SNG/MTT/Blast tournament room
   tournamentConfig Json?                       // TournamentConfig JSON (SNG/MTT settings)
+  isBlast          Boolean  @default(false)    // true = Blast instant tournament
+  blastConfig      Json?                       // BlastConfig JSON
   createdAt        DateTime @default(now())
 
   tables      Table[]
