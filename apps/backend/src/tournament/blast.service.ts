@@ -92,9 +92,11 @@ export class BlastService implements OnModuleDestroy {
   ) {
     // Start periodic TTL cleanup sweep for the activeGames Map
     // P1-NEW-001: prevents memory leak from stale entries
+    // P2-CODE-033: sweep every 30s instead of full game duration (180s)
+    // to reclaim memory faster for short-lived games (e.g., all-in early)
     this.cleanupInterval = setInterval(() => {
       this.sweepExpiredGames();
-    }, BLAST_TOTAL_DURATION_MS); // sweep once per full game duration
+    }, 30_000); // sweep every 30 seconds
   }
 
   // ─── TTL Cleanup ─────────────────────────────────────────────────────────────

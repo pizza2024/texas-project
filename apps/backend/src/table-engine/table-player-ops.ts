@@ -205,13 +205,12 @@ export class TablePlayerOps {
     // Increment consecutive timeout counter (Option C)
     player.consecutiveTimeouts += 1;
 
-    // Option C: Force SITOUT after 3 consecutive timeouts
+    // Option C: Force-fold after 3 consecutive timeouts
     if (player.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
-      // Player is forcibly moved to sit-out; they keep the SITOUT status.
-      // They will be skipped in future hands until they interact again.
-      // Reset counter so they start fresh if they manually return.
+      // Player is forcibly removed from the hand after 3 consecutive auto-folds.
+      // They keep the FOLD status and will be skipped in future hands until
+      // they interact again. Counter is reset so they start fresh on return.
       player.consecutiveTimeouts = 0;
-      // Force-fold: player stays SITOUT for remainder of session.
       player.status = PlayerStatus.FOLD;
       player.hasActed = true;
       this.table.actionEndsAt = null;
