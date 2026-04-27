@@ -91,6 +91,7 @@ model Room {
   status           String   @default("ACTIVE") // ACTIVE, MAINTENANCE
   isMatchmaking    Boolean  @default(false)    // true = auto-created for quick-match
   isClubOnly       Boolean  @default(false)    // true = only accessible to club members
+  isAnonymous      Boolean  @default(false)    // true = player identities are hidden
   tier             String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
   isTournament     Boolean  @default(false)    // true = SNG/MTT/Blast tournament room
   tournamentConfig Json?                       // TournamentConfig JSON (SNG/MTT settings)

@@ -199,6 +199,7 @@ export const GameTable = React.memo(function GameTable({
               loserHighlightPlayerIds={loserHighlightPlayerIds}
               table={table}
               getDealAnimationStyle={getDealAnimationStyle}
+              isAnonymous={table.isAnonymous}
             />
           );
         })}

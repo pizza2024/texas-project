@@ -41,6 +41,7 @@ export interface TableState {
   isFoldWin?: boolean;
   foldWinnerRevealed?: boolean;
   straddle?: { playerId: string; amount: number; position: number } | null;
+  isAnonymous?: boolean;
 }
 
 export interface ChipFlight {

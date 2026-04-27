@@ -15,6 +15,7 @@ export interface Room {
   clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
   isTournament?: boolean;
+  isAnonymous?: boolean;
   tournamentConfig?: {
     type: 'SNG';
     buyin: number;
@@ -84,6 +85,7 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
           <div className="flex items-center gap-2 flex-wrap">
             {room.isPrivate && <span className="text-sm">🔒</span>}
             {room.isClubOnly && <span className="text-sm" title="俱乐部专属">🏠</span>}
+            {room.isAnonymous && <span className="text-sm" title="匿名房间">🎭</span>}
             <h3 className="font-black text-white text-base truncate tracking-wide">
               {room.name}
             </h3>

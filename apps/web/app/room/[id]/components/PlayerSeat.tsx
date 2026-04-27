@@ -19,6 +19,7 @@ interface PlayerSeatProps {
   loserHighlightPlayerIds: Set<string>;
   table: import('./types').TableState;
   getDealAnimationStyle: (slotKey: string) => React.CSSProperties | undefined;
+  isAnonymous?: boolean;
 }
 
 export function PlayerSeat({
@@ -34,6 +35,7 @@ export function PlayerSeat({
   winnerHighlightPlayerIds,
   loserHighlightPlayerIds,
   getDealAnimationStyle,
+  isAnonymous,
 }: PlayerSeatProps) {
   const { t } = useTranslation();
   const { top, left } = getSeatPosition(seatIndex);
@@ -118,7 +120,7 @@ export function PlayerSeat({
           {/* Nickname overlay at bottom */}
           <div className="absolute bottom-0 left-0 right-0 rounded-b-full bg-black/55 px-0.5 py-0.5 text-center pointer-events-none">
             <div className="text-[9px] font-bold truncate" style={{ color: isMe ? '#fcd34d' : 'rgba(255,255,255,0.9)' }}>
-              {player.nickname}
+              {isAnonymous ? t('room.playerNameAnonymous', { n: seatIndex + 1 }) : player.nickname}
             </div>
           </div>
           {/* Stack chip top-right */}

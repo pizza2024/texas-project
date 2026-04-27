@@ -27,6 +27,7 @@ export class RoomService {
       maxPlayers: room.maxPlayers,
       minBuyIn: room.minBuyIn > 0 ? room.minBuyIn : room.blindBig,
       isPrivate: !!room.password,
+      isAnonymous: room.isAnonymous,
     });
 
     const { password: _omitted, ...safeRoom } = room;

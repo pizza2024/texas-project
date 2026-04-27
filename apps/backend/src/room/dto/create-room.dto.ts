@@ -63,4 +63,11 @@ export class CreateRoomDto {
   @IsOptional()
   @IsBoolean()
   isClubOnly?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether player identities are hidden in this room',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }

@@ -38,6 +38,7 @@ export interface Room {
   isPrivate?: boolean;
   isClubOnly?: boolean;
   clubId?: string;
+  isAnonymous?: boolean;
 }
 
 export interface RoomStatus {

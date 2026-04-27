@@ -217,6 +217,7 @@ interface CreateRoomForm {
   maxPlayers: number;
   minBuyIn: number;
   password: string;
+  isAnonymous: boolean;
 }
 
 const DEFAULT_FORM: CreateRoomForm = {
@@ -226,6 +227,7 @@ const DEFAULT_FORM: CreateRoomForm = {
   maxPlayers: 9,
   minBuyIn: 20,
   password: "",
+  isAnonymous: false,
 };
 
 interface CreateRoomDialogProps {
@@ -485,6 +487,44 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
             {errors.minBuyIn && <p style={errorStyle}>{errors.minBuyIn}</p>}
           </div>
 
+          {/* Anonymous mode toggle */}
+          <div>
+            <label style={labelStyle}>{t("lobby.createDialog.anonymous")}</label>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))}
+              className="w-full h-9 rounded-lg flex items-center justify-between px-3 text-sm transition-all"
+              style={{
+                background: form.isAnonymous ? 'rgba(168,85,247,0.15)' : 'rgba(0,0,0,0.35)',
+                border: form.isAnonymous ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(234,179,8,0.18)',
+              }}
+            >
+              <span
+                className="font-medium"
+                style={{ color: form.isAnonymous ? '#c084fc' : 'rgba(255,255,255,0.6)' }}
+              >
+                🎭 {t("lobby.createDialog.anonymousLabel")}
+              </span>
+              <div
+                className="w-10 h-5 rounded-full transition-all duration-200 relative"
+                style={{
+                  background: form.isAnonymous ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.1)',
+                }}
+              >
+                <div
+                  className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200"
+                  style={{
+                    background: form.isAnonymous ? '#c084fc' : 'rgba(255,255,255,0.4)',
+                    left: form.isAnonymous ? '22px' : '2px',
+                  }}
+                />
+              </div>
+            </button>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(156,163,175,0.55)', marginTop: '0.25rem' }}>
+              {t("lobby.createDialog.anonymousHint")}
+            </p>
+          </div>
+
           {/* Password (optional) */}
           <div>
             <label style={labelStyle}>{t("lobby.createDialog.password")}</label>
@@ -710,6 +750,7 @@ interface Room {
   clubId?: string;
   tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
   isTournament?: boolean;
+  isAnonymous?: boolean;
   tournamentConfig?: {
     type: 'SNG';
     buyin: number;
@@ -997,6 +1038,7 @@ export default function RoomsPage() {
         blindBig: form.blindBig,
         maxPlayers: form.maxPlayers,
         minBuyIn: form.minBuyIn,
+        isAnonymous: form.isAnonymous,
         password: form.password.trim() || undefined,
       });
       setCreateDialogCount((c) => c + 1);

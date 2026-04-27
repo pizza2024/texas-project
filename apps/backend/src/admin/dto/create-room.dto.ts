@@ -52,4 +52,8 @@ export class CreateRoomDto {
   @IsOptional()
   @IsBoolean()
   isClubOnly?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }
