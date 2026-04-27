@@ -20,6 +20,7 @@ export function CreateBlastDialog({
   onCreated,
 }: CreateBlastDialogProps) {
   const [buyin, setBuyin] = useState<number>(1000);
+  const [password, setPassword] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
   const [createdLobby, setCreatedLobby] = useState<BlastLobby | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ export function CreateBlastDialog({
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const { data } = await api.post<BlastLobby>("/rooms/blast", { buyin });
+      const { data } = await api.post<BlastLobby>("/rooms/blast", { buyin, password: password || undefined });
       setCreatedLobby(data);
       onCreated(data);
       // Auto-close after a brief delay
@@ -139,6 +140,27 @@ export function CreateBlastDialog({
                 {t("blast.selectBuyin")}
               </label>
               <BlastBuyinSelector value={buyin} onChange={setBuyin} />
+            </div>
+
+            {/* Password field */}
+            <div className="space-y-3">
+              <label
+                className="block text-[10px] font-bold tracking-[0.1em] uppercase"
+                style={{ color: "rgba(249,115,22,0.6)" }}
+              >
+                {t("blast.passwordOptional")}
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full h-10 px-3 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                style={{
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid rgba(249,115,22,0.2)",
+                }}
+              />
             </div>
 
             {/* Actions */}

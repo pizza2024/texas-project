@@ -277,6 +277,8 @@ export interface BlastLobby {
   smallBlind: number;
   /** Big blind for this lobby */
   bigBlind: number;
+  /** Optional password for the lobby */
+  password?: string;
 }
 
 /** Redis key for the Blast lobby waiting queue (list) */

@@ -13,7 +13,7 @@ import { Request } from 'express';
 import { TournamentService } from './tournament.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsNumber, IsPositive, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 
@@ -27,6 +27,10 @@ class CreateBlastLobbyDto {
   @Min(500)
   @Type(() => Number)
   buyin: number;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
 }
 
 @ApiTags('Tournament')
@@ -52,6 +56,7 @@ export class TournamentController {
     const lobby = await this.tournamentService.createBlastLobby(
       dto.buyin,
       req.user.userId,
+      dto.password,
     );
     return lobby;
   }

@@ -336,6 +336,7 @@ export class TournamentService implements OnModuleDestroy {
   async createBlastLobby(
     buyin: number,
     creatorId: string,
+    password?: string,
   ): Promise<BlastLobby> {
     const id = crypto.randomUUID();
     const now = Date.now();
@@ -351,12 +352,17 @@ export class TournamentService implements OnModuleDestroy {
       creatorId,
       smallBlind,
       bigBlind: smallBlind * 2,
+      password,
     };
 
     const key = BLAST_LOBBY_KEY_PREFIX + id;
     if (this.redis.isAvailable) {
       // Store lobby data as JSON hash
       await this.redis.hset(key, 'data', JSON.stringify(lobby));
+      // Store password separately in hash if provided
+      if (password !== undefined) {
+        await this.redis.hset(key, 'password', password);
+      }
       // Add lobby ID to the waiting queue list
       await this.redis.lpush(BLAST_LOBBY_QUEUE_KEY, id);
     }

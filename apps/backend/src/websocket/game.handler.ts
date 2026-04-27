@@ -613,9 +613,8 @@ export async function handleEmojiReaction(
     return { event: 'error', data: 'Not in any room' };
   }
 
-  const username =
-    (client.data.user as { username?: string } | undefined)?.username ??
-    '未知玩家';
+  const dbUser = await gateway.userService.user({ id: userId });
+  const username = dbUser?.username ?? '未知玩家';
 
   // Broadcast emoji reaction to all clients in the room (including sender)
   gateway.server.to(roomId).emit('emoji-reaction', {
