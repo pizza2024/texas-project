@@ -289,10 +289,16 @@ export class TableRound {
   // ─── Fold-win resolution (called from multiple entry points) ─────────────
 
   /**
-   * Resolve a fold-win: award the pot to the remaining player,
-   * deduct rake, and transition to SETTLEMENT.
+   * Resolve a fold-win: award each pot (main + side) only to players
+   * eligible for that pot, deduct rake, and transition to SETTLEMENT.
+   * Mirrors the per-pot distribution logic from performShowdown.
    */
   resolveFoldWin(winner: Player): void {
+    const allPlayers = this.table.players.filter(
+      (p): p is Player => p !== null,
+    );
+    const eligible = allPlayers.filter((p) => p.status !== PlayerStatus.FOLD);
+
     // Use tier-based rake (fold wins get same rate, same cap)
     const tierConfig = TIER_RAKE_CONFIG[this.table.tier] ?? {
       rate: RAKE_RATE,
@@ -304,20 +310,51 @@ export class TableRound {
     );
     // Deduct rake from pot first (consistent with performShowdown pattern)
     this.table.pot -= rake;
-    const winAmount = this.table.pot;
-    winner.stack += winAmount;
     this.table.rakeAmount = rake;
     this.table.rakePercent = tierConfig.rate;
-    this.table.lastHandResult = this.table.players
-      .filter((p) => p !== null)
-      .map((p) => ({
-        playerId: p.id,
-        nickname: p.nickname,
-        handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
-        bestCards: [],
-        winAmount: p.id === winner.id ? winAmount : 0,
-        totalBet: p.totalBet,
-      }));
+
+    // Build main + side pots from all players' total contributions
+    const pots = this.buildPots(allPlayers);
+
+    // Accumulate each pot's winnings for eligible winners
+    const winAmounts = new Map<string, number>();
+
+    for (const pot of pots) {
+      // Only award this pot to players who are both:
+      // 1. Non-folded (eligible)
+      // 2. Listed in this pot's eligiblePlayerIds (not locked out by a side pot)
+      const potEligible = eligible.filter(
+        (p) =>
+          pot.eligiblePlayerIds.includes(p.id) && p.status !== PlayerStatus.FOLD,
+      );
+      if (potEligible.length === 0) continue;
+
+      // Single winner case: entire pot amount goes to them
+      const share = Math.floor(pot.amount / potEligible.length);
+      const remainder = pot.amount - share * potEligible.length;
+      potEligible.forEach((p, idx) => {
+        const current = winAmounts.get(p.id) ?? 0;
+        winAmounts.set(p.id, current + share + (idx === 0 ? remainder : 0));
+      });
+    }
+
+    // Credit stacks
+    for (const [pid, amount] of winAmounts) {
+      const p = this.table.players.find((pl) => pl && pl.id === pid);
+      if (p) p.stack += amount;
+    }
+
+    // Build result for all seated players
+    this.table.lastHandResult = allPlayers.map((p) => ({
+      playerId: p.id,
+      nickname: p.nickname,
+      handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
+      bestCards: [],
+      winAmount: winAmounts.get(p.id) ?? 0,
+      totalBet: p.totalBet,
+    }));
+
+    this.table.pot = 0;
     this.table.isFoldWin = true;
     this.table.foldWinnerRevealed = false;
     this.table.currentStage = GameStage.SETTLEMENT;
