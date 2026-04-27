@@ -282,12 +282,15 @@ export class BlastService {
   async endBlastGame(tableId: string): Promise<void> {
     const game = this.activeGames.get(tableId);
     if (!game) {
-      this.logger.warn(`endBlastGame: no active game found for table ${tableId}`);
+      this.logger.warn(
+        `endBlastGame: no active game found for table ${tableId}`,
+      );
       return;
     }
 
     // Get final rankings from table chip counts
-    const rankings = await this.tournamentService.calculateFinalRankings(tableId);
+    const rankings =
+      await this.tournamentService.calculateFinalRankings(tableId);
 
     if (rankings.length === 0) {
       this.logger.warn(
@@ -451,9 +454,13 @@ export class BlastService {
     totalPrizePool: number,
     rankings: Array<{ place: number; playerId: string; chips: number }>,
   ): Promise<void> {
-    for (let i = 0; i < rankings.length && i < BLAST_PRIZE_BASIS_POINTS.length; i++) {
+    for (
+      let i = 0;
+      i < rankings.length && i < BLAST_PRIZE_BASIS_POINTS.length;
+      i++
+    ) {
       const { place, playerId } = rankings[i];
-      const basisPoints = BLAST_PRIZE_BASIS_POINTS[i]!;
+      const basisPoints = BLAST_PRIZE_BASIS_POINTS[i];
 
       // prizeChips = totalPrizePool × (basisPoints / BASIS_POINTS_TOTAL)
       // Using integer math: (totalPrizePool * basisPoints) / BASIS_POINTS_TOTAL

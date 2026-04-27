@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { forwardRef } from '@nestjs/common';
-import { BlastService, BLAST_TOTAL_DURATION_MS, BLAST_PRIZE_BASIS_POINTS } from './blast.service';
+import {
+  BlastService,
+  BLAST_TOTAL_DURATION_MS,
+  BLAST_PRIZE_BASIS_POINTS,
+} from './blast.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -107,7 +111,8 @@ describe('BlastService', () => {
       .useFactory({
         factory: () =>
           jest.fn().mockImplementation(() => ({
-            calculateFinalRankings: mockTournamentService.calculateFinalRankings,
+            calculateFinalRankings:
+              mockTournamentService.calculateFinalRankings,
           })),
       })
       .compile();
@@ -119,7 +124,9 @@ describe('BlastService', () => {
 
   describe('startBlastGame', () => {
     beforeEach(() => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 0,
       });
@@ -135,7 +142,9 @@ describe('BlastService', () => {
 
     it('returns null when lobby has fewer than 3 players', async () => {
       const partialLobby = { ...mockLobby, playerIds: [PLAYER_1, PLAYER_2] };
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(partialLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(partialLobby),
+      });
 
       const result = await service.startBlastGame(LOBBY_ID);
 
@@ -150,7 +159,9 @@ describe('BlastService', () => {
       expect(result!.playerIds).toEqual([PLAYER_1, PLAYER_2, PLAYER_3]);
       expect(result!.buyin).toBe(BUYIN);
       expect([2, 5, 10]).toContain(result!.multiplier); // 60%/30%/10% draw
-      expect(result!.totalPrizePool).toBe(BUYIN * BLAST_MAX_PLAYERS * result!.multiplier);
+      expect(result!.totalPrizePool).toBe(
+        BUYIN * BLAST_MAX_PLAYERS * result!.multiplier,
+      );
       expect(result!.endsAt).toBeGreaterThan(Date.now());
       expect(result!.endsAt - result!.startedAt).toBe(BLAST_TOTAL_DURATION_MS);
     });
@@ -159,9 +170,18 @@ describe('BlastService', () => {
       await service.startBlastGame(LOBBY_ID);
 
       expect(mockWalletService.freezeBalance).toHaveBeenCalledTimes(3);
-      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(PLAYER_1, BUYIN);
-      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(PLAYER_2, BUYIN);
-      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(PLAYER_3, BUYIN);
+      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(
+        PLAYER_1,
+        BUYIN,
+      );
+      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(
+        PLAYER_2,
+        BUYIN,
+      );
+      expect(mockWalletService.freezeBalance).toHaveBeenCalledWith(
+        PLAYER_3,
+        BUYIN,
+      );
     });
 
     it('creates a room with correct blast config', async () => {
@@ -177,10 +197,21 @@ describe('BlastService', () => {
     it('registers all players in table manager', async () => {
       await service.startBlastGame(LOBBY_ID);
 
-      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledTimes(3);
-      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(PLAYER_1, LOBBY_ID);
-      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(PLAYER_2, LOBBY_ID);
-      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(PLAYER_3, LOBBY_ID);
+      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledTimes(
+        3,
+      );
+      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(
+        PLAYER_1,
+        LOBBY_ID,
+      );
+      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(
+        PLAYER_2,
+        LOBBY_ID,
+      );
+      expect(mockTableManagerService.registerPlayerRoom).toHaveBeenCalledWith(
+        PLAYER_3,
+        LOBBY_ID,
+      );
     });
 
     it('persists game record to Redis', async () => {
@@ -211,7 +242,9 @@ describe('BlastService', () => {
     });
 
     it('returns time_expired when game time has elapsed', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -233,7 +266,9 @@ describe('BlastService', () => {
     });
 
     it('returns one_player_left when only 1 player remains', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 1,
       });
@@ -249,7 +284,9 @@ describe('BlastService', () => {
     });
 
     it('returns continue when game is ongoing', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -269,11 +306,15 @@ describe('BlastService', () => {
       await service.endBlastGame('nonexistent-table');
 
       // Should not throw, just log warning
-      expect(mockTournamentService.calculateFinalRankings).not.toHaveBeenCalled();
+      expect(
+        mockTournamentService.calculateFinalRankings,
+      ).not.toHaveBeenCalled();
     });
 
     it('returns frozen chips when no rankings found', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 0,
       });
@@ -286,7 +327,9 @@ describe('BlastService', () => {
     });
 
     it('distributes prizes according to basis points', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -320,7 +363,9 @@ describe('BlastService', () => {
     });
 
     it('creates GAME_WIN transaction records', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -345,7 +390,9 @@ describe('BlastService', () => {
     });
 
     it('cleans up active games map after ending', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -371,11 +418,15 @@ describe('BlastService', () => {
       await service.forfeitBlast('nonexistent-table', PLAYER_1);
 
       // Should not throw, just log warning
-      expect(mockTournamentService.calculateFinalRankings).not.toHaveBeenCalled();
+      expect(
+        mockTournamentService.calculateFinalRankings,
+      ).not.toHaveBeenCalled();
     });
 
     it('removes player from tracked player list', async () => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -391,7 +442,9 @@ describe('BlastService', () => {
     it('ends game early when only 1 player remains on table', async () => {
       // Start with 3 players, then forfeit one leaving 2 in game.playerIds.
       // Mock getTable to return 1 remaining slot (e.g. one player busted/disconnected).
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 1, // 1 seat occupied on table
       });
@@ -412,7 +465,9 @@ describe('BlastService', () => {
 
   describe('query methods', () => {
     beforeEach(() => {
-      mockRedisService.hgetall.mockResolvedValue({ data: JSON.stringify(mockLobby) });
+      mockRedisService.hgetall.mockResolvedValue({
+        data: JSON.stringify(mockLobby),
+      });
       mockTableManagerService.getTable.mockResolvedValue({
         getPlayerCount: () => 3,
       });
@@ -440,9 +495,17 @@ describe('BlastService', () => {
 
     it('getAllActiveGames returns all active games', async () => {
       // Start a second lobby concurrently
-      const mockLobby2 = { ...mockLobby, id: 'lobby-456', playerIds: ['p4', 'p5', 'p6'] };
-      mockRedisService.hgetall.mockResolvedValueOnce({ data: JSON.stringify(mockLobby) });
-      mockRedisService.hgetall.mockResolvedValueOnce({ data: JSON.stringify(mockLobby2) });
+      const mockLobby2 = {
+        ...mockLobby,
+        id: 'lobby-456',
+        playerIds: ['p4', 'p5', 'p6'],
+      };
+      mockRedisService.hgetall.mockResolvedValueOnce({
+        data: JSON.stringify(mockLobby),
+      });
+      mockRedisService.hgetall.mockResolvedValueOnce({
+        data: JSON.stringify(mockLobby2),
+      });
 
       await service.startBlastGame(LOBBY_ID);
       await service.startBlastGame('lobby-456');
