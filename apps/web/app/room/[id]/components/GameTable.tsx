@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { TableState, ChipFlight, PayoutFlight, CHIP_FLIGHT_MS } from './types';
 import { CardDisplay } from './CardDisplay';
@@ -21,7 +22,7 @@ interface GameTableProps {
   actionCountdown: number;
 }
 
-export function GameTable({
+export const GameTable = React.memo(function GameTable({
   table,
   myUserId,
   chipFlights,
@@ -204,4 +205,4 @@ export function GameTable({
       </div>
     </div>
   );
-}
+});
