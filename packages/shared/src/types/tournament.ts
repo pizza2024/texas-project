@@ -249,6 +249,40 @@ export function isBlastConfig(config: TournamentConfig): config is BlastConfig {
   return config.type === TournamentType.BLAST;
 }
 
+// ── Blast Lobby (Redis queue entry) ───────────────────────────────────────────
+
+/**
+ * Represents a waiting Blast lobby stored in Redis.
+ * Players join via POST /rooms/blast/:id/join and are matched
+ * when 3 players fill the room.
+ */
+export interface BlastLobby {
+  /** UUID matching Room.id */
+  id: string;
+  /** Buy-in amount in chips */
+  buyin: number;
+  /** Player userIds who have joined (max 3) */
+  playerIds: string[];
+  /** Always 3 for Blast */
+  maxPlayers: typeof BLAST_MAX_PLAYERS;
+  /** Current status of the lobby */
+  status: 'waiting' | 'starting' | 'active';
+  /** Unix timestamp (ms) when lobby was created */
+  createdAt: number;
+  /** userId of the player who created this lobby */
+  creatorId: string;
+  /** Small blind for this lobby */
+  smallBlind: number;
+  /** Big blind for this lobby */
+  bigBlind: number;
+}
+
+/** Redis key for the Blast lobby waiting queue (list) */
+export const BLAST_LOBBY_QUEUE_KEY = 'blast:lobby:queue';
+
+/** Redis key prefix for individual lobby entries (hash) */
+export const BLAST_LOBBY_KEY_PREFIX = 'blast:lobby:';
+
 /** Prize distribution entry for API responses */
 export interface PrizePosition {
   place: number;

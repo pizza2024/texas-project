@@ -24,6 +24,10 @@ describe('TournamentService', () => {
     isAvailable: true,
     zadd: jest.fn().mockResolvedValue(1),
     zrem: jest.fn().mockResolvedValue(1),
+    hset: jest.fn().mockResolvedValue('OK'),
+    hgetall: jest.fn(),
+    lpush: jest.fn().mockResolvedValue(1),
+    lrange: jest.fn(),
   };
 
   const mockWalletService = {
@@ -370,6 +374,233 @@ describe('TournamentService', () => {
       clearSpy.mockRestore();
       clearTimeout(timer1 as any);
       clearTimeout(timer2 as any);
+    });
+  });
+
+  // ─── Blast Lobby Methods ─────────────────────────────────────────────────────
+
+  describe('createBlastLobby', () => {
+    it('should create a blast lobby with correct structure', async () => {
+      const result = await service.createBlastLobby(1000, 'player-1');
+
+      expect(result).toMatchObject({
+        buyin: 1000,
+        playerIds: ['player-1'],
+        maxPlayers: 3,
+        status: 'waiting',
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      expect(result.id).toBeDefined();
+    });
+
+    it('should apply correct small blind for 500 buyin', async () => {
+      const result = await service.createBlastLobby(500, 'player-1');
+      expect(result.smallBlind).toBe(5);
+      expect(result.bigBlind).toBe(10);
+    });
+
+    it('should apply correct small blind for 10000 buyin', async () => {
+      const result = await service.createBlastLobby(10000, 'player-1');
+      expect(result.smallBlind).toBe(100);
+      expect(result.bigBlind).toBe(200);
+    });
+
+    it('should fallback to 1/100 ratio for unknown buyin', async () => {
+      const result = await service.createBlastLobby(750, 'player-1');
+      expect(result.smallBlind).toBe(7);
+    });
+  });
+
+  describe('getBlastLobbies', () => {
+    it('should return empty array when Redis unavailable', async () => {
+      mockRedisService.isAvailable = false;
+
+      const result = await service.getBlastLobbies();
+
+      expect(result).toEqual([]);
+      mockRedisService.isAvailable = true;
+    });
+
+    it('should return waiting lobbies from Redis', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+
+      mockRedisService.lrange.mockResolvedValue(['lobby-1']);
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.getBlastLobbies();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('lobby-1');
+      expect(result[0].status).toBe('waiting');
+    });
+
+    it('should skip non-waiting lobbies', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        status: 'active',
+        playerIds: [],
+        maxPlayers: 3,
+        buyin: 1000,
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+
+      mockRedisService.lrange.mockResolvedValue(['lobby-1']);
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.getBlastLobbies();
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('getBlastLobby', () => {
+    it('should return null when Redis unavailable', async () => {
+      mockRedisService.isAvailable = false;
+
+      const result = await service.getBlastLobby('lobby-1');
+
+      expect(result).toBeNull();
+      mockRedisService.isAvailable = true;
+    });
+
+    it('should return null when lobby not found', async () => {
+      mockRedisService.hgetall.mockResolvedValue({});
+
+      const result = await service.getBlastLobby('nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return parsed lobby data', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.getBlastLobby('lobby-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('lobby-1');
+    });
+  });
+
+  describe('joinBlastLobby', () => {
+    it('should return null when Redis unavailable', async () => {
+      mockRedisService.isAvailable = false;
+
+      const result = await service.joinBlastLobby('lobby-1', 'player-2');
+
+      expect(result).toBeNull();
+      mockRedisService.isAvailable = true;
+    });
+
+    it('should return null when lobby not found', async () => {
+      mockRedisService.hgetall.mockResolvedValue({});
+
+      const result = await service.joinBlastLobby('nonexistent', 'player-2');
+
+      expect(result).toBeNull();
+    });
+
+    it('should add player and return updated lobby', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.joinBlastLobby('lobby-1', 'player-2');
+
+      expect(result).not.toBeNull();
+      expect(result!.playerIds).toContain('player-2');
+      expect(mockRedisService.hset).toHaveBeenCalled();
+    });
+
+    it('should transition to starting when 3rd player joins', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1', 'player-2'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.joinBlastLobby('lobby-1', 'player-3');
+
+      expect(result!.status).toBe('starting');
+    });
+
+    it('should reject join when player already in lobby', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.joinBlastLobby('lobby-1', 'player-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should reject join when lobby is full', async () => {
+      const lobbyData = JSON.stringify({
+        id: 'lobby-1',
+        buyin: 1000,
+        playerIds: ['player-1', 'player-2', 'player-3'],
+        maxPlayers: 3,
+        status: 'waiting',
+        createdAt: Date.now(),
+        creatorId: 'player-1',
+        smallBlind: 10,
+        bigBlind: 20,
+      });
+      mockRedisService.hgetall.mockResolvedValue({ data: lobbyData });
+
+      const result = await service.joinBlastLobby('lobby-1', 'player-4');
+
+      expect(result).toBeNull();
     });
   });
 });

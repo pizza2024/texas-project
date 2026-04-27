@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   Inject,
   forwardRef,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -29,6 +30,9 @@ import {
   BLAST_DEFAULT_DURATION_SECONDS,
   createBlastBlindSchedule,
   drawBlastMultiplier,
+  BlastLobby,
+  BLAST_LOBBY_QUEUE_KEY,
+  BLAST_LOBBY_KEY_PREFIX,
 } from '@texas/shared/types/tournament';
 
 /** Redis key for tournament blind timer sorted set */
@@ -321,5 +325,173 @@ export class TournamentService implements OnModuleDestroy {
 
     const config = room.tournamentConfig as unknown as SngConfig;
     return config.blindSchedule[config.currentBlindLevel] ?? null;
+  }
+
+  // ─── Blast Lobby Methods ─────────────────────────────────────────────────────
+
+  /**
+   * Create a new Blast lobby and add it to the Redis waiting queue.
+   * The creator is automatically joined as the first player.
+   */
+  async createBlastLobby(
+    buyin: number,
+    creatorId: string,
+  ): Promise<BlastLobby> {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    // Determine small/big blind based on buyin tiers
+    const smallBlind = this.getBlastSmallBlind(buyin);
+    const lobby: BlastLobby = {
+      id,
+      buyin,
+      playerIds: [creatorId],
+      maxPlayers: BLAST_MAX_PLAYERS,
+      status: 'waiting',
+      createdAt: now,
+      creatorId,
+      smallBlind,
+      bigBlind: smallBlind * 2,
+    };
+
+    const key = BLAST_LOBBY_KEY_PREFIX + id;
+    if (this.redis.isAvailable) {
+      // Store lobby data as JSON hash
+      await this.redis.hset(key, 'data', JSON.stringify(lobby));
+      // Add lobby ID to the waiting queue list
+      await this.redis.lpush(BLAST_LOBBY_QUEUE_KEY, id);
+    }
+
+    this.logger.log(
+      `Blast lobby created: ${id} by ${creatorId} (buyin=${buyin}, smallBlind=${smallBlind})`,
+    );
+    return lobby;
+  }
+
+  /**
+   * Return all waiting Blast lobbies from the Redis queue.
+   * For each lobby ID, fetch its hash data from Redis.
+   */
+  async getBlastLobbies(): Promise<BlastLobby[]> {
+    if (!this.redis.isAvailable) {
+      return [];
+    }
+
+    const ids = await this.redis.lrange(BLAST_LOBBY_QUEUE_KEY);
+    const lobbies: BlastLobby[] = [];
+
+    for (const id of ids) {
+      const data = await this.redis.hgetall(BLAST_LOBBY_KEY_PREFIX + id);
+      if (data && data['data']) {
+        try {
+          const lobby = JSON.parse(data['data']) as BlastLobby;
+          // Only include waiting lobbies
+          if (lobby.status === 'waiting') {
+            lobbies.push(lobby);
+          }
+        } catch {
+          // Skip malformed entries
+        }
+      }
+    }
+
+    return lobbies;
+  }
+
+  /**
+   * Get a specific Blast lobby by ID.
+   * Returns null if not found.
+   */
+  async getBlastLobby(id: string): Promise<BlastLobby | null> {
+    if (!this.redis.isAvailable) {
+      return null;
+    }
+
+    const data = await this.redis.hgetall(BLAST_LOBBY_KEY_PREFIX + id);
+    if (!data || !data['data']) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(data['data']) as BlastLobby;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Join an existing Blast lobby.
+   * Validates: lobby exists, is waiting, not full, player hasn't already joined.
+   * When the 3rd player joins, the lobby transitions to 'starting'.
+   *
+   * Returns the updated lobby, or null if the join was rejected.
+   */
+  async joinBlastLobby(
+    lobbyId: string,
+    playerId: string,
+  ): Promise<BlastLobby | null> {
+    if (!this.redis.isAvailable) {
+      this.logger.warn('Redis unavailable, cannot join Blast lobby');
+      return null;
+    }
+
+    const lobby = await this.getBlastLobby(lobbyId);
+    if (!lobby) {
+      return null;
+    }
+
+    if (lobby.status !== 'waiting') {
+      this.logger.warn(
+        `Blast lobby ${lobbyId} is not waiting (status=${lobby.status})`,
+      );
+      return null;
+    }
+
+    if (lobby.playerIds.includes(playerId)) {
+      this.logger.warn(`Player ${playerId} already in Blast lobby ${lobbyId}`);
+      return null;
+    }
+
+    if (lobby.playerIds.length >= BLAST_MAX_PLAYERS) {
+      this.logger.warn(`Blast lobby ${lobbyId} is full`);
+      return null;
+    }
+
+    // Add player
+    lobby.playerIds.push(playerId);
+
+    // If we now have 3 players, transition to 'starting'
+    if (lobby.playerIds.length === BLAST_MAX_PLAYERS) {
+      lobby.status = 'starting';
+      this.logger.log(
+        `Blast lobby ${lobbyId} is full — transitioning to 'starting'`,
+      );
+    }
+
+    // Persist updated lobby
+    await this.redis.hset(
+      BLAST_LOBBY_KEY_PREFIX + lobbyId,
+      'data',
+      JSON.stringify(lobby),
+    );
+
+    this.logger.log(
+      `Player ${playerId} joined Blast lobby ${lobbyId} (${lobby.playerIds.length}/${BLAST_MAX_PLAYERS})`,
+    );
+    return lobby;
+  }
+
+  /**
+   * Derive a small blind amount from the buyin tier.
+   * Matches typical poker blind structure: ~1/100 to 1/200 of buyin.
+   */
+  private getBlastSmallBlind(buyin: number): number {
+    const blindMap: Record<number, number> = {
+      500: 5,
+      1000: 10,
+      2500: 25,
+      5000: 50,
+      10000: 100,
+    };
+    return blindMap[buyin] ?? Math.max(5, Math.floor(buyin / 100));
   }
 }
