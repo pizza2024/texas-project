@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TournamentService } from './tournament.service';
+import { BlastService } from './blast.service';
 import { TournamentController } from './tournament.controller';
 import { RoomModule } from '../room/room.module';
 import { WalletModule } from '../wallet/wallet.module';
@@ -17,8 +18,8 @@ import { TableEngineModule } from '../table-engine/table-engine.module';
     WebsocketModule,
     TableEngineModule,
   ],
-  providers: [TournamentService],
+  providers: [TournamentService, BlastService],
   controllers: [TournamentController],
-  exports: [TournamentService],
+  exports: [TournamentService, BlastService],
 })
 export class TournamentModule {}

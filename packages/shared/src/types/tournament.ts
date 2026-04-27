@@ -228,18 +228,20 @@ export function drawBlastMultiplier(): number {
   // 2x–10x: common (60%)
   // 15x–100x: uncommon (30%)
   // 250x–10000x: rare (10%)
-  const roll = Math.random() * 100;
+  const randomBytes = new Uint32Array(4);
+  crypto.getRandomValues(randomBytes);
+  const roll = (randomBytes[0] / 0xffffffff) * 100;
 
   if (roll < 60) {
     // Common: 2x to 10x
-    return Math.floor(Math.random() * 9) + 2; // 2-10
+    return (randomBytes[1] % 9) + 2; // 2-10
   } else if (roll < 90) {
     // Uncommon: 15x to 100x
-    const tier = Math.floor(Math.random() * 6); // 0-5
+    const tier = randomBytes[2] % 6; // 0-5
     return [15, 25, 50, 75, 100, 150][tier];
   } else {
     // Rare: 250x to 10000x
-    const tier = Math.floor(Math.random() * 5); // 0-4
+    const tier = randomBytes[3] % 5; // 0-4
     return [250, 500, 1000, 5000, 10000][tier];
   }
 }
