@@ -1,4 +1,10 @@
-import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -65,11 +71,14 @@ export interface BlastGameRecord {
 }
 
 @Injectable()
-export class BlastService {
+export class BlastService implements OnModuleDestroy {
   private readonly logger = new Logger(BlastService.name);
 
   /** In-memory map of active Blast games: tableId → BlastGameRecord */
   private readonly activeGames = new Map<string, BlastGameRecord>();
+
+  /** Interval handle for the periodic TTL cleanup sweep */
+  private readonly cleanupInterval: NodeJS.Timeout;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -80,7 +89,46 @@ export class BlastService {
     private readonly tournamentService: TournamentService,
     private readonly tableManager: TableManagerService,
     private readonly wsManager: WebSocketManager,
-  ) {}
+  ) {
+    // Start periodic TTL cleanup sweep for the activeGames Map
+    // P1-NEW-001: prevents memory leak from stale entries
+    this.cleanupInterval = setInterval(() => {
+      this.sweepExpiredGames();
+    }, BLAST_TOTAL_DURATION_MS); // sweep once per full game duration
+  }
+
+  // ─── TTL Cleanup ─────────────────────────────────────────────────────────────
+
+  /**
+   * Periodically sweep the activeGames Map to remove expired entries.
+   * Called automatically by the cleanup interval; also idempotent on direct call.
+   *
+   * P1-NEW-001 fix: stale entries could accumulate indefinitely when game-end
+   * events (time_expired, one_player_left) are not fired. The sweep removes
+   * any entry whose endsAt has passed.
+   */
+  private sweepExpiredGames(): void {
+    const now = Date.now();
+    let swept = 0;
+    for (const [tableId, game] of this.activeGames) {
+      if (now >= game.endsAt) {
+        this.logger.warn(
+          `sweepExpiredGames: removing stale Blast game ${tableId} ` +
+            `(ended at ${game.endsAt}, now ${now}, overshoot ${now - game.endsAt}ms)`,
+        );
+        this.activeGames.delete(tableId);
+        swept++;
+      }
+    }
+    if (swept > 0) {
+      this.logger.log(`sweepExpiredGames: removed ${swept} stale entry(ies)`);
+    }
+  }
+
+  /** NestJS lifecycle hook: clean up interval on module destroy */
+  async onModuleDestroy(): Promise<void> {
+    clearInterval(this.cleanupInterval);
+  }
 
   // ─── startBlastGame ─────────────────────────────────────────────────────────
 
