@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
-import { socket } from "@texas/shared/socket";
+import { getSocket } from "@/lib/socket";
+import { getStoredToken } from "@/lib/auth";
 import type { Socket } from "socket.io-client";
 
 export interface BlastGameStartedPayload {
@@ -53,7 +54,9 @@ export function useBlastSocket({
   useEffect(() => {
     if (!roomId || !userId) return;
 
-    const s: Socket = socket; // singleton from @texas/shared/socket
+    const token = getStoredToken();
+    if (!token) return;
+    const s: Socket = getSocket(token);
 
     const handleGameStarted = (payload: BlastGameStartedPayload) => {
       onGameStartedRef.current?.(payload);
@@ -79,11 +82,17 @@ export function useBlastSocket({
   }, [roomId, userId]);
 
   const emitJoinBlast = useCallback((lobbyId: string) => {
-    socket.emit("join-blast-lobby", { lobbyId, userId });
+    const token = getStoredToken();
+    if (!token) return;
+    const s = getSocket(token);
+    s.emit("join-blast-lobby", { lobbyId, userId });
   }, [userId]);
 
   const emitLeaveBlast = useCallback((lobbyId: string) => {
-    socket.emit("leave-blast-lobby", { lobbyId, userId });
+    const token = getStoredToken();
+    if (!token) return;
+    const s = getSocket(token);
+    s.emit("leave-blast-lobby", { lobbyId, userId });
   }, [userId]);
 
   return { emitJoinBlast, emitLeaveBlast };

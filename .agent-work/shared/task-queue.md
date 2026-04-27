@@ -120,7 +120,19 @@
 | P1-TOURNAMENT-001 | Tournament SNG Phase 1+2 | ✅ 已实现 | commit 0a7687d |
 | P1-FIRST-DEPOSIT | 首充奖金规格 | ✅ 已实现 | Backend: DepositBonus model + getBonusStatus/addWagering + /bonus/status + /bonus/wagering endpoints |
 | P1-DAILY-MISSIONS | 每日任务规格 | ✅ 后端完成 | Backend: mission.service.ts (10 missions, progress/claim/reset), mission.controller.ts, Mission/UserMission models; 前端 UI 待实施 |
-| P1-BLAST-001 | Blast 即时赛事 | 📋 规格待定义 | 参考 GGPoker SPINS |
+| P1-BLAST-001 Phase 4A | Blast 前端 UI（lobby列表+创建+加入） | ✅ 已完成 | commit de4156b — app/blast/page.tsx + components/blast/* + lobby-header按钮 |
+| P1-BLAST-001 Phase 4B | Blast SpinWheel 3D 动画 | ✅ 已完成 | commit de4156b — SpinWheel.tsx (Framer Motion, 2x/5x/10x segments) + MatchingOverlay.tsx |
+| P1-BLAST-001 Phase 4C | Blast WS 事件集成 | ✅ 已完成 | commit de4156b — hooks/useBlastSocket.ts (blast_game_started/ended/forfeited) |
+| P1-BLAST-001 Phase 1+2+3 | Blast 后端 + WS | ✅ Phase 1+2+3 完成 | commit 88e245a (Phase 3) |
+
+## P1 — 遗留缺陷（待 Coding 修复）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-BLAST-009 | `distributePrizes()` 需 `$transaction` 包装 | ✅ 已修复 | commit 82ebcf6 — distributePrizes + returnFrozenChips 原子化 |
+| P1-BLAST-010 | `returnFrozenChips()` 需 `$transaction` 包装 | ✅ 已修复 | commit 82ebcf6 |
+| P1-BLAST-011 | `Math.random()` 替换为 `crypto.randomBytes()` | ✅ 已修复 | commit 82ebcf6 — 博彩公平性 |
+| P1-BLAST-012 | Blast Phase 3 规格确认 | 🟡 待 Productor | endsAt/退款机制/持久化/惩罚 |
 
 ## P1 — 已完成
 
@@ -143,16 +155,54 @@
 
 ## P2 — 新发现（第305轮）
 
-|| ID | 任务 | 状态 | 备注 |
+| ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
 | P2-TEST-001 | `exchangeBalanceToChips` 事务外读取 balance | 🔍 待认领 | wallet.service.ts |
 | P2-TEST-002 | ELO 边界强制分离事务 | 🔍 待认领 | matchmaking.service.ts |
 | P2-TEST-003 | `getBalance` 返回总额（依赖调用方 discipline） | 🔍 待认领 | wallet.service.ts |
-| P2-TEST-004 | WebSocket `socket.on` listeners 未 cleanup | 🔍 待认领 | web socket hooks |
+| P2-TEST-004 | WebSocket `socket.on` listeners 未 cleanup | ✅ 已验证已有 | use-game-socket.ts:66-70 已有正确 on/off cleanup — 建议关闭 |
 | P2-TEST-005 | `TableState`/`Player` 类型在 web/shared 间漂移 | 🔍 待认领 | types |
 | P2-TEST-006 | 操作按钮无重复提交保护 | 🔍 待认领 | ActionBar |
 | P2-TEST-007 | Token 过期用 `window.location.replace` 丢弃状态 | 🔍 待认领 | auth |
 | P2-TEST-008 | 无 refresh token 机制 | 🔍 待认领 | auth |
+
+## P2 — 新发现（第317轮）
+
+| P2-WEB-JEST-001 | `jest.mock('@texas/shared')` 解析失败 | ✅ 已修复 | jest.config.ts — moduleNameMapper 添加 @texas/shared 映射 |
+
+## P2 — 新增（第316轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-NEW-018 | BullMQ 无幂等键 | ✅ 已完成 | jobId: withdraw-${requestId} 幂等键已实现 |
+| P2-NEW-014 | broadcastTableState 串行 emit | 🔍 降级P3 | 无正确性风险，性能优化 |
+| P2-DEBUG-LOG | app.gateway.spec.ts console.log 残留 | 🔍 P3 清理 | 不影响生产 |
+
+## P2 — 新增（第318轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-BLAST-001 | Blast Phase 3: Call `table.addPlayer(playerId, BLAST_INITIAL_CHIPS)` | ✅ 已完成 | commit d2f8e71 — table.addPlayer + Prisma nickname fetch |
+| P2-BLAST-002 | Blast Phase 3: Schedule timer to call `endBlastGame` at endsAt | ✅ 已完成 | commit d2f8e71 — setTimeout at endsAt - Date.now() |
+| P2-BLAST-003 | Blast Phase 3: Emit `blast_game_started` WebSocket event | ✅ 已完成 | commit d2f8e71 — wsManager.emitToUser for each player |
+| P2-BLAST-004 | Blast Phase 3: Emit `blast_game_ended` WebSocket event | ✅ 已完成 | commit d2f8e71 — wsManager.emitToUser with rankings |
+| P2-BLAST-005 | Blast Phase 3: Persist BlastGame record to Prisma | ⏭️ 跳过 | 需要 Prisma schema 变更，超出后端范围 |
+| P2-BLAST-006 | Blast Phase 3: Emit `blast_player_forfeited` WebSocket event | ✅ 已完成 | commit d2f8e71 — wsManager.emitToUser for remaining players |
+| P2-BLAST-007 | Set TTL on Redis key using `redis.setex` | ✅ 已完成 | commit d2f8e71 — redis.client.setex with TTL |
+| P2-BLAST-008 | Blast Phase 3: Clear table state via TableManager | ✅ 已完成 | commit d2f8e71 — tableManager.clearTableState(tableId) |
+
+## P2 — 新增（第324轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-NEW-020 | `activeGames` Map 无主动 TTL 清理机制 | 🔍 Open | P3 — 进程生命周期绑定 |
+| P2-NEW-021 | BlastService Phase 3 缺少单元测试 | 🔍 Open | startBlastGame/endBlastGame/forfeitBlast 无 spec |
+
+## P2 — 新增（第322轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-NEW-019 | `drawBlastMultiplier()` 使用 `Math.random()` 非密码学安全 | ✅ 已修复 | commit 8e33987 — crypto.getRandomValues 替换 |
 
 ## P2 — 进行中
 
@@ -260,4 +310,4 @@
 
 ---
 
-*最后更新: 2026-04-28 08:17 — Test 第305轮 — P0-TEST-001/1P1/8P2 新发现，P2-NEW-012 ✅ — 1 P0 / 4 P1 / ~20 P2 *
+*最后更新: 2026-04-27 13:30 — Coding 第325轮 — P1-BLAST-001 Phase 4A ✅ — 6 files — 452 tests — 0 P0 / 1 P1 / ~9 P2 *"

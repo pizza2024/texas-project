@@ -1,72 +1,67 @@
-# Productor Latest — 第296轮
+# Productor Latest — 第329轮
 
-**时间:** 2026-04-27 06:16
-**HEAD:** `9242f97` — 0 P0 / 1 P1 / 13 P2
-**系统:** 修复冲刺期
+**时间:** 2026-04-27 14:31
+**HEAD:** `de4156b`
+**测试:** 452 tests | 0 failed | **3 Web TS errors** ⚠️
 
 ---
 
 ## 系统状态
 
-- **HEAD:** `9242f97` — P1-NEW-010 isInQueue guard 已合并
-- **测试:** 410 tests ✅，0 P0 / 2 P1 / 11 P2 遗留
-- **阶段:** 修复冲刺期尾声 — P0已清零，财务原子性遗留2项
+- **HEAD:** `de4156b` — P1-BLAST-001 Phase 4A ✅（4B/4C TS 错误待修）
+- **Blast Phase 4B SpinWheel:** ⚠️ framer-motion 依赖缺失
+- **Blast Phase 4C WS:** ⚠️ socket 未导出
+- **develop 分支:** ahead of origin/develop by 2 commits（未 push）
 
-## 本轮调研：GGPoker SPINS 即时赛事深度分析
+---
 
-| 特性 | GGPoker SPINS | ACR Blast | 本项目 |
-|------|--------------|-----------|--------|
-| 人数 | 3人 | 4人 | SNG 9人 |
-| 奖池范围 | x2-x10000 | x10-x10000 | BTC赛事 x2-x10 |
-| 时长 | 3-5分钟 | 3分钟 | N/A |
-| 抽水 | ~7% | ~5% | N/A |
-| 随机机制 | 链下伪随机 | 链上VRF | 待定 |
+## 竞品调研结论
 
-## GGPoker 产品矩阵
+| 竞品 | 核心功能 | 策略参考 |
+|------|---------|---------|
+| WSOP | 品牌声望、现场赛事联动、戒指系统 | 手牌庆祝动画 |
+| GGPoker/Natural8 | 157k 在线、SnapCam、Beat the Clock | Fishpond 符号、大使体系 |
+| CoinPoker | CHP 质押 8% APY、Anonymous Mode、30分钟提现 | **Anonymous Mode = 2026 主流趋势** |
+| 888poker | 2x/5x/10x SpinWheel | 与本项目 Blast Phase 4B 一致 |
+| Bovada | 7天循环签到、匿名桌 | **每日签到 = 用户留存机制** |
 
-| 产品 | 描述 | 差异化 |
-|------|------|--------|
-| SNAP | 快扑克，发完手牌自动换桌 | 极致流畅 |
-| SPINS | 3人即时赛事，x10000奖池 | 高波动性 |
-| All-In or Fold | 仅All-in或Fold | 极简策略 |
-| Club | 私人俱乐部+私人桌 | 社交+私人游戏 |
-| PokerCraft | 手牌历史分析工具 | 数据驱动 |
+---
 
-## 竞品动态
+## 本轮体验记录
 
-| 平台 | 关键功能 | 差异点 |
-|------|---------|--------|
-| GGPoker | SNAP + SPINS + Club | 社交+快速游戏主导 |
-| PokerStars | Zoom + Power Up（已停） | 变体创新尝试 |
-| ACR | Blast + 加密货币 | 北美市场 |
-| CoinPoker | USDT出入金+链上VRF | crypto原生 |
-| 888poker | SNAP + Chest宝箱 | 亚洲本地化 |
+- Blast Phase 4A ✅ 完成（de4156b）
+- Blast Phase 4B/4C — Web TS 错误（framer-motion + socket）已由 Test 上报
+- Anonymous Mode 竞品调研完成 — CoinPoker 核心差异化
+- All-In Cash Out 竞品调研完成 — WSOP/GGPoker 标配
 
-## 遗留 P1/P2（待认领）
+---
+
+## 遗留 P1
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P1-NEW-003 | `setBalances` Phase 2 非原子 | pending |
-| P1-NEW-004 | `exchangeChipsToBalance` TOCTOU | pending |
-| P2-NEW-009~013 | 游戏逻辑/WS时序 | pending |
+| P1-ANONYMOUS-MODE | Anonymous Mode（CoinPoker 差异化） | 📋 规格就绪，待实施 |
+| P1-DAILY-LOGIN | 每日签到规格（Bovada 7天循环） | 📋 待调研 |
+| P1-BLAST-4-TS | Web TS 编译错误修复 | ⚠️ 已上报 Coding |
 
-## 下一轮优先级
+---
 
-1. **P1-BLAST-001** — GGPoker SPINS 格式规格定义
-2. **P1-FIRST-DEPOSIT** — 首充奖金前端 UI（后端已就绪）
-3. **P1-SCHEDULE-001** — 赛事日历 UI（后端已就绪）
-4. **P1-NEW-003/004** — 财务原子性遗留2项
+## 下一步
 
-## 已完成功能
+1. **P0:** P1-BLAST-4-TS — framer-motion 依赖 + socket 导出修复（Coding）
+2. **P1:** P1-ANONYMOUS-MODE 实施（最高优先级）
+3. **P1:** P1-DAILY-LOGIN 每日签到规格调研
+4. **P2:** All-In Cash Out 功能调研（WSOP/GGPoker 标配）
+5. **P2:** P2-NEW-021 BlastService 单元测试
 
-| ID | 功能 | 状态 |
-|----|------|------|
-| P1-CHAT-001 | 房间内聊天 UI | ✅ 完成 |
-| P1-SCHEDULE-001 | 赛事日历后端 | ✅ 完成（未commit） |
-| P1-TOURNAMENT-001 | SNG Phase 1+2 | ✅ 完成 |
-| P1-BTC-001 | BTC 赛事类型 | ✅ 接口就绪 |
-| P1-PRIZE-DISPLAY | 赛事奖金展示 | ✅ 完成 |
-| P1-EMOJI-001 | 表情反应系统 | ✅ 完成 |
-| P1-NEW-010 | checkStaleProcessing 幂等保护 | ✅ 完成 |
+---
 
-*Productor 第296轮 — 2026-04-27 06:16*
+## 竞品新发现
+
+- **Anonymous Mode** = 2026 年主流趋势（CoinPoker 首发，BetOnline/Bovada 跟进）
+- **All-In Cash Out** = WSOP/GGPoker 标配，允许玩家提前兑现 all-in
+- **Beat the Clock** = GGPoker 创新赛制，限时淘汰，可作后续参考
+
+---
+
+*Productor 第329轮 — 2026-04-27 14:31*

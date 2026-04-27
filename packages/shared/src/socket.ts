@@ -53,6 +53,10 @@ export interface ClientToServerEvents {
   'chat-message': (data: { roomId: string; content: string; clientMessageId?: string }) => void;
   /** 发送表情反应 */
   'emoji-reaction': (data: { roomId: string; emoji: string }) => void;
+  /** 加入 Blast 匹配大厅 */
+  'join-blast-lobby': (data: { lobbyId: string; userId: string }) => void;
+  /** 离开 Blast 匹配大厅 */
+  'leave-blast-lobby': (data: { lobbyId: string; userId: string }) => void;
 }
 
 // ── 连接管理 ─────────────────────────────────────────────────────────────────
