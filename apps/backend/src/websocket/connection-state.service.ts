@@ -34,9 +34,8 @@ export class ConnectionStateService {
   // ── Rate limit check ────────────────────────────────────────────────────
 
   /**
-   * Redis-backed rate limit check with in-memory Map fallback.
-   * Redis key: ws_rate:{userId} — TTL = RATE_LIMIT_WINDOW_MS in seconds
-   * Falls back to in-memory Map if Redis is unavailable.
+   * Redis-backed rate limit check — fail-closed if Redis unavailable.
+   * Redis key: ws_rate:{userId} — TTL = RATE_LIMIT_WINDOW_MS/1000 seconds (i.e. 1 second)
    */
   async checkRateLimit(userId: string): Promise<boolean> {
     const windowSec = Math.ceil(RATE_LIMIT_WINDOW_MS / 1000);

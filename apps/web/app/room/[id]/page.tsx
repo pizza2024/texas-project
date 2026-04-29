@@ -32,6 +32,8 @@ import { calculateEquity } from '@texas/shared';
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
 const confetti = hasConfetti ? confettiLib : null;
 
+const ACTIVE_BETTING_STAGES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'] as const;
+
 const pageBg: React.CSSProperties = {
   background: 'radial-gradient(ellipse at 50% 30%, #0a1f10 0%, #050d08 55%, #020405 100%)',
 };
@@ -85,8 +87,6 @@ export default function RoomPage() {
   const winnerHighlightCleanupRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastCountdownToneRef = useRef<string | null>(null);
-
-  const ACTIVE_BETTING_STAGES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
 
   const handleBackToLobby = () => {
     const myPlayer = table?.players?.find((p) => p?.id === myUserId);
