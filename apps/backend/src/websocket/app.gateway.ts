@@ -52,6 +52,7 @@ import { BroadcastService } from './broadcast.service';
 import { TimerService } from './timer.service';
 import { TournamentService } from '../tournament/tournament.service';
 import { MissionService } from '../mission/mission.service';
+import { NotificationService } from '../notification/notification.service';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -113,6 +114,8 @@ export class AppGateway
     private readonly tournamentService: TournamentService,
     readonly clubService: ClubService,
     readonly roomService: RoomService,
+    @Inject(forwardRef(() => NotificationService))
+    private readonly notificationService: NotificationService,
   ) {}
 
   // ── Delegating getters for ConnectionStateService ───────────────────────
@@ -488,6 +491,10 @@ export class AppGateway
   ): Promise<void> {
     try {
       const friends = await this.friendService.getAcceptedFriends(userId);
+      const user = await this.userService.user({ id: userId });
+
+      if (!user) return;
+
       await Promise.all(
         friends.map((friend) =>
           this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
@@ -498,6 +505,29 @@ export class AppGateway
           }),
         ),
       );
+
+      // ✅ Phase 1: Persist notification and emit real-time event when user comes online
+      if (online) {
+        await Promise.all(
+          friends.map((friend) =>
+            this.notificationService
+              .create({
+                userId: friend.friendId,
+                type: 'friend_online',
+                title: '好友上线',
+                body: `你的好友 ${user.nickname} 已经上线`,
+                metadata: {
+                  friendUserId: userId,
+                  friendNickname: user.nickname,
+                  friendAvatar: user.avatar,
+                },
+              })
+              .then((notif) =>
+                this.wsManager.emitToUser(friend.friendId, 'notification', notif),
+              ),
+          ),
+        );
+      }
     } catch (err) {
       this.logger.error('notifyFriendsOfStatusChange error', err);
     }

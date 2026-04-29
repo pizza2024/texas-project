@@ -15,6 +15,7 @@ import { RedisModule } from '../redis/redis.module';
 import { ClubModule } from '../club/club.module';
 import { RoomModule } from '../room/room.module';
 import { MissionModule } from '../mission/mission.module';
+import { NotificationModule } from '../notification/notification.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
@@ -28,6 +29,7 @@ import { getJwtSecret } from '../config/jwt.config';
     forwardRef(() => ClubModule),
     RoomModule,
     MissionModule,
+    forwardRef(() => NotificationModule),
     JwtModule.register({
       secret: getJwtSecret(),
     }),
