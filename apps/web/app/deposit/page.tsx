@@ -33,6 +33,14 @@ interface DepositRecord {
   createdAt: string;
 }
 
+interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
+  network: string;
+  createdAt: string;
+}
+
 interface BonusStatus {
   eligible: boolean;
   claimed: boolean;
@@ -88,6 +96,11 @@ export default function DepositPage() {
   const [faucetCooldown, setFaucetCooldown] = useState(0);
   const [showDepositSuccess, setShowDepositSuccess] = useState(false);
   const [depositSuccessData, setDepositSuccessData] = useState<DepositConfirmedPayload | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [addressBookOpen, setAddressBookOpen] = useState(false);
+  const [showAddLabel, setShowAddLabel] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [addAddressLoading, setAddAddressLoading] = useState(false);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -109,15 +122,17 @@ export default function DepositPage() {
 
     const loadData = async (retry = false) => {
       try {
-        const [addrRes, histRes, bonusRes] = await Promise.all([
+        const [addrRes, histRes, bonusRes, addrBookRes] = await Promise.all([
           api.get<DepositAddress>("/deposit/address"),
           api.get<DepositRecord[]>("/deposit/history"),
           api.get<BonusStatus>("/deposit/bonus/status"),
+          api.get<SavedAddress[]>("/deposit/addresses"),
         ]);
         if (!cancelled) {
           setDepositInfo(addrRes.data);
           setHistory(histRes.data);
           setBonusStatus(bonusRes.data);
+          setSavedAddresses(addrBookRes.data);
           setLoading(false);
         }
       } catch {
@@ -206,6 +221,40 @@ export default function DepositPage() {
     } finally {
       setFaucetLoading(false);
     }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!depositInfo || !newLabel.trim()) return;
+    setAddAddressLoading(true);
+    try {
+      const res = await api.post<SavedAddress>("/deposit/addresses", {
+        label: newLabel.trim(),
+        address: depositInfo.address,
+        network: depositInfo.network,
+      });
+      setSavedAddresses((prev) => [res.data, ...prev]);
+      setNewLabel("");
+      setShowAddLabel(false);
+    } catch {
+      // silently fail
+    } finally {
+      setAddAddressLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    try {
+      await api.delete(`/deposit/addresses/${id}`);
+      setSavedAddresses((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleSelectAddress = (addr: SavedAddress) => {
+    void navigator.clipboard.writeText(addr.address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -460,6 +509,197 @@ export default function DepositPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Save Current Address */}
+              {!showAddLabel ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddLabel(true)}
+                  className="w-full py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={{
+                    background: "rgba(74,222,128,0.08)",
+                    color: "rgba(74,222,128,0.7)",
+                    border: "1px solid rgba(74,222,128,0.20)",
+                  }}
+                >
+                  ⭐ 保存当前地址到地址簿
+                </button>
+              ) : (
+                <div
+                  className="rounded-xl p-3 space-y-2"
+                  style={{
+                    background: "rgba(0,0,0,0.25)",
+                    border: "1px solid rgba(74,222,128,0.20)",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    placeholder="输入地址标签，如：My MetaMask"
+                    className="w-full px-3 py-2 rounded-lg text-xs bg-black/40 outline-none"
+                    style={{
+                      color: "#a3e635",
+                      border: "1px solid rgba(74,222,128,0.25)",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleSaveAddress();
+                      if (e.key === "Escape") {
+                        setShowAddLabel(false);
+                        setNewLabel("");
+                      }
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={addAddressLoading || !newLabel.trim()}
+                      onClick={() => void handleSaveAddress()}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
+                      style={{
+                        background: addAddressLoading || !newLabel.trim()
+                          ? "rgba(74,222,128,0.10)"
+                          : "rgba(74,222,128,0.20)",
+                        color: addAddressLoading || !newLabel.trim()
+                          ? "rgba(74,222,128,0.4)"
+                          : "#4ade80",
+                        border: "1px solid rgba(74,222,128,0.30)",
+                        cursor: addAddressLoading || !newLabel.trim() ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {addAddressLoading ? "保存中..." : "确认保存"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddLabel(false);
+                        setNewLabel("");
+                      }}
+                      className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      style={{
+                        background: "rgba(255,255,255,0.05)",
+                        color: "rgba(255,255,255,0.4)",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                      }}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Address Book */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(74,222,128,0.06) 0%, rgba(16,185,129,0.04) 100%)",
+                border: "1px solid rgba(74,222,128,0.20)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setAddressBookOpen((v) => !v)}
+                className="w-full px-4 py-3 flex items-center justify-between"
+                style={{
+                  borderBottom: addressBookOpen ? "1px solid rgba(74,222,128,0.15)" : undefined,
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">📒</span>
+                  <span className="text-sm font-semibold" style={{ color: "rgba(74,222,128,0.85)" }}>
+                    地址簿
+                  </span>
+                  {savedAddresses.length > 0 && (
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xs font-bold"
+                      style={{
+                        background: "rgba(74,222,128,0.15)",
+                        color: "#4ade80",
+                        border: "1px solid rgba(74,222,128,0.25)",
+                      }}
+                    >
+                      {savedAddresses.length}
+                    </span>
+                  )}
+                </div>
+                <span
+                  className="text-xs transition-transform"
+                  style={{
+                    color: "rgba(74,222,128,0.5)",
+                    transform: addressBookOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                >
+                  ▼
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {addressBookOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    {savedAddresses.length === 0 ? (
+                      <div
+                        className="px-4 py-6 text-center text-xs"
+                        style={{ color: "rgba(255,255,255,0.30)" }}
+                      >
+                        暂无保存的地址
+                      </div>
+                    ) : (
+                      <div className="divide-y" style={{ borderColor: "rgba(74,222,128,0.08)" }}>
+                        {savedAddresses.map((addr) => (
+                          <div
+                            key={addr.id}
+                            className="flex items-center gap-2 px-4 py-3"
+                            style={{ background: "rgba(0,0,0,0.15)" }}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold truncate" style={{ color: "#a3e635" }}>
+                                {addr.label}
+                              </p>
+                              <p
+                                className="text-xs font-mono truncate"
+                                style={{ color: "rgba(255,255,255,0.35)" }}
+                              >
+                                {addr.address}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleSelectAddress(addr)}
+                              className="shrink-0 px-2 py-1 rounded text-xs font-bold transition-all"
+                              style={{
+                                background: "rgba(74,222,128,0.12)",
+                                color: "rgba(74,222,128,0.8)",
+                                border: "1px solid rgba(74,222,128,0.25)",
+                              }}
+                            >
+                              复制
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteAddress(addr.id)}
+                              className="shrink-0 px-2 py-1 rounded text-xs font-bold transition-all"
+                              style={{
+                                background: "rgba(248,113,113,0.10)",
+                                color: "#f87171",
+                                border: "1px solid rgba(248,113,113,0.20)",
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Instructions */}

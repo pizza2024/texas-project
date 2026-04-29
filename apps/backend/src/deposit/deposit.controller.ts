@@ -2,9 +2,14 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
   UseGuards,
   Request,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DepositService } from './deposit.service';
@@ -14,6 +19,65 @@ import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 @UseGuards(AuthGuard('jwt'))
 export class DepositController {
   constructor(private readonly depositService: DepositService) {}
+
+  // ── Address book ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET deposit/addresses
+   * Returns all saved addresses for the authenticated user.
+   */
+  @Get('addresses')
+  async getSavedAddresses(@Request() req: { user: JwtUser }) {
+    return this.depositService.getSavedAddresses(req.user.userId);
+  }
+
+  /**
+   * POST deposit/addresses
+   * Saves a new deposit address (or updates label if already exists).
+   * Body: { address: string; label?: string }
+   */
+  @Post('addresses')
+  async saveAddress(
+    @Request() req: { user: JwtUser },
+    @Body() body: { address: string; label?: string },
+  ) {
+    if (!body.address) {
+      throw new ForbiddenException('address is required');
+    }
+    return this.depositService.saveAddress(
+      req.user.userId,
+      body.address,
+      body.label,
+    );
+  }
+
+  /**
+   * DELETE deposit/addresses/:addressId
+   * Deletes a saved address.
+   */
+  @Delete('addresses/:addressId')
+  async deleteAddress(
+    @Request() req: { user: JwtUser },
+    @Param('addressId') addressId: string,
+  ) {
+    await this.depositService.deleteAddress(req.user.userId, addressId);
+    return { ok: true };
+  }
+
+  /**
+   * PATCH deposit/addresses/:addressId/default
+   * Sets an address as the default.
+   */
+  @Patch('addresses/:addressId/default')
+  async setDefaultAddress(
+    @Request() req: { user: JwtUser },
+    @Param('addressId') addressId: string,
+  ) {
+    await this.depositService.setDefaultAddress(req.user.userId, addressId);
+    return { ok: true };
+  }
+
+  // ── Single deposit address (legacy) ──────────────────────────────────────────
 
   @Get('address')
   async getDepositAddress(@Request() req: { user: JwtUser }) {

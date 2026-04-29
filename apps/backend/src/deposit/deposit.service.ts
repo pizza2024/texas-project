@@ -59,9 +59,9 @@ export class DepositService {
   }
 
   async getOrCreateDepositAddress(userId: string): Promise<string> {
-    // Fast path: already exists — no transaction needed.
-    const existing = await this.prisma.depositAddress.findUnique({
-      where: { userId },
+    // Fast path: find the default address — no transaction needed.
+    const existing = await this.prisma.depositAddress.findFirst({
+      where: { userId, isDefault: true },
     });
     if (existing) return existing.address;
 
@@ -70,8 +70,8 @@ export class DepositService {
     // and generating duplicate HD wallet addresses.
     return this.prisma.$transaction(async (tx) => {
       // Re-check inside transaction — another request may have just inserted.
-      const existingInside = await tx.depositAddress.findUnique({
-        where: { userId },
+      const existingInside = await tx.depositAddress.findFirst({
+        where: { userId, isDefault: true },
       });
       if (existingInside) return existingInside.address;
 
@@ -88,22 +88,11 @@ export class DepositService {
       );
       const address = wallet.address;
 
-      // Use createMany with skipDuplicates to handle the rare race where
-      // another concurrent request committed the same (userId, index) between
-      // our aggregate read and this insert. The unique constraint on userId
-      // guards against duplicate user records; skipDuplicates silences the
-      // index conflict rather than throwing.
-      await tx.depositAddress.createMany({
-        data: { userId, address, index: nextIndex },
-        skipDuplicates: true,
+      await tx.depositAddress.create({
+        data: { userId, address, index: nextIndex, isDefault: true },
       });
 
-      // Fetch the record — either ours or the winner's from the race.
-      const record = await tx.depositAddress.findUnique({
-        where: { userId },
-      });
-
-      return record!.address;
+      return address;
     });
   }
 
@@ -113,6 +102,108 @@ export class DepositService {
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
+  }
+
+  // ── Address book ─────────────────────────────────────────────────────────────
+
+  /**
+   * Returns all saved deposit addresses for a user.
+   */
+  async getSavedAddresses(userId: string) {
+    return this.prisma.depositAddress.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  /**
+   * Saves a new deposit address for a user, or updates label on duplicate address.
+   * Returns the saved record.
+   */
+  async saveAddress(userId: string, address: string, label?: string) {
+    const existing = await this.prisma.depositAddress.findUnique({
+      where: { userId_address: { userId, address } },
+    });
+
+    if (existing) {
+      // Update label if provided
+      if (label !== undefined) {
+        return this.prisma.depositAddress.update({
+          where: { id: existing.id },
+          data: { label },
+        });
+      }
+      return existing;
+    }
+
+    // Check if this is the user's first address → make it default
+    const count = await this.prisma.depositAddress.count({ where: { userId } });
+    const isDefault = count === 0;
+
+    return this.prisma.depositAddress.create({
+      data: {
+        userId,
+        address,
+        isDefault,
+        ...(label !== undefined ? { label } : {}),
+      } as Parameters<typeof this.prisma.depositAddress.create>[0]['data'],
+    });
+  }
+
+  /**
+   * Deletes a deposit address. Silently succeeds if already gone.
+   * If the deleted address was default, promotes the next oldest to default.
+   */
+  async deleteAddress(userId: string, addressId: string) {
+    const address = await this.prisma.depositAddress.findUnique({
+      where: { id: addressId },
+    });
+
+    if (!address || address.userId !== userId) {
+      return; // Silently ignore
+    }
+
+    const wasDefault = address.isDefault;
+    await this.prisma.depositAddress.delete({ where: { id: addressId } });
+
+    if (wasDefault) {
+      // Promote the next oldest remaining address
+      const next = await this.prisma.depositAddress.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (next) {
+        await this.prisma.depositAddress.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+  }
+
+  /**
+   * Sets an address as the default for the user.
+   * Clears isDefault on all other addresses for the user first.
+   */
+  async setDefaultAddress(userId: string, addressId: string) {
+    const address = await this.prisma.depositAddress.findUnique({
+      where: { id: addressId },
+    });
+
+    if (!address || address.userId !== userId) {
+      throw new BadRequestException('Address not found');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.depositAddress.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      }),
+      this.prisma.depositAddress.update({
+        where: { id: addressId },
+        data: { isDefault: true },
+      }),
+    ]);
   }
 
   // ── Bonus status ─────────────────────────────────────────────────────────────

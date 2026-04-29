@@ -37,8 +37,8 @@ model User {
   actions        HandAction[]
   transactions   Transaction[]
   adminLogs      AdminLog[]
-  depositAddress DepositAddress?
-  depositRecords DepositRecord[]
+  depositAddresses DepositAddress[]
+  depositRecords   DepositRecord[]
   withdrawRequests WithdrawRequest[]
 
   sentFriends     Friend[]    @relation("FriendRequester")
@@ -186,13 +186,16 @@ model Transaction {
 
 model DepositAddress {
   id        String   @id @default(uuid())
-  userId    String   @unique
-  address   String   @unique
+  userId    String
+  address   String
+  label     String?
+  isDefault Boolean  @default(false)
   index     Int
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, address])
   @@map("deposit_addresses")
 }
 
