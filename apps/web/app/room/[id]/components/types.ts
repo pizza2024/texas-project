@@ -1,4 +1,5 @@
 // Shared types for the Room game page
+import type { GameStage } from '@texas/shared';
 
 export interface Player {
   id: string;
@@ -32,7 +33,7 @@ export interface TableState {
   bigBlind: number;
   communityCards: string[];
   players: (Player | null)[];
-  currentStage: string;
+  currentStage: GameStage;
   activePlayerIndex: number;
   lastHandResult?: HandResultEntry[] | null;
   settlementEndsAt?: number | null;

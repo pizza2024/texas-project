@@ -85,6 +85,8 @@ export interface StraddleInfo {
   position: number;
 }
 
+export type GameStage = 'WAITING' | 'DEALING' | 'PREFLOP' | 'FLOP' | 'TURN' | 'RIVER' | 'SHOWDOWN' | 'SETTLEMENT';
+
 export interface TableState {
   id: string;
   pot: number;
@@ -92,7 +94,7 @@ export interface TableState {
   bigBlind: number;
   communityCards: string[];
   players: (Player | null)[];
-  currentStage: string;
+  currentStage: GameStage;
   activePlayerIndex: number;
   lastHandResult?: HandResultEntry[] | null;
   settlementEndsAt?: number | null;

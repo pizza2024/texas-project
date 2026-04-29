@@ -27,12 +27,12 @@ import { AllInConfirmModal } from './components/AllInConfirmModal';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { EmojiOverlay, EmojiOverlayStyles } from './components/EmojiOverlay';
 
-import { calculateEquity } from '@texas/shared';
+import { calculateEquity, GameStage } from '@texas/shared';
 
 const hasConfetti = typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>)['confetti'] === 'function';
 const confetti = hasConfetti ? confettiLib : null;
 
-const ACTIVE_BETTING_STAGES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'] as const;
+const ACTIVE_BETTING_STAGES: GameStage[] = ['PREFLOP', 'FLOP', 'TURN', 'RIVER'];
 
 const pageBg: React.CSSProperties = {
   background: 'radial-gradient(ellipse at 50% 30%, #0a1f10 0%, #050d08 55%, #020405 100%)',
