@@ -1673,7 +1673,6 @@ export default function RoomsPage() {
                 status={roomStatusMap[room.id] ?? null}
                 currentBalance={currentBalance}
                 onJoin={handleJoinRoom}
-                gameState={roomStatusMap[room.id]?.gameState}
               />
             ))}
           </div>

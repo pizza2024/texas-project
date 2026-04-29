@@ -2,6 +2,7 @@
 
 import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
+import type { RoomStatus } from "@texas/shared";
 
 export interface Room {
   id: string;
@@ -24,19 +25,11 @@ export interface Room {
   };
 }
 
-export interface RoomStatus {
-  roomId: string;
-  currentPlayers: number;
-  maxPlayers: number;
-  isFull: boolean;
-}
-
 interface RoomCardProps {
   room: Room;
   status: RoomStatus | null;
   currentBalance: number;
   onJoin: (roomId: string) => void;
-  gameState?: "waiting" | "playing" | null;
 }
 
 export function RoomCard({
@@ -44,7 +37,6 @@ export function RoomCard({
   status,
   currentBalance,
   onJoin,
-  gameState,
 }: RoomCardProps) {
   const { t } = useTranslation();
   const currentPlayers = status?.currentPlayers ?? 0;
@@ -54,7 +46,7 @@ export function RoomCard({
 
   // P2-NEW-030: Color-coded real-time status badge
   const getGameStatus = () => {
-    if (isFull || gameState === "playing") {
+    if (isFull || status?.gameState === "playing") {
       return {
         label: "进行中",
         color: "rgba(16,185,129,0.9)",

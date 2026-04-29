@@ -197,7 +197,7 @@
 | P2-TEST-002 | ELO 边界强制分离事务                            | 🔍 待认领     | matchmaking.service.ts                                      |
 | P2-TEST-003 | `getBalance` 返回总额（依赖调用方 discipline）  | 🔍 待认领     | wallet.service.ts                                           |
 | P2-TEST-004 | WebSocket `socket.on` listeners 未 cleanup      | ✅ 已验证已有 | use-game-socket.ts:66-70 已有正确 on/off cleanup — 建议关闭 |
-| P2-TEST-005 | `TableState`/`Player` 类型在 web/shared 间漂移  | 🔍 待认领     | types                                                       |
+| P2-TEST-005 | `TableState`/`Player` 类型在 web/shared 间漂移  | ✅ 已修复     | room-card.tsx — RoomStatus 改用 @texas/shared；gameState 从 prop 移至 status.gameState |
 | P2-TEST-006 | 操作按钮无重复提交保护                          | 🔍 待认领     | ActionBar                                                   |
 | P2-TEST-007 | Token 过期用 `window.location.replace` 丢弃状态 | 🔍 待认领     | auth                                                        |
 | P2-TEST-008 | 无 refresh token 机制                           | 🔍 Open       |
@@ -382,7 +382,7 @@
 
 ---
 
-_最后更新: 2026-04-30 07:00 — Coding 第398轮 — P2-WITHDRAW-UX-001 ✅ commit 0e25785_
+_最后更新: 2026-04-30 07:15 — Coding 第399轮 — P2-WITHDRAW-UX-002/003 ✅ commit 6248eee_
 
 ---
 
@@ -396,8 +396,8 @@ _最后更新: 2026-04-30 07:00 — Coding 第398轮 — P2-WITHDRAW-UX-001 ✅ 
 | P2-DEPOSIT-UX-004 | SavedAddress schema 无 isDefault 字段 | P2 | ✅ 已修复 | commit 5e73a2f — SavedAddress.network→isDefault |
 | P2-DEPOSIT-UX-005 | handleSaveAddress/handleDeleteAddress 错误静默吞掉 | P2 | ✅ 已修复 | commit 5e73a2f — console.error + toast |
 | P2-WITHDRAW-UX-001 | 提现地址簿 | P2 | ✅ 已完成 | commit 0e25785 — WithdrawAddress model + GET/POST/DELETE/PATCH /withdraw/addresses + frontend UI + i18n |
-| P2-WITHDRAW-UX-002 | 提现手续费/净额不透明 | P2 | 待实施 |
-| P2-WITHDRAW-UX-003 | 提现到账速度反馈 | P2 | 待实施 |
+| P2-WITHDRAW-UX-002 | 提现手续费/净额不透明 | P2 | ✅ 已完成 | commit 6248eee — networkFeeUsdt 后端返回 + 前端净额/手续费展示 + i18n |
+| P2-WITHDRAW-UX-003 | 提现到账速度反馈 | P2 | ✅ 已完成 | commit 6248eee — 前端显示 "~30 min (1-3 block confirmations)" 预计时间 |
 | P2-WITHDRAW-UX-004 | 提现历史追踪 | P2 | 待实施 |
 
 ## P2 — 新发现（第383轮）
@@ -414,7 +414,7 @@ _最后更新: 2026-04-30 07:00 — Coding 第398轮 — P2-WITHDRAW-UX-001 ✅ 
 | ID             | 任务                                             | 紧迫度 | 状态   | 备注                                |
 | -------------- | ------------------------------------------------ | ------ | ------ | ----------------------------------- |
 | P2-ROOM-UX-001 | /rooms: 缺少 Ring Game / Tournament tab 切换导航 | P2     | ✅ 已完成 | 2026-04-30 — 3-tab All/Ring/Tournament |
-| P2-ROOM-UX-002 | /rooms: 房间卡片缺少"等待中/游戏中"状态 badge    | P2     | 待实施 | 888poker 绿/蓝色 badge              |
+| P2-ROOM-UX-002 | /rooms: 房间卡片缺少"等待中/游戏中"状态 badge    | ✅ 已修复 | room-card.tsx — getGameStatus() + gameState badge；lobby/index.ts — RoomStatus 导出对齐 @texas/shared |
 | P2-ROOM-UX-003 | /rooms: tier 筛选无结果时无引导 CTA              | P2     | 待实施 | GGPoker "No games — Create one"     |
 | P2-ROOM-UX-004 | /rooms: 无收藏常玩房间功能                       | P2     | 待实施 | 888poker ⭐收藏                     |
 | P2-ROOM-UX-005 | /rooms: 创建私人房间后无分享邀请链接/二维码      | P2     | 待实施 | WSOP 邀请码分享                     |
