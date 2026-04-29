@@ -13,7 +13,13 @@ import { Request } from 'express';
 import { TournamentService } from './tournament.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 
@@ -74,7 +80,7 @@ export class TournamentController {
   /**
    * POST /rooms/blast/:id/join
    * Join an existing Blast lobby. Fails if the lobby is full,
-   * already started, or if the player has already joined.
+   * already started, player has already joined, or wrong password.
    */
   @Post('blast/:id/join')
   @UseGuards(AuthGuard('jwt'))
@@ -82,15 +88,17 @@ export class TournamentController {
   @ApiOperation({ summary: 'Join a Blast lobby' })
   async joinBlastLobby(
     @Param('id') lobbyId: string,
+    @Body('password') password: string | undefined,
     @Req() req: AuthenticatedRequest,
   ) {
     const result = await this.tournamentService.joinBlastLobby(
       lobbyId,
       req.user.userId,
+      password,
     );
     if (!result) {
       throw new BadRequestException(
-        'Lobby is full, already started, or player already joined',
+        'Lobby is full, already started, player already joined, or invalid password',
       );
     }
     return result;

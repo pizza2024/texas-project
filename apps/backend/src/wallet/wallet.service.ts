@@ -349,15 +349,18 @@ export class WalletService {
       throw new BadRequestException('Amount must be positive');
     }
 
-    const realBalance = await this.getRealBalance(userId);
-    if (usdtAmount > realBalance) {
-      throw new BadRequestException('Insufficient USDT balance');
-    }
-
     const chipsToAdd = usdtAmount * CHIPS_TO_USDT_RATE;
 
-    // P1-WALLET-001: wrap all DB writes in atomic transaction
+    // P1-WALLET-001 + P1-SEC-003: wrap all DB reads and writes in atomic transaction
+    // to prevent TOCTOU race between balance check and debit
     await this.prisma.$transaction(async (tx) => {
+      // Read balance inside transaction to ensure atomic check-and-debit
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      const realBalance = wallet?.balance ?? 0;
+      if (usdtAmount > realBalance) {
+        throw new BadRequestException('Insufficient USDT balance');
+      }
+
       await tx.wallet.upsert({
         where: { userId },
         update: {

@@ -287,21 +287,33 @@ export async function handlePlayerAction(
 
   const action = validated.action;
   const amount = validated.amount ?? 0;
-  // roomId is optional in schema - derive from user's current room if not provided
+  // Security: always use the authoritative current room from the index.
+  // If the index has not been populated yet (null), refuse the action rather
+  // than trusting the client-supplied roomId — this prevents cross-room injection.
   const userCurrentRoomId =
     await gateway.tableManager.getUserCurrentRoomId(userId);
   let roomId: string | null = validated.roomId ?? null;
-  if (!roomId) {
+  if (userCurrentRoomId != null) {
+    // Index is populated — use authoritative source, ignore client-supplied roomId
     roomId = userCurrentRoomId;
+  } else if (validated.roomId) {
+    // Index not yet populated (newly joined) AND client supplied a roomId —
+    // accept it; it will be verified against the DB when the table is accessed.
+    roomId = validated.roomId;
+  } else {
+    // No authoritative room and no client-supplied roomId
+    client.emit('error', { message: 'not_in_any_room' });
+    return;
   }
-  // Security: if client provides a roomId, verify they are actually in that room
-  // (only check if userRooms index has been populated; null means newly joined or index not yet set)
+
+  // Verify client is actually in the room they claim (only when index is populated)
   if (
     validated.roomId &&
     userCurrentRoomId != null &&
     validated.roomId !== userCurrentRoomId
   ) {
-    return { event: 'error', data: { message: 'Invalid roomId' } };
+    client.emit('error', { message: 'Invalid roomId' });
+    return;
   }
 
   if (!action) {

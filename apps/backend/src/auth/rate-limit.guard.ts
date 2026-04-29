@@ -88,8 +88,17 @@ export class RateLimitGuard implements CanActivate {
 
     const count = await this.redisService.incr(key, options.windowSeconds);
 
-    // If Redis unavailable, allow the request
-    if (count === null) return true;
+    // fail-closed: if Redis is unavailable, reject the request to prevent
+    // rate limiting from being bypassed during Redis outages
+    if (count === null) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          message: 'Rate limit service temporarily unavailable',
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
 
     const { limit, windowSeconds } = options;
     const remaining = Math.max(0, limit - count);

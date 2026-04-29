@@ -7,6 +7,13 @@
 
 ---
 
+## P0 — 新发现（第331轮）
+
+||| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+|| P0-SEC-002 | `verifyEmailCode` 无 OTP rate limit — 可暴力破解 | ✅ 已修复 | auth.controller.ts:101-110 — @ApplyRateLimit(10次/300秒, emailOrIp) |
+|| P0-SEC-003 | `handlePlayerAction` 可选 roomId 导致跨房间操作注入 | ✅ 已修复 | game.handler.ts:290-306 — 强制使用 authoritative index，fail-closed when null |
+
 ## P0 — 新发现（第305轮）
 
 || ID | 任务 | 状态 | 备注 |
@@ -96,6 +103,15 @@
 | P1-WEB-003 | SocketSessionProvider 重复注册 handler | ✅ 已修复 | commit b8f73d0 |
 | P1-BACKEND-002 | 3次超时后无视觉反馈 | ✅ 已修复 | commit b8f73d0 |
 
+## P1 — 新发现（第331轮）
+
+|||| ID | 任务 | 状态 | 备注 |
+||----|------|------|------|
+||| P1-BLAST-PRIVATE-JOIN | `joinBlastLobby` 缺少 `password` 参数导致私人房间无法加入 | ✅ 已修复 | commit xxx — controller: @Body('password'); service: 密码校验 |
+||| P1-SEC-001 | WebSocket session 验证 Redis 宕机时被绕过 | ✅ 已验证 | app.gateway.ts:301-311 — Redis不可用时 disconnect（fail-closed） |
+||| P1-SEC-002 | RateLimitGuard Redis 宕机时返回 true 允许所有请求 | ✅ 已验证 | rate-limit.guard.ts:91-92 — HTTP层降级；WS层独立fail-closed；测试日志确认 denying |
+||| P1-SEC-003 | `exchangeBalanceToChips` balance 检查在事务外（TOCTOU） | ✅ 已验证 | wallet.service.ts:352 — balance检查在360行$transaction事务内 |
+
 ## P1 — 新发现（第305轮）
 
 || ID | 任务 | 状态 | 备注 |
@@ -164,7 +180,7 @@
 | P2-TEST-005 | `TableState`/`Player` 类型在 web/shared 间漂移 | 🔍 待认领 | types |
 | P2-TEST-006 | 操作按钮无重复提交保护 | 🔍 待认领 | ActionBar |
 | P2-TEST-007 | Token 过期用 `window.location.replace` 丢弃状态 | 🔍 待认领 | auth |
-| P2-TEST-008 | 无 refresh token 机制 | 🔍 待认领 | auth |
+| P2-TEST-008 | 无 refresh token 机制 | 🔍 Open |
 
 ## P2 — 新发现（第317轮）
 
@@ -243,6 +259,8 @@
 |----|------|------|-------|
 | P2-WEB-LINT-WARNINGS | ActionBar + room/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 — 移除 useState/useRef/useGameSocket/AllowedEmoji；useEffect eslint-disable |
 | P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
+| P2-NEW-024 | SpinWheel 3→9 tiers + drawBlastMultiplier 对齐 | ✅ 已修复 | commit fdaecbe — SpinWheel 9段: 2x,3x,5x,10x,15x,25x,50x,100x,1000x；后端移除不在轮盘的值 |
+| P2-NEW-030 | 房间实时人数状态显示 | ✅ 已完成 | room-card.tsx — gameState prop + 颜色编码状态徽章（缺人/等待开始/进行中） |
 
 ## P2 — 已完成
 

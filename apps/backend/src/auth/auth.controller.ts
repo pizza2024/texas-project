@@ -99,6 +99,13 @@ export class AuthController {
   }
 
   @Post('verify-email-code')
+  @UseGuards(RateLimitGuard)
+  @ApplyRateLimit({
+    limit: 10,
+    windowSeconds: 300,
+    keyPrefix: 'rl:verify-email',
+    keyType: 'emailOrIp',
+  })
   @ApiOperation({
     summary: 'Verify email code and get temporary registration token (Step 2)',
   })

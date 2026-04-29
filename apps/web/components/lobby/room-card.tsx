@@ -36,14 +36,32 @@ interface RoomCardProps {
   status: RoomStatus | null;
   currentBalance: number;
   onJoin: (roomId: string) => void;
+  gameState?: 'waiting' | 'playing' | null;
 }
 
-export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps) {
+export function RoomCard({ room, status, currentBalance, onJoin, gameState }: RoomCardProps) {
   const { t } = useTranslation();
   const currentPlayers = status?.currentPlayers ?? 0;
   const maxPlayers = status?.maxPlayers ?? room.maxPlayers;
   const isFull = status?.isFull ?? currentPlayers >= maxPlayers;
   const canJoin = currentBalance >= room.minBuyIn;
+
+  // P2-NEW-030: Color-coded real-time status badge
+  const getGameStatus = () => {
+    if (isFull || gameState === 'playing') {
+      return { label: '进行中', color: 'rgba(16,185,129,0.9)', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)' };
+    }
+    if (currentPlayers < 2) {
+      return { label: '缺人', color: 'rgba(248,113,113,0.9)', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' };
+    }
+    return {
+      label: `等待开始 (${currentPlayers}/${maxPlayers})`,
+      color: 'rgba(245,158,11,0.9)',
+      bg: 'rgba(245,158,11,0.1)',
+      border: 'rgba(245,158,11,0.2)',
+    };
+  };
+  const gameStatus = getGameStatus();
 
   const fillPercent = maxPlayers > 0 ? (currentPlayers / maxPlayers) * 100 : 0;
 
@@ -117,19 +135,32 @@ export function RoomCard({ room, status, currentBalance, onJoin }: RoomCardProps
         </div>
 
         {/* Seats badge */}
-        <div
-          className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold"
-          style={{
-            background: isFull
-              ? 'rgba(239,68,68,0.15)'
-              : 'rgba(16,185,129,0.1)',
-            color: isFull ? 'rgba(248,113,113,0.9)' : 'rgba(52,211,153,0.9)',
-            border: isFull
-              ? '1px solid rgba(239,68,68,0.2)'
-              : '1px solid rgba(16,185,129,0.2)',
-          }}
-        >
-          {currentPlayers}/{maxPlayers}
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <div
+            className="px-2.5 py-1 rounded-lg text-xs font-bold"
+            style={{
+              background: isFull
+                ? 'rgba(239,68,68,0.15)'
+                : 'rgba(16,185,129,0.1)',
+              color: isFull ? 'rgba(248,113,113,0.9)' : 'rgba(52,211,153,0.9)',
+              border: isFull
+                ? '1px solid rgba(239,68,68,0.2)'
+                : '1px solid rgba(16,185,129,0.2)',
+            }}
+          >
+            {currentPlayers}/{maxPlayers}
+          </div>
+          {/* P2-NEW-030: Real-time status badge */}
+          <div
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide"
+            style={{
+              background: gameStatus.bg,
+              color: gameStatus.color,
+              border: `1px solid ${gameStatus.border}`,
+            }}
+          >
+            {gameStatus.label}
+          </div>
         </div>
       </div>
 

@@ -434,6 +434,7 @@ export class TournamentService implements OnModuleDestroy {
   async joinBlastLobby(
     lobbyId: string,
     playerId: string,
+    password?: string,
   ): Promise<BlastLobby | null> {
     if (!this.redis.isAvailable) {
       this.logger.warn('Redis unavailable, cannot join Blast lobby');
@@ -460,6 +461,16 @@ export class TournamentService implements OnModuleDestroy {
     if (lobby.playerIds.length >= BLAST_MAX_PLAYERS) {
       this.logger.warn(`Blast lobby ${lobbyId} is full`);
       return null;
+    }
+
+    // Verify password if lobby is private
+    if (lobby.password !== undefined) {
+      if (password !== lobby.password) {
+        this.logger.warn(
+          `Player ${playerId} failed password check for Blast lobby ${lobbyId}`,
+        );
+        return null;
+      }
     }
 
     // Add player

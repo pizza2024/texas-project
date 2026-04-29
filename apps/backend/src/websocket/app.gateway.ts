@@ -298,7 +298,15 @@ export class AppGateway
       client.data.user = payload;
 
       // Enforce single-device login: validate sessionId against Redis
-      if (payload.sessionId && this.redisService.isAvailable) {
+      // fail-closed: if Redis is unavailable, reject the connection to prevent
+      // sessions being validated against stale/invalid state
+      if (payload.sessionId) {
+        if (!this.redisService.isAvailable) {
+          client.data.user = null;
+          client.emit('force_logout', { reason: 'SESSION_UNAVAILABLE' });
+          client.disconnect();
+          return;
+        }
         const stored = await this.redisService.get(
           `user_session:${payload.sub}`,
         );
