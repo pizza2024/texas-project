@@ -23,6 +23,7 @@ import {
   BlastConfig,
   TournamentType,
   createBlastBlindSchedule,
+  drawBlastMultiplier,
 } from '@texas/shared/types/tournament';
 import { TableManagerService } from '../table-engine/table-manager.service';
 
@@ -175,7 +176,7 @@ export class BlastService implements OnModuleDestroy {
     // 4. Create a Room for this Blast game
     // The roomId matches the lobbyId for easy correlation
     const blindSchedule = createBlastBlindSchedule(lobby.smallBlind);
-    const multiplier = this.drawMultiplier();
+    const multiplier = drawBlastMultiplier();
     const now = Date.now();
     const endsAt = now + BLAST_TOTAL_DURATION_MS;
 
@@ -472,28 +473,6 @@ export class BlastService implements OnModuleDestroy {
   }
 
   // ─── Private helpers ───────────────────────────────────────────────────────
-
-  /**
-   * Draw a random prize multiplier.
-   * 60% → 2x, 30% → 5x, 10% → 10x
-   *
-   * NOTE: This is a simplified version. The full version (Phase 3) will use
-   * drawBlastMultiplier() from @texas/shared/types/tournament which supports
-   * the full multiplier range (2x–10,000x).
-   */
-  private drawMultiplier(): number {
-    // Use crypto.getRandomValues() for cryptographic security (博彩公平性)
-    // Math.random() is not cryptographically secure
-    const buf = crypto.randomBytes(4);
-    const roll = (buf.readUInt32BE(0) % 100) + 1; // 1-100 inclusive
-    if (roll <= 60) {
-      return 2; // 60% chance: 2x
-    } else if (roll <= 90) {
-      return 5; // 30% chance: 5x
-    } else {
-      return 10; // 10% chance: 10x
-    }
-  }
 
   /**
    * Retrieve a BlastLobby from Redis by ID.
