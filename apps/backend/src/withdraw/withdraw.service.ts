@@ -183,6 +183,90 @@ export class WithdrawService {
     };
   }
 
+  // ── Address book ─────────────────────────────────────────────────────────────
+
+  async getSavedAddresses(userId: string) {
+    return this.prisma.withdrawAddress.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async saveAddress(userId: string, address: string, label?: string) {
+    const existing = await this.prisma.withdrawAddress.findUnique({
+      where: { userId_address: { userId, address } },
+    });
+
+    if (existing) {
+      if (label !== undefined) {
+        return this.prisma.withdrawAddress.update({
+          where: { id: existing.id },
+          data: { label },
+        });
+      }
+      return existing;
+    }
+
+    const count = await this.prisma.withdrawAddress.count({ where: { userId } });
+    const isDefault = count === 0;
+
+    return this.prisma.withdrawAddress.create({
+      data: {
+        userId,
+        address,
+        isDefault,
+        ...(label !== undefined ? { label } : {}),
+      },
+    });
+  }
+
+  async deleteAddress(userId: string, addressId: string) {
+    const address = await this.prisma.withdrawAddress.findUnique({
+      where: { id: addressId },
+    });
+
+    if (!address || address.userId !== userId) {
+      return;
+    }
+
+    const wasDefault = address.isDefault;
+    await this.prisma.withdrawAddress.delete({ where: { id: addressId } });
+
+    if (wasDefault) {
+      const next = await this.prisma.withdrawAddress.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (next) {
+        await this.prisma.withdrawAddress.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+  }
+
+  async setDefaultAddress(userId: string, addressId: string) {
+    const address = await this.prisma.withdrawAddress.findUnique({
+      where: { id: addressId },
+    });
+
+    if (!address || address.userId !== userId) {
+      throw new BadRequestException('Address not found');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.withdrawAddress.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      }),
+      this.prisma.withdrawAddress.update({
+        where: { id: addressId },
+        data: { isDefault: true },
+      }),
+    ]);
+  }
+
   /** Create a new withdraw request */
   async createWithdraw(
     userId: string,

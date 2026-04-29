@@ -40,6 +40,7 @@ model User {
   depositAddresses DepositAddress[]
   depositRecords   DepositRecord[]
   withdrawRequests WithdrawRequest[]
+  withdrawAddresses WithdrawAddress[]
 
   sentFriends     Friend[]    @relation("FriendRequester")
   receivedFriends Friend[]    @relation("FriendAddressee")
@@ -211,6 +212,20 @@ model DepositRecord {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("deposit_records")
+}
+
+model WithdrawAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  address   String
+  label     String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, address])
+  @@map("withdraw_addresses")
 }
 
 // Tracks the last block number scanned by pollDeposits to avoid missing events

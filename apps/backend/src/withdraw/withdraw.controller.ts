@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Query,
   Body,
@@ -10,6 +11,7 @@ import {
   Request,
   ParseIntPipe,
   DefaultValuePipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { WithdrawService } from './withdraw.service';
@@ -22,6 +24,63 @@ import { AdminGuard } from '../admin/guards/admin.guard';
 @UseGuards(AuthGuard('jwt'))
 export class WithdrawController {
   constructor(private readonly withdrawService: WithdrawService) {}
+
+  // ── Address book ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET withdraw/addresses
+   * Returns all saved addresses for the authenticated user.
+   */
+  @Get('addresses')
+  async getSavedAddresses(@Request() req: { user: JwtUser }) {
+    return this.withdrawService.getSavedAddresses(req.user.userId);
+  }
+
+  /**
+   * POST withdraw/addresses
+   * Saves a new withdraw address.
+   * Body: { address: string; label?: string }
+   */
+  @Post('addresses')
+  async saveAddress(
+    @Request() req: { user: JwtUser },
+    @Body() body: { address: string; label?: string },
+  ) {
+    if (!body.address) {
+      throw new ForbiddenException('address is required');
+    }
+    return this.withdrawService.saveAddress(
+      req.user.userId,
+      body.address,
+      body.label,
+    );
+  }
+
+  /**
+   * DELETE withdraw/addresses/:addressId
+   * Deletes a saved address.
+   */
+  @Delete('addresses/:addressId')
+  async deleteAddress(
+    @Request() req: { user: JwtUser },
+    @Param('addressId') addressId: string,
+  ) {
+    await this.withdrawService.deleteAddress(req.user.userId, addressId);
+    return { ok: true };
+  }
+
+  /**
+   * PATCH withdraw/addresses/:addressId/default
+   * Sets an address as the default.
+   */
+  @Patch('addresses/:addressId/default')
+  async setDefaultAddress(
+    @Request() req: { user: JwtUser },
+    @Param('addressId') addressId: string,
+  ) {
+    await this.withdrawService.setDefaultAddress(req.user.userId, addressId);
+    return { ok: true };
+  }
 
   /** Get available balance for withdraw */
   @Get('balance')
