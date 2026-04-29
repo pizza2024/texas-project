@@ -512,6 +512,22 @@ export default function DepositPage() {
                 </div>
               </div>
 
+              {/* Network fee info — P2-DEPOSIT-UX-003 */}
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+                style={{
+                  background: "rgba(59,130,246,0.06)",
+                  border: "1px solid rgba(59,130,246,0.15)",
+                  color: "rgba(148,163,184,0.8)",
+                }}
+              >
+                <span>ⓘ</span>
+                <span>
+                  手续费说明：链上转账需支付网络矿工费（约 0.001–0.01 ETH），
+                  由区块链直接收取，<strong style={{ color: "rgba(148,163,184,1)" }}>平台不额外收取</strong>
+                </span>
+              </div>
+
               {/* Save Current Address */}
               {!showAddLabel ? (
                 <button
