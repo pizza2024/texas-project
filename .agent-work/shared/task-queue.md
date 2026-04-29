@@ -273,9 +273,9 @@
 | P2-WEB-LINT-WARNINGS | ActionBar + room/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 — 移除 useState/useRef/useGameSocket/AllowedEmoji；useEffect eslint-disable |
 | P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
 | P2-NEW-024 | SpinWheel 3→9 tiers + drawBlastMultiplier 对齐 | ✅ 已修复 | commit fdaecbe — SpinWheel 9段: 2x,3x,5x,10x,15x,25x,50x,100x,1000x；后端移除不在轮盘的值 |
-| P2-BOT-AI-001 | `isPremiumHand()` 占位符返回 false | ✅ 已修复 | commit xxx — 识别 AA-KK-QQ/AK-AQ/AJ/T9s 等 |
-| P2-BOT-AI-002 | `estimateHandStrength` 忽略 holeCards | ✅ 已修复 | commit xxx — 调用 bestHandFrom 真实评估 |
-| P2-BOT-AI-003 | `hasStrongDraw` 忽略 holeCards | ✅ 已修复 | commit xxx — 结合 hole+community 检测听牌 |
+| P2-BOT-AI-001 | `isPremiumHand()` 占位符返回 false | ✅ 已修复 | commit e20d5fa — 识别 AA-KK-QQ/AK-AQ/AJ/T9s 等 |
+| P2-BOT-AI-002 | `estimateHandStrength` 忽略 holeCards | ✅ 已修复 | commit e20d5fa — 调用 bestHandFrom 真实评估 |
+| P2-BOT-AI-003 | `hasStrongDraw` 忽略 holeCards | ✅ 已修复 | commit e20d5fa — 结合 hole+community 检测听牌 |
 
 ## P2 — 已完成
 
