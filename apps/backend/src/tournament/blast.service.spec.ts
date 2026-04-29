@@ -187,7 +187,7 @@ describe('BlastService', () => {
       expect(result!.lobbyId).toBe(LOBBY_ID);
       expect(result!.playerIds).toEqual([PLAYER_1, PLAYER_2, PLAYER_3]);
       expect(result!.buyin).toBe(BUYIN);
-      expect([2, 5, 10]).toContain(result!.multiplier); // 60%/30%/10% draw
+      expect([2, 3, 5, 10, 15, 25, 50, 100, 1000]).toContain(result!.multiplier);
       expect(result!.totalPrizePool).toBe(
         BUYIN * BLAST_MAX_PLAYERS * result!.multiplier,
       );

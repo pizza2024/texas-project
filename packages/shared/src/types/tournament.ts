@@ -158,7 +158,7 @@ export type BlastBuyin = (typeof BLAST_BUYINS)[number];
 
 /** Blast prize multiplier range */
 export const BLAST_MIN_MULTIPLIER = 2;
-export const BLAST_MAX_MULTIPLIER = 10000;
+export const BLAST_MAX_MULTIPLIER = 1000;
 
 /** Default Blast prize distribution: [1st place %, 2nd place %, 3rd place %] */
 export const BLAST_PRIZE_DISTRIBUTION = [70, 20, 10] as const;
@@ -224,25 +224,26 @@ export function createBlastBlindSchedule(startingBlind: number): BlastBlindLevel
 
 /** Draw a random prize multiplier for a Blast tournament */
 export function drawBlastMultiplier(): number {
-  // Multiplier tiers (inspired by GGPoker SPINS):
-  // 2x–10x: common (60%)
-  // 15x–100x: uncommon (30%)
-  // 250x–10000x: rare (10%)
+  // Multiplier tiers (aligned with SpinWheel 9 segments per P2-NEW-024):
+  // 2x, 3x, 5x, 10x — common (60%)
+  // 15x, 25x, 50x — uncommon (30%)
+  // 100x, 1000x — rare (10%)
   const randomBytes = new Uint32Array(4);
   crypto.getRandomValues(randomBytes);
   const roll = (randomBytes[0] / 0xffffffff) * 100;
 
   if (roll < 60) {
-    // Common: 2x to 10x
-    return (randomBytes[1] % 9) + 2; // 2-10
+    // Common: 2x to 10x (4 values)
+    const tier = randomBytes[1] % 4;
+    return [2, 3, 5, 10][tier];
   } else if (roll < 90) {
-    // Uncommon: 15x to 100x
-    const tier = randomBytes[2] % 6; // 0-5
-    return [15, 25, 50, 75, 100, 150][tier];
+    // Uncommon: 15x to 50x (3 values)
+    const tier = randomBytes[2] % 3;
+    return [15, 25, 50][tier];
   } else {
-    // Rare: 250x to 10000x
-    const tier = randomBytes[3] % 5; // 0-4
-    return [250, 500, 1000, 5000, 10000][tier];
+    // Rare: 100x or 1000x (2 values)
+    const tier = randomBytes[3] % 2;
+    return [100, 1000][tier];
   }
 }
 

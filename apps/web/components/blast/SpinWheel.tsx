@@ -9,14 +9,20 @@ interface SpinWheelProps {
   onSpinComplete?: (multiplier: number) => void;
 }
 
-// Multiplier segments (2x, 5x, 10x — simplified per P1-BLAST-012 spec)
+// Multiplier segments — 9 tiers (per P2-NEW-024 product spec)
+// Common (60%): 2x, 3x, 5x, 10x
+// Uncommon (30%): 15x, 25x, 50x
+// Rare (10%): 100x, 1000x
 const SEGMENTS = [
-  { multiplier: 2, color: "#f97316" },   // orange
-  { multiplier: 5, color: "#ea580c" },   // dark orange
-  { multiplier: 10, color: "#f97316" }, // orange
-  { multiplier: 2, color: "#c2410c" },  // burnt
-  { multiplier: 5, color: "#f97316" },  // orange
-  { multiplier: 10, color: "#ea580c" }, // dark orange
+  { multiplier: 2, color: "#f97316", label: "2x" },    // orange
+  { multiplier: 3, color: "#c2410c", label: "3x" },    // burnt
+  { multiplier: 5, color: "#f97316", label: "5x" },    // orange
+  { multiplier: 10, color: "#ea580c", label: "10x" },  // dark orange
+  { multiplier: 15, color: "#f97316", label: "15x" },  // orange
+  { multiplier: 25, color: "#c2410c", label: "25x" },  // burnt
+  { multiplier: 50, color: "#ea580c", label: "50x" },  // dark orange
+  { multiplier: 100, color: "#f97316", label: "100x" }, // orange
+  { multiplier: 1000, color: "#fbbf24", label: "1000x" }, // gold — jackpot
 ];
 
 const SEGMENT_ANGLE = 360 / SEGMENTS.length; // 60° per segment
@@ -114,14 +120,14 @@ export function SpinWheel({ multiplier, isSpinning, onSpinComplete }: SpinWheelP
               }}
             >
               <span
-                className="absolute text-sm font-black"
+                className="absolute text-xs font-black"
                 style={{
-                  transform: `rotate(${SEGMENT_ANGLE / 2}deg) translateX(45px)`,
+                  transform: `rotate(${SEGMENT_ANGLE / 2}deg) translateX(38px)`,
                   textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                   color: "#fff",
                 }}
               >
-                {seg.multiplier}x
+                {seg.label}
               </span>
             </div>
           ))}
