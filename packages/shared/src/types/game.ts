@@ -46,6 +46,8 @@ export interface RoomStatus {
   currentPlayers: number;
   maxPlayers: number;
   isFull: boolean;
+  /** 'waiting' when table is idle, 'playing' when a hand is in progress */
+  gameState?: 'waiting' | 'playing';
 }
 
 // ── 牌桌 ────────────────────────────────────────────────────────────────────

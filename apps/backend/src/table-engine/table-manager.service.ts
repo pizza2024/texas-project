@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { GameStage, Table, TableSnapshot } from './table';
 import { RoomService } from '../room/room.service';
+import type { RoomStatus } from '@texas/shared';
 import {
   ROOM_DISSOLVED_EVENT,
   ROOM_STATUS_UPDATED_EVENT,
@@ -591,12 +592,7 @@ export class TableManagerService implements OnModuleInit {
     }
   }
 
-  async getRoomStatus(roomId: string): Promise<{
-    roomId: string;
-    currentPlayers: number;
-    maxPlayers: number;
-    isFull: boolean;
-  } | null> {
+  async getRoomStatus(roomId: string): Promise<RoomStatus | null> {
     const room = await this.roomService.findOne(roomId);
     if (!room) {
       return null;
