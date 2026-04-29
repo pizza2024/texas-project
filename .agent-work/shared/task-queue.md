@@ -277,6 +277,13 @@
 | P2-BOT-AI-002 | `estimateHandStrength` 忽略 holeCards | ✅ 已修复 | commit e20d5fa — 调用 bestHandFrom 真实评估 |
 | P2-BOT-AI-003 | `hasStrongDraw` 忽略 holeCards | ✅ 已修复 | commit e20d5fa — 结合 hole+community 检测听牌 |
 
+## P2 — 新发现（第378轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|-------|
+| P2-DEPOSIT-WS | 充值到账无 WebSocket 推送 | ✅ 已修复 | commit fd1c112 — deposit.service.ts wsManager.emitToUser after tx confirm |
+| P2-WEB3-001 | `EXPLORER_URL` 默认 Sepolia Etherscan，但充值使用 TRON | 📋 待认领 | withdraw/page.tsx:15 — 需修复为 TRON 浏览器 |
+
 ## P2 — 已完成
 
 | ID | 任务 | 状态 | 备注 |
