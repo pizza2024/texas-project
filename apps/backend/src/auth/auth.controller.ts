@@ -117,6 +117,13 @@ export class AuthController {
   }
 
   @Post('register-with-email')
+  @UseGuards(RateLimitGuard)
+  @ApplyRateLimit({
+    limit: 5,
+    windowSeconds: 300,
+    keyPrefix: 'rl:register-email',
+    keyType: 'emailOrIp',
+  })
   @ApiOperation({
     summary:
       'Register with email + verified token (Step 3 — after email verification)',
