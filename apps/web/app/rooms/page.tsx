@@ -764,6 +764,7 @@ interface RoomStatus {
   currentPlayers: number;
   maxPlayers: number;
   isFull: boolean;
+  gameState?: 'waiting' | 'playing';
 }
 
 interface CurrentRoomResponse {
@@ -1509,6 +1510,7 @@ export default function RoomsPage() {
                 status={roomStatusMap[room.id] ?? null}
                 currentBalance={currentBalance}
                 onJoin={handleJoinRoom}
+                gameState={roomStatusMap[room.id]?.gameState}
               />
             ))}
           </div>

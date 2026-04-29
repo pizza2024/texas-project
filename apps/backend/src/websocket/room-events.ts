@@ -19,6 +19,8 @@ export interface RoomStatusUpdatedPayload {
   currentPlayers: number;
   maxPlayers: number;
   isFull: boolean;
+  /** 'waiting' when table is in WAITING stage, 'playing' when a hand is in progress */
+  gameState?: 'waiting' | 'playing';
 }
 
 export const ROOM_CREATED_EVENT = 'room.created';

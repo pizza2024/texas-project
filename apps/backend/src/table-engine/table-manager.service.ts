@@ -606,11 +606,17 @@ export class TableManagerService implements OnModuleInit {
     const currentPlayers = table ? table.getPlayerCount() : 0;
     const maxPlayers = room.maxPlayers;
 
+    // gameState: 'playing' when a hand is in progress (PREFLOP through SETTLEMENT),
+    // 'waiting' when the table is idle in WAITING stage
+    const gameState =
+      table && table.currentStage !== GameStage.WAITING ? 'playing' : 'waiting';
+
     return {
       roomId,
       currentPlayers,
       maxPlayers,
       isFull: currentPlayers >= maxPlayers,
+      gameState,
     };
   }
 

@@ -100,6 +100,7 @@ describe('TableManagerService', () => {
       currentPlayers: 1,
       maxPlayers: room.maxPlayers,
       isFull: false,
+      gameState: 'waiting',
     });
   });
 
@@ -118,6 +119,7 @@ describe('TableManagerService', () => {
       currentPlayers: 1,
       maxPlayers: room.maxPlayers,
       isFull: false,
+      gameState: 'waiting',
     });
   });
 
