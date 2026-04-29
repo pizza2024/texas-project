@@ -566,11 +566,11 @@ export class TableManagerService implements OnModuleInit {
     const removedPlayer = table.removePlayer(userId);
     if (removedPlayer) {
       this.userRooms.delete(removedPlayer.id);
-      await this.walletService.setBalance(
+      // Use atomic resetBalanceAndUnfreeze to prevent stale frozenChips
+      await this.walletService.resetBalanceAndUnfreeze(
         removedPlayer.id,
         removedPlayer.stack,
       );
-      await this.walletService.unfreezeBalance(removedPlayer.id);
     }
 
     const hasNoPlayers = table.getPlayerCount() === 0;

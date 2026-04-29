@@ -612,17 +612,17 @@ export async function handleEmojiReaction(
     return { event: 'error', data: 'Unauthorized' };
   }
 
+  const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+  if (!roomId) {
+    return { event: 'error', data: 'Not in any room' };
+  }
+
   // Rate limit — 1 emoji per 3 seconds
   if (!(await gateway.checkEmojiRateLimit(userId))) {
     client.emit('rate_limited', {
       message: '发送表情过于频繁，请稍后再试',
     });
     return;
-  }
-
-  const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
-  if (!roomId) {
-    return { event: 'error', data: 'Not in any room' };
   }
 
   const dbUser = await gateway.userService.user({ id: userId });

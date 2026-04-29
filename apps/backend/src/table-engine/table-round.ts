@@ -56,13 +56,14 @@ export class TableRound {
    * The straddle effectively makes them act last preflop.
    */
   attemptStraddle(playerId: string): boolean {
-    // Straddle resets calledAllIn to allow raises after straddle (like any new street)
-    this.table.calledAllIn = null;
     if (this.table.currentStage !== GameStage.PREFLOP) return false;
     if (this.table.straddle !== null) return false;
 
     const activePlayer = this.table.players[this.table.activePlayerIndex];
     if (!activePlayer || activePlayer.id !== playerId) return false;
+
+    // Straddle resets calledAllIn to allow raises after straddle (like any new street)
+    this.table.calledAllIn = null;
 
     const straddleAmount = Math.min(
       this.table.bigBlind * 2,

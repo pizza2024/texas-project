@@ -410,12 +410,12 @@ export class AppGateway
       userId,
       client.id,
       (uid) => this.tableManager.getUserCurrentRoomId(uid),
-      (uid, sid) =>
+      (uid) =>
         this.connectionState.hasOtherActiveSocket(
           this.connectionState.userSockets,
           this.server,
           uid,
-          sid,
+          client.id,
         ),
       <T>(roomId: string, fn: () => Promise<T>) =>
         this.withRoomLock(roomId, fn),
