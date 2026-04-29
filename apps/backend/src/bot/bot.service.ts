@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID, randomInt } from 'crypto';
 import { Player, PlayerStatus } from '../table-engine/player';
+import { bestHandFrom } from '../table-engine/hand-evaluator';
 
 export const BOT_ID_PREFIX = 'bot_';
 const BOT_AVATAR = '';
@@ -66,6 +67,7 @@ export interface BotPlayerData {
 }
 
 export interface GameStateForBot {
+  holeCards: string[];
   communityCards: string[];
   currentBet: number; // The amount needed to call
   minRaise: number;
@@ -121,6 +123,7 @@ export class BotService {
     amount?: number;
   } {
     const {
+      holeCards,
       communityCards,
       currentBet,
       minRaise,
@@ -143,7 +146,7 @@ export class BotService {
       }
       // Calling preflop: only with decent cards
       if (currentBet <= minRaise * 2) {
-        const premium = this.isPremiumHand(gameState.communityCards, '');
+        const premium = this.isPremiumHand(gameState.holeCards);
         if (premium || currentBet <= minRaise) {
           return { action: 'call' };
         }
@@ -171,7 +174,7 @@ export class BotService {
     // Must call or fold post-flop
     const potOdds = currentBet / (potSize + currentBet);
     const handStrength = this.estimateHandStrength(
-      gameState.communityCards,
+      holeCards,
       communityCards,
     );
 
@@ -179,7 +182,7 @@ export class BotService {
       // Bad pot odds — mostly fold, occasionally call with made hands
       if (
         handStrength >= 0.6 ||
-        (this.hasStrongDraw(gameState.communityCards, communityCards) &&
+        (this.hasStrongDraw(holeCards, communityCards) &&
           randomInt(100) < 20)
       ) {
         return { action: 'call' };
@@ -189,7 +192,7 @@ export class BotService {
       // Medium pot odds — call with made hands or strong draws
       if (
         handStrength >= 0.4 ||
-        this.hasStrongDraw(gameState.communityCards, communityCards)
+        this.hasStrongDraw(holeCards, communityCards)
       ) {
         if (randomInt(100) < 30 && playerStack > minRaise) {
           return {
@@ -221,26 +224,71 @@ export class BotService {
   }
 
   /**
-   * Very simple premium hand detection preflop.
-   * Returns true for pairs, Broadway cards, suited connectors.
+   * Detect premium preflop hands.
+   * Returns true for pairs, Broadway combos, and strong suited connectors.
    */
-  private isPremiumHand(_holeCards: string[], _community: string): boolean {
-    // Simple placeholder — in production would analyze actual hole cards
-    // when gameState provides them; for now we let decideAction use it loosely
+  private isPremiumHand(holeCards: string[]): boolean {
+    if (holeCards.length < 2) return false;
+    const [c1, c2] = holeCards;
+    const rank1 = c1[0];
+    const rank2 = c2[0];
+    const suit1 = c1[1];
+    const suit2 = c2[1];
+    const isSuited = suit1 === suit2;
+
+    // Normalize ranks to uppercase
+    const r1 = rank1.toUpperCase();
+    const r2 = rank2.toUpperCase();
+
+    // Helper to compare ranks
+    const higher = r1 >= r2 ? r1 : r2;
+    const lower = r1 >= r2 ? r2 : r1;
+
+    // Pairs
+    const pairs = ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22'];
+    if (r1 === r2 && pairs.includes(r1 + r1)) return true;
+
+    // Broadway combos (both suited and offsuit)
+    const broadway = ['AK', 'AQ', 'AJ', 'AT', 'KQ', 'KJ', 'KT', 'QJ', 'QT', 'JT'];
+    const combo = higher + lower;
+    if (broadway.includes(combo)) return true;
+
+    // Strong suited connectors
+    const strongConnectors = ['T9', '98', '87', '76', '65', '54'];
+    if (isSuited && strongConnectors.includes(lower + higher)) return true;
+
     return false;
   }
 
   /**
-   * Estimate hand strength 0-1 based on community cards.
-   * Simplified — checks pairs, flush draws, straight draws.
+   * Estimate hand strength 0-1 based on hole cards and community cards.
+   * Uses bestHandFrom for actual hand evaluation when community cards exist.
    */
   private estimateHandStrength(
-    _holeCards: string[],
+    holeCards: string[],
     community: string[],
   ): number {
-    if (community.length === 0) return 0.2;
+    // Preflop: use premium hand detection
+    if (community.length === 0) {
+      return this.isPremiumHand(holeCards) ? 0.65 : 0.2;
+    }
 
-    // Very simplified: just count community card rank diversity
+    // Post-flop: combine hole cards with community and evaluate
+    if (holeCards.length >= 2 && community.length >= 3) {
+      const result = bestHandFrom(holeCards, community);
+      const rank = result.rank; // 1=high card, 10=royal flush
+
+      // Map rank 1-10 to 0-1 score
+      // rank 10 (royal flush) = 1.0, rank 1 (high card) ~= 0.05
+      const baseScore = (11 - rank) / 10;
+
+      // Also check for draws as a moderate boost
+      const drawBoost = this.hasStrongDraw(holeCards, community) ? 0.1 : 0;
+
+      return Math.min(1.0, baseScore + drawBoost);
+    }
+
+    // Fallback: community-only analysis
     const ranks = community.map((c) => c[0]);
     const rankCount: Record<string, number> = {};
     for (const r of ranks) {
@@ -257,10 +305,9 @@ export class BotService {
       suitCount[s] = (suitCount[s] ?? 0) + 1;
     }
     const hasFlushDraw = Object.values(suitCount).some((c) => c >= 4);
-
     if (hasFlushDraw) return 0.45;
 
-    // Straight draw check (very simplified)
+    // Straight draw check
     const rankVals = ranks
       .map((r) => {
         const v =
@@ -294,18 +341,25 @@ export class BotService {
     return 0.2;
   }
 
-  private hasStrongDraw(_holeCards: string[], community: string[]): boolean {
-    const allCards = [...community];
+  /**
+   * Detect strong draws: flush draws, open-ended straight draws, gutshots.
+   * Uses both hole cards and community cards for complete picture.
+   */
+  private hasStrongDraw(holeCards: string[], community: string[]): boolean {
+    const allCards = [...holeCards, ...community];
     const suits = allCards.map((c) => c[1]);
     const ranks = allCards.map((c) => c[0]);
 
+    // Check suit counts for flush draws
     const suitCount: Record<string, number> = {};
     for (const s of suits) {
       suitCount[s] = (suitCount[s] ?? 0) + 1;
     }
     const flushDraw = Object.values(suitCount).some((c) => c >= 4);
+    const hasFlush = Object.values(suitCount).some((c) => c >= 5);
 
-    const rankVals = ranks
+    // Check for straight draws
+    const rankVals = [...new Set(ranks)]
       .map((r) => {
         const v =
           {
@@ -322,18 +376,42 @@ export class BotService {
             Q: 12,
             K: 13,
             A: 14,
-          }[r] ?? 0;
+          }[r.toUpperCase()] ?? 0;
         return v;
       })
       .sort((a, b) => a - b);
-    let straightDraw = false;
-    for (let i = 0; i < rankVals.length - 1; i++) {
-      if (rankVals[i + 1] - rankVals[i] <= 2) {
-        straightDraw = true;
+
+    // Open-ended straight draw: 4 consecutive ranks
+    let openEnded = false;
+    let gutshot = false;
+    for (let i = 0; i < rankVals.length - 3; i++) {
+      if (
+        rankVals[i + 1] === rankVals[i] + 1 &&
+        rankVals[i + 2] === rankVals[i] + 2 &&
+        rankVals[i + 3] === rankVals[i] + 3
+      ) {
+        openEnded = true;
         break;
       }
     }
 
-    return flushDraw || straightDraw;
+    // Gutshot: one card fills a straight
+    if (!openEnded && rankVals.length >= 4) {
+      for (let i = 0; i < rankVals.length - 3; i++) {
+        if (
+          rankVals[i + 3] === rankVals[i] + 4 &&
+          rankVals.slice(i, i + 3).every((v, _, arr) => arr[0] + 1 === v || true)
+        ) {
+          // Check if there's a rank gap of 4
+          const sortedRanks = rankVals.slice(i, i + 4).sort((a, b) => a - b);
+          if (sortedRanks[3] - sortedRanks[0] === 4) {
+            gutshot = true;
+            break;
+          }
+        }
+      }
+    }
+
+    return flushDraw || openEnded || gutshot;
   }
 }

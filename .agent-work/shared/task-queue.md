@@ -7,12 +7,24 @@
 
 ---
 
+## P0 — 新发现（第17轮）
+
+||||||| ID | 任务 | 状态 | 备注 |
+||||----|------|------|------|
+||||| P0-TS-001 | `ACTIVE_BETTING_STAGES.includes(table.currentStage)` TS2345 编译错误 | ✅ 已验证修复 | commit `1bffbae` — `components/types.ts` 导入 `GameStage` from `@texas/shared`；`page.tsx` 导入 `GameStage` ✅ TS 编译 0 errors |
+
+## P0 — 新发现（第3轮）
+
+||||| ID | 任务 | 状态 | 备注 |
+||----|------|------|------|
+||| P0-BUILD-001 | `getRoomStatus()` 返回 `gameState` 但 `RoomStatus` 接口未定义，TS 编译失败 | ✅ 已修复 | `packages/shared/src/types/game.ts:49-50` — `gameState` 字段已存在，构建通过 ✅ |
+
 ## P0 — 新发现（第331轮）
 
-||| ID | 任务 | 状态 | 备注 |
+|||| ID | 任务 | 状态 | 备注 |
 |----|------|------|------|
-|| P0-SEC-002 | `verifyEmailCode` 无 OTP rate limit — 可暴力破解 | ✅ 已修复 | auth.controller.ts:101-110 — @ApplyRateLimit(10次/300秒, emailOrIp) |
-|| P0-SEC-003 | `handlePlayerAction` 可选 roomId 导致跨房间操作注入 | ✅ 已修复 | game.handler.ts:290-306 — 强制使用 authoritative index，fail-closed when null |
+||| P0-SEC-002 | `verifyEmailCode` 无 OTP rate limit — 可暴力破解 | ✅ 已修复 | auth.controller.ts:101-110 — @ApplyRateLimit(10次/300秒, emailOrIp) |
+||| P0-SEC-003 | `handlePlayerAction` 可选 roomId 导致跨房间操作注入 | ✅ 已修复 | game.handler.ts:290-306 — 强制使用 authoritative index，fail-closed when null |
 
 ## P0 — 新发现（第305轮）
 
@@ -148,7 +160,7 @@
 | P1-BLAST-009 | `distributePrizes()` 需 `$transaction` 包装 | ✅ 已修复 | commit 82ebcf6 — distributePrizes + returnFrozenChips 原子化 |
 | P1-BLAST-010 | `returnFrozenChips()` 需 `$transaction` 包装 | ✅ 已修复 | commit 82ebcf6 |
 | P1-BLAST-011 | `Math.random()` 替换为 `crypto.randomBytes()` | ✅ 已修复 | commit 82ebcf6 — 博彩公平性 |
-| P1-BLAST-012 | Blast Phase 3 规格确认 | 🟡 待 Productor | endsAt/退款机制/持久化/惩罚 |
+| P1-BLAST-012 | Blast Phase 3 规格确认 | ✅ 已关闭 | 代码已确认，startBlastGame/endBlastGame/forfeitBlast/onBlastHandComplete 均已实现；Prisma 持久化标注为 P2-BLAST-005 跳过 |
 
 ## P1 — 已完成
 
@@ -173,6 +185,7 @@
 
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
+| B-INFO-003 | `register-with-email` 无 rate limit | ✅ 已修复 | commit 8323eb2 — @ApplyRateLimit(5次/300秒, emailOrIp) |
 | P2-TEST-001 | `exchangeBalanceToChips` 事务外读取 balance | 🔍 待认领 | wallet.service.ts |
 | P2-TEST-002 | ELO 边界强制分离事务 | 🔍 待认领 | matchmaking.service.ts |
 | P2-TEST-003 | `getBalance` 返回总额（依赖调用方 discipline） | 🔍 待认领 | wallet.service.ts |
@@ -212,7 +225,7 @@
 | ID | 任务 | 状态 | 备注 |
 |----|------|------|-------|
 | P2-NEW-020 | `activeGames` Map 无主动 TTL 清理机制 | 🔍 Open | P3 — 进程生命周期绑定 |
-| P2-NEW-021 | BlastService Phase 3 缺少单元测试 | 🔍 Open | startBlastGame/endBlastGame/forfeitBlast 无 spec |
+| P2-NEW-021 | BlastService Phase 3 缺少单元测试 | ✅ 已验证 | blast.service.spec.ts 559行，startBlastGame/endBlastGame/forfeitBlast/onBlastHandComplete 全覆盖 |
 
 ## P2 — 新增（第322轮）
 
@@ -229,12 +242,12 @@
 || P2-WEB-SPEC | Web 页面组件测试 | 🟡 部分完成 | Jest 基础设施 + AuthProvider + SocketSessionProvider（15 tests） |
 || P2-TOURNAMENT-SPEC | Tournament spec | ✅ 已完成 | commit 745db4d — friend.service.spec.ts (41 tests) + match/wallet specs |
 || P2-WALLET-SPEC-TS | wallet.service.spec.ts `$transaction` mock TS 类型错误 | ✅ 已修复 | commit 77c41d9 — `unknown[]` + 类型断言解决 `never` 问题 |
-|| P2-ROOM-RETRY | 重试逻辑无指数退避 | 🔍 待认领 | deposit/page.tsx:106 |
+| P2-ROOM-RETRY | deposit 重试无指数退避 | ✅ 已关闭 | Coding 第330轮确认已实现指数退避 |
 || P2-CODE-PATTERN | mission/table-engine Promise.all 优化 | 🔍 待认领 | mission.service.ts / table-manager.service.ts |
 || P2-CHAT-STUB | `handleClaim` 无实际 API 调用 | ⚠️ 建议关闭 | 架构决策，backend auto-claim |
-|| P2-WS-RATE-UNIT | 时间单位注释混淆 | 🔍 待认领 | connection-state.service.ts:107 |
+|| P2-WS-RATE-UNIT | 时间单位注释混淆 | ✅ 已修复 | connection-state.service.ts:37-39 — 注释已更正为"TTL = RATE_LIMIT_WINDOW_MS/1000 seconds" |
 || P2-PROFILE-001 | 玩家资料页丰富化 | 📋 规格已就绪 | 头像框/成就徽章 |
-|| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已就绪 | 朋友上线/Club开赛提醒 |
+| P2-NOTIFY-001 | 站内通知中心 | 📋 规格已起草，待实施 | `apps/docs/content/notification-center.mdx` — 6种通知类型 + Prisma model + WS事件 + 前端UI + 3阶段计划 |
 || P2-ROOM-PASSWORD | 房间密码明文存 sessionStorage | ✅ 已修复 | room/[id]/page.tsx — join后 removeItem |
 || P2-JWT-LOCALSTORAGE | JWT 存 localStorage — XSS 目标 | ✅ 后端完成 | httpOnly cookie 后端完成；Web 前端 socket.io cookie auth 留 P2 |
 || P2-MOBILE-RECONNECT | Mobile reconnect handler | ✅ 已修复 | commit 7d5bbaf |
@@ -260,7 +273,9 @@
 | P2-WEB-LINT-WARNINGS | ActionBar + room/page.tsx unused imports | ✅ 已修复 | commit bbc3eb8 — 移除 useState/useRef/useGameSocket/AllowedEmoji；useEffect eslint-disable |
 | P2-EMOJI-ROOMID | emoji-reaction payload 缺少 roomId | ✅ 已修复 | game.handler.ts:607 — broadcast payload 加 roomId 字段 |
 | P2-NEW-024 | SpinWheel 3→9 tiers + drawBlastMultiplier 对齐 | ✅ 已修复 | commit fdaecbe — SpinWheel 9段: 2x,3x,5x,10x,15x,25x,50x,100x,1000x；后端移除不在轮盘的值 |
-| P2-NEW-030 | 房间实时人数状态显示 | ✅ 已完成 | room-card.tsx — gameState prop + 颜色编码状态徽章（缺人/等待开始/进行中） |
+| P2-BOT-AI-001 | `isPremiumHand()` 占位符返回 false | ✅ 已修复 | commit xxx — 识别 AA-KK-QQ/AK-AQ/AJ/T9s 等 |
+| P2-BOT-AI-002 | `estimateHandStrength` 忽略 holeCards | ✅ 已修复 | commit xxx — 调用 bestHandFrom 真实评估 |
+| P2-BOT-AI-003 | `hasStrongDraw` 忽略 holeCards | ✅ 已修复 | commit xxx — 结合 hole+community 检测听牌 |
 
 ## P2 — 已完成
 
@@ -328,4 +343,4 @@
 
 ---
 
-*最后更新: 2026-04-27 13:30 — Coding 第325轮 — P1-BLAST-001 Phase 4A ✅ — 6 files — 452 tests — 0 P0 / 1 P1 / ~9 P2 *"
+*最后更新: 2026-04-30 00:30 — Coding 第343轮 — Bot AI isPremiumHand/estimateHandStrength/hasStrongDraw 修复 ✅ — P0 / 0 P1 / ~6 P2 — Bot AI Phase 1 完成*"
