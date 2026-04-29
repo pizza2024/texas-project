@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { MissionService } from '../mission/mission.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 
 jest.mock('ethers');
 
@@ -16,6 +17,7 @@ describe('DepositService - First Deposit Bonus', () => {
   let mockContract: any;
   let mockRedisService: any;
   let mockMissionService: any;
+  let mockWsManager: any;
 
   const USER_ID = 'user-123';
   const ADDRESS = '0xuserdepositaddress';
@@ -92,9 +94,10 @@ describe('DepositService - First Deposit Bonus', () => {
     };
 
     mockMissionService = {
-      progressMission: jest
-        .fn()
-        .mockResolvedValue({ completed: false, rewardChips: 0 }),
+      progressMission: jest.fn().mockResolvedValue({ completed: false, rewardChips: 0 }),
+    };
+    const mockWsManager = {
+      emitToUser: jest.fn(),
     };
   });
 
@@ -112,10 +115,12 @@ describe('DepositService - First Deposit Bonus', () => {
         { provide: WalletService, useValue: mockWalletService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: MissionService, useValue: mockMissionService },
+        { provide: WebSocketManager, useValue: mockWsManager },
       ],
     }).compile();
 
     service = module.get<DepositService>(DepositService);
+    return { mockWsManager };
   };
 
   afterEach(async () => {

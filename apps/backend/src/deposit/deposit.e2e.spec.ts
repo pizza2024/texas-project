@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RedisService } from '../redis/redis.service';
 import { MissionService } from '../mission/mission.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 
 describe('DepositService E2E', () => {
   let service: DepositService;
@@ -19,6 +20,7 @@ describe('DepositService E2E', () => {
   let mockWait: jest.Mock;
   let mockRedisService: any;
   let mockMissionService: any;
+  let mockWsManager: any;
 
   beforeEach(() => {
     mockMint = jest.fn();
@@ -89,6 +91,7 @@ describe('DepositService E2E', () => {
         .fn()
         .mockResolvedValue({ completed: false, rewardChips: 0 }),
     };
+    mockWsManager = { emitToUser: jest.fn() };
   });
 
   const setupModule = async (overrides: Record<string, string> = {}) => {
@@ -110,6 +113,7 @@ describe('DepositService E2E', () => {
         { provide: WalletService, useValue: mockWalletService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: MissionService, useValue: mockMissionService },
+        { provide: WebSocketManager, useValue: mockWsManager },
       ],
     }).compile();
 

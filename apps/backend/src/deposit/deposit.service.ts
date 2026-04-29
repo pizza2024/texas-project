@@ -3,6 +3,8 @@ import {
   Logger,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ethers, HDNodeWallet, Mnemonic } from 'ethers';
@@ -15,6 +17,7 @@ import {
   MISSION_KEY_FIRST_DEPOSIT,
 } from '../mission/mission.service';
 import { getHdWalletMnemonic } from '../config/jwt.config';
+import { WebSocketManager } from '../websocket/websocket-manager';
 
 // Bonus wagering multiplier: user must wager 5× the bonus amount before unlocking it
 const BONUS_WAGERING_MULTIPLIER = 5;
@@ -44,6 +47,8 @@ export class DepositService {
     private readonly walletService: WalletService,
     private readonly redisService: RedisService,
     private readonly missionService: MissionService,
+    @Inject(forwardRef(() => WebSocketManager))
+    private readonly wsManager: WebSocketManager,
   ) {}
 
   private get usdtContractAddress(): string {
@@ -463,6 +468,25 @@ export class DepositService {
       this.logger.log(
         `Deposit processed: ${amount.toFixed()} USDT → ${chips.toFixed()} chips for user ${userId} (tx: ${txHash})`,
       );
+
+      // Push real-time notification so the client can update balance without polling.
+      // newBalance is queried after the transaction commits to capture the committed value.
+      try {
+        const updated = await this.prisma.wallet.findUnique({
+          where: { userId },
+          select: { chips: true },
+        });
+        const newBalance = updated?.chips ?? 0;
+        this.wsManager.emitToUser(userId, 'deposit_confirmed', {
+          txHash,
+          amount: amount.toNumber(),
+          chips: chips.toNumber(),
+          newBalance,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        this.logger.warn(`Failed to emit deposit_confirmed WS event for user ${userId}: ${(err as Error).message}`);
+      }
     }
   }
 }
