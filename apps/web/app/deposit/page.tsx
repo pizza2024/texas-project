@@ -37,7 +37,7 @@ interface SavedAddress {
   id: string;
   label: string;
   address: string;
-  network: string;
+  isDefault: boolean;
   createdAt: string;
 }
 
@@ -235,8 +235,9 @@ export default function DepositPage() {
       setSavedAddresses((prev) => [res.data, ...prev]);
       setNewLabel("");
       setShowAddLabel(false);
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('[handleSaveAddress]', err);
+      setFaucetMsg({ type: 'error', text: '保存地址失败，请稍后重试' });
     } finally {
       setAddAddressLoading(false);
     }
@@ -246,8 +247,9 @@ export default function DepositPage() {
     try {
       await api.delete(`/deposit/addresses/${id}`);
       setSavedAddresses((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('[handleDeleteAddress]', err);
+      setFaucetMsg({ type: 'error', text: '删除地址失败，请稍后重试' });
     }
   };
 
