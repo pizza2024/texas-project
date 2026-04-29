@@ -94,7 +94,9 @@ describe('DepositService - First Deposit Bonus', () => {
     };
 
     mockMissionService = {
-      progressMission: jest.fn().mockResolvedValue({ completed: false, rewardChips: 0 }),
+      progressMission: jest
+        .fn()
+        .mockResolvedValue({ completed: false, rewardChips: 0 }),
     };
     const mockWsManager = {
       emitToUser: jest.fn(),

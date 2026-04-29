@@ -423,6 +423,13 @@ export class DepositService {
         await tx.transaction.create({
           data: { userId, amount: chips.toNumber(), type: 'DEPOSIT' },
         });
+
+        // Mark first-deposit bonus as consumed inside the same atomic tx
+        // to prevent double-trigger on crash or concurrent deposits (P2-DEPOSIT-BONUS-TX / P2-DEPOSIT-FIRST-BONUS-RACE)
+        await tx.user.update({
+          where: { id: userId },
+          data: { hasReceivedFirstDepositBonus: true },
+        });
       });
 
       // First Deposit Bonus — delegated to MissionService
@@ -471,21 +478,29 @@ export class DepositService {
 
       // Push real-time notification so the client can update balance without polling.
       // newBalance is queried after the transaction commits to capture the committed value.
-      try {
-        const updated = await this.prisma.wallet.findUnique({
-          where: { userId },
-          select: { chips: true },
-        });
-        const newBalance = updated?.chips ?? 0;
-        this.wsManager.emitToUser(userId, 'deposit_confirmed', {
-          txHash,
-          amount: amount.toNumber(),
-          chips: chips.toNumber(),
-          newBalance,
-          timestamp: new Date().toISOString(),
-        });
-      } catch (err) {
-        this.logger.warn(`Failed to emit deposit_confirmed WS event for user ${userId}: ${(err as Error).message}`);
+      if (this.wsManager.getServer()) {
+        try {
+          const updated = await this.prisma.wallet.findUnique({
+            where: { userId },
+            select: { chips: true },
+          });
+          const newBalance = updated?.chips ?? 0;
+          this.wsManager.emitToUser(userId, 'deposit_confirmed', {
+            txHash,
+            amount: amount.toNumber(),
+            chips: chips.toNumber(),
+            newBalance,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (err) {
+          this.logger.warn(
+            `Failed to emit deposit_confirmed WS event for user ${userId}: ${(err as Error).message}`,
+          );
+        }
+      } else {
+        this.logger.warn(
+          `WS server not initialized — cannot emit deposit_confirmed for user ${userId}`,
+        );
       }
     }
   }

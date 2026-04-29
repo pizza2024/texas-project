@@ -173,17 +173,13 @@ export class BotService {
 
     // Must call or fold post-flop
     const potOdds = currentBet / (potSize + currentBet);
-    const handStrength = this.estimateHandStrength(
-      holeCards,
-      communityCards,
-    );
+    const handStrength = this.estimateHandStrength(holeCards, communityCards);
 
     if (potOdds < 0.3) {
       // Bad pot odds — mostly fold, occasionally call with made hands
       if (
         handStrength >= 0.6 ||
-        (this.hasStrongDraw(holeCards, communityCards) &&
-          randomInt(100) < 20)
+        (this.hasStrongDraw(holeCards, communityCards) && randomInt(100) < 20)
       ) {
         return { action: 'call' };
       }
@@ -245,11 +241,36 @@ export class BotService {
     const lower = r1 >= r2 ? r2 : r1;
 
     // Pairs
-    const pairs = ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22'];
+    const pairs = [
+      'AA',
+      'KK',
+      'QQ',
+      'JJ',
+      'TT',
+      '99',
+      '88',
+      '77',
+      '66',
+      '55',
+      '44',
+      '33',
+      '22',
+    ];
     if (r1 === r2 && pairs.includes(r1 + r1)) return true;
 
     // Broadway combos (both suited and offsuit)
-    const broadway = ['AK', 'AQ', 'AJ', 'AT', 'KQ', 'KJ', 'KT', 'QJ', 'QT', 'JT'];
+    const broadway = [
+      'AK',
+      'AQ',
+      'AJ',
+      'AT',
+      'KQ',
+      'KJ',
+      'KT',
+      'QJ',
+      'QT',
+      'JT',
+    ];
     const combo = higher + lower;
     if (broadway.includes(combo)) return true;
 
@@ -400,7 +421,9 @@ export class BotService {
       for (let i = 0; i < rankVals.length - 3; i++) {
         if (
           rankVals[i + 3] === rankVals[i] + 4 &&
-          rankVals.slice(i, i + 3).every((v, _, arr) => arr[0] + 1 === v || true)
+          rankVals
+            .slice(i, i + 3)
+            .every((v, _, arr) => arr[0] + 1 === v || true)
         ) {
           // Check if there's a rank gap of 4
           const sortedRanks = rankVals.slice(i, i + 4).sort((a, b) => a - b);

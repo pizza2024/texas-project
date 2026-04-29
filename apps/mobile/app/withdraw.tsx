@@ -38,7 +38,7 @@ interface CooldownInfo {
   remainingMs: number;
 }
 
-const EXPLORER_URL = 'https://sepolia.etherscan.io';
+const EXPLORER_URL = process.env.EXPO_PUBLIC_BLOCK_EXPLORER_URL ?? 'https://sepolia.etherscan.io';
 const ETH_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
 function shortHash(hash: string): string {
