@@ -194,7 +194,7 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className={`text-xs leading-relaxed ${textColor}`}>
-                <span className={`font-medium ${senderColor}`}>[{msg.username}]</span>
+                <span className={`font-medium ${senderColor}`}>[{DOMPurify.sanitize(msg.username || '')}]</span>
                 <span className="mx-1">:</span>
                 <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }} />
                 <span className={`ml-2 ${mutedColor}`}>

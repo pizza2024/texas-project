@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { User } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from '../prisma/prisma.service';
@@ -220,7 +220,17 @@ export class AuthService {
         'Verification data corrupted. Please request a new code.',
       );
     }
-    if (storedCode !== code) {
+    let codesMatch = false;
+    try {
+      const storedBuf = Buffer.from(storedCode, 'utf8');
+      const codeBuf = Buffer.from(code, 'utf8');
+      codesMatch =
+        storedBuf.length === codeBuf.length &&
+        timingSafeEqual(storedBuf, codeBuf);
+    } catch {
+      codesMatch = false;
+    }
+    if (!codesMatch) {
       // Increment failed attempts counter
       await this.redisService.incr(
         attemptsKey,
