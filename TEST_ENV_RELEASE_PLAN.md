@@ -3,6 +3,7 @@
 该文件基于旧的混合云平台方案（Railway/Vercel），已废弃。
 
 当前测试环境发布请统一使用 Docker 方案：
+
 - DEPLOYMENT_PLAN.md
 - docker-compose.yml
 - docker/.env.staging.example

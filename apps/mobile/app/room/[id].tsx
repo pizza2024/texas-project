@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,20 +8,25 @@ import {
   StyleSheet,
   ActivityIndicator,
   TextInput,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getSocket, disconnectSocket } from '../../lib/socket';
-import { getStoredToken } from '../../lib/auth';
-import type { TableState, Player } from '@texas/shared';
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { getSocket, disconnectSocket } from "../../lib/socket";
+import { getStoredToken } from "../../lib/auth";
+import type { TableState, Player } from "@texas/shared";
 
-const SUITS = ['♠', '♥', '♦', '♣'];
-const SUIT_COLORS: Record<string, string> = { '♥': '#ef4444', '♦': '#ef4444', '♠': '#e5e7eb', '♣': '#e5e7eb' };
+const SUITS = ["♠", "♥", "♦", "♣"];
+const SUIT_COLORS: Record<string, string> = {
+  "♥": "#ef4444",
+  "♦": "#ef4444",
+  "♠": "#e5e7eb",
+  "♣": "#e5e7eb",
+};
 
 function formatCard(card: string) {
-  if (!card || card === '?') return { rank: '?', suit: '', color: '#9ca3af' };
-  const suit = SUITS.find((s) => card.includes(s)) ?? '';
-  const rank = card.replace(suit, '');
-  return { rank, suit, color: SUIT_COLORS[suit] ?? '#e5e7eb' };
+  if (!card || card === "?") return { rank: "?", suit: "", color: "#9ca3af" };
+  const suit = SUITS.find((s) => card.includes(s)) ?? "";
+  const rank = card.replace(suit, "");
+  return { rank, suit, color: SUIT_COLORS[suit] ?? "#e5e7eb" };
 }
 
 function CardView({ card, hidden }: { card: string; hidden?: boolean }) {
@@ -45,16 +50,16 @@ const cardStyles = StyleSheet.create({
   card: {
     width: 34,
     height: 46,
-    backgroundColor: '#1a2e1a',
+    backgroundColor: "#1a2e1a",
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#4ade80',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#4ade80",
+    alignItems: "center",
+    justifyContent: "center",
     margin: 2,
   },
-  hidden: { fontSize: 24, color: '#4b5563' },
-  rank: { fontSize: 13, fontWeight: 'bold' },
+  hidden: { fontSize: 24, color: "#4b5563" },
+  rank: { fontSize: 13, fontWeight: "bold" },
   suit: { fontSize: 11 },
 });
 
@@ -63,7 +68,7 @@ export default function RoomPage() {
   const router = useRouter();
   const [table, setTable] = useState<TableState | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [betAmount, setBetAmount] = useState<string>('');
+  const [betAmount, setBetAmount] = useState<string>("");
   const tokenRef = useRef<string | null>(null);
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
 
@@ -80,36 +85,38 @@ export default function RoomPage() {
       tokenRef.current = token;
 
       // 解析用户 ID
-      const parts = token.split('.');
+      const parts = token.split(".");
       if (parts[1]) {
         try {
           const payload = JSON.parse(atob(parts[1])) as { sub?: string };
           setMyUserId(payload.sub ?? null);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       socketRef.current = getSocket(token);
       const socket = socketRef.current;
 
-      socket.on('room_update', (data) => {
+      socket.on("room_update", (data) => {
         if (mounted) setTable(data);
       });
 
-      socket.on('left_room', () => {
-        if (mounted) router.replace('/rooms');
+      socket.on("left_room", () => {
+        if (mounted) router.replace("/rooms");
       });
 
-      socket.on('rejoin_available', ({ roomId }) => {
+      socket.on("rejoin_available", ({ roomId }) => {
         if (!mounted) return;
         Alert.alert(
-          '重新连接',
-          '检测到您已重新连接，正在恢复游戏...',
+          "重新连接",
+          "检测到您已重新连接，正在恢复游戏...",
           [
             {
-              text: '确定',
+              text: "确定",
               onPress: () => {
                 // Re-join the room to restore game state
-                socket.emit('join_room', { roomId: id });
+                socket.emit("join_room", { roomId: id });
               },
             },
           ],
@@ -117,12 +124,12 @@ export default function RoomPage() {
         );
       });
 
-      socket.emit('join_room', { roomId: id });
+      socket.emit("join_room", { roomId: id });
     }
     connect();
     return () => {
       mounted = false;
-      socketRef.current?.emit('leave_room', { roomId: id });
+      socketRef.current?.emit("leave_room", { roomId: id });
       socketRef.current = null;
     };
   }, [id]);
@@ -130,7 +137,7 @@ export default function RoomPage() {
   const sendAction = (action: string, amount?: number) => {
     const socket = socketRef.current;
     if (!socket) return;
-    socket.emit('player_action', { roomId: id, action, amount });
+    socket.emit("player_action", { roomId: id, action, amount });
   };
 
   const myPlayer = table?.players.find(
@@ -140,12 +147,15 @@ export default function RoomPage() {
     table &&
     myPlayer &&
     table.players[table.activePlayerIndex]?.id === myUserId &&
-    table.currentStage !== 'WAITING' &&
-    table.currentStage !== 'SETTLEMENT';
+    table.currentStage !== "WAITING" &&
+    table.currentStage !== "SETTLEMENT";
 
   const callAmount = table ? table.currentBet - (myPlayer?.bet ?? 0) : 0;
   const minRaise = table ? table.currentBet + table.bigBlind : 0;
-  const effectiveRaiseAmount = Math.max(Number(betAmount) || minRaise, minRaise);
+  const effectiveRaiseAmount = Math.max(
+    Number(betAmount) || minRaise,
+    minRaise,
+  );
 
   if (!table) {
     return (
@@ -165,7 +175,9 @@ export default function RoomPage() {
           {table.communityCards.map((c, i) => (
             <CardView key={i} card={c} />
           ))}
-          {Array.from({ length: Math.max(0, 5 - table.communityCards.length) }).map((_, i) => (
+          {Array.from({
+            length: Math.max(0, 5 - table.communityCards.length),
+          }).map((_, i) => (
             <CardView key={`empty-${i}`} card="?" hidden />
           ))}
         </View>
@@ -181,22 +193,31 @@ export default function RoomPage() {
           return (
             <View
               key={player.id}
-              style={[styles.playerRow, isActive && styles.activePlayer, isMe && styles.myPlayer]}
+              style={[
+                styles.playerRow,
+                isActive && styles.activePlayer,
+                isMe && styles.myPlayer,
+              ]}
             >
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>
-                  {isMe ? '(我) ' : ''}{player.nickname}
-                  {player.isButton ? ' 🔘' : ''}
-                  {player.isSmallBlind ? ' SB' : ''}
-                  {player.isBigBlind ? ' BB' : ''}
+                  {isMe ? "(我) " : ""}
+                  {player.nickname}
+                  {player.isButton ? " 🔘" : ""}
+                  {player.isSmallBlind ? " SB" : ""}
+                  {player.isBigBlind ? " BB" : ""}
                 </Text>
                 <Text style={styles.playerStack}>筹码 {player.stack}</Text>
-                {player.bet > 0 && <Text style={styles.playerBet}>下注 {player.bet}</Text>}
+                {player.bet > 0 && (
+                  <Text style={styles.playerBet}>下注 {player.bet}</Text>
+                )}
               </View>
               <View style={styles.playerCards}>
                 {isMe
                   ? player.cards.map((c, i) => <CardView key={i} card={c} />)
-                  : player.cards.map((_, i) => <CardView key={i} card="?" hidden />)}
+                  : player.cards.map((_, i) => (
+                      <CardView key={i} card="?" hidden />
+                    ))}
               </View>
             </View>
           );
@@ -207,15 +228,24 @@ export default function RoomPage() {
       {isMyTurn && (
         <View style={styles.actions}>
           <View style={styles.actionRow}>
-            <TouchableOpacity style={[styles.actionBtn, styles.foldBtn]} onPress={() => sendAction('fold')}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.foldBtn]}
+              onPress={() => sendAction("fold")}
+            >
               <Text style={styles.actionText}>弃牌</Text>
             </TouchableOpacity>
             {callAmount <= 0 ? (
-              <TouchableOpacity style={[styles.actionBtn, styles.checkBtn]} onPress={() => sendAction('check')}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.checkBtn]}
+                onPress={() => sendAction("check")}
+              >
                 <Text style={styles.actionText}>过牌</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={[styles.actionBtn, styles.callBtn]} onPress={() => sendAction('call')}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.callBtn]}
+                onPress={() => sendAction("call")}
+              >
                 <Text style={styles.actionText}>跟注 {callAmount}</Text>
               </TouchableOpacity>
             )}
@@ -231,13 +261,13 @@ export default function RoomPage() {
             />
             <TouchableOpacity
               style={[styles.actionBtn, styles.raiseBtn]}
-              onPress={() => sendAction('raise', effectiveRaiseAmount)}
+              onPress={() => sendAction("raise", effectiveRaiseAmount)}
             >
               <Text style={styles.actionText}>加注 {effectiveRaiseAmount}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, styles.allInBtn]}
-              onPress={() => sendAction('allin')}
+              onPress={() => sendAction("allin")}
             >
               <Text style={styles.actionText}>全下</Text>
             </TouchableOpacity>
@@ -266,17 +296,22 @@ export default function RoomPage() {
         </View>
       )}
 
-      {table.currentStage === 'WAITING' && myPlayer && !myPlayer.ready && (
+      {table.currentStage === "WAITING" && myPlayer && !myPlayer.ready && (
         <TouchableOpacity
           style={styles.readyBtn}
-          onPress={() => getAuthorizedSocket()?.emit('player_ready', { roomId: id })}
+          onPress={() =>
+            getAuthorizedSocket()?.emit("player_ready", { roomId: id })
+          }
         >
           <Text style={styles.readyBtnText}>准备</Text>
         </TouchableOpacity>
       )}
 
       {/* 返回按钮 */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/rooms')}>
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => router.replace("/rooms")}
+      >
         <Text style={styles.backBtnText}>← 返回大厅</Text>
       </TouchableOpacity>
     </View>
@@ -284,79 +319,94 @@ export default function RoomPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#060e10' },
-  loading: { flex: 1, backgroundColor: '#060e10', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { color: '#9ca3af', marginTop: 12, fontSize: 16 },
+  container: { flex: 1, backgroundColor: "#060e10" },
+  loading: {
+    flex: 1,
+    backgroundColor: "#060e10",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: { color: "#9ca3af", marginTop: 12, fontSize: 16 },
   communityArea: {
-    backgroundColor: '#0d1f14',
+    backgroundColor: "#0d1f14",
     padding: 16,
     paddingTop: 56,
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: '#1a3a22',
+    borderBottomColor: "#1a3a22",
   },
-  potText: { color: '#fbbf24', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  communityCards: { flexDirection: 'row', marginBottom: 6 },
-  stageText: { color: '#6b7280', fontSize: 12 },
+  potText: {
+    color: "#fbbf24",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  communityCards: { flexDirection: "row", marginBottom: 6 },
+  stageText: { color: "#6b7280", fontSize: 12 },
   players: { flex: 1 },
   playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#0d1f14',
+    borderBottomColor: "#0d1f14",
   },
-  activePlayer: { backgroundColor: '#0d2818' },
-  myPlayer: { borderLeftWidth: 3, borderLeftColor: '#4ade80' },
+  activePlayer: { backgroundColor: "#0d2818" },
+  myPlayer: { borderLeftWidth: 3, borderLeftColor: "#4ade80" },
   playerInfo: { flex: 1 },
-  playerName: { color: '#e5e7eb', fontSize: 14, fontWeight: '600' },
-  playerStack: { color: '#9ca3af', fontSize: 12, marginTop: 2 },
-  playerBet: { color: '#fbbf24', fontSize: 12 },
-  playerCards: { flexDirection: 'row' },
-  actions: { padding: 10, backgroundColor: '#0d1f14', borderTopWidth: 1, borderTopColor: '#1a3a22' },
+  playerName: { color: "#e5e7eb", fontSize: 14, fontWeight: "600" },
+  playerStack: { color: "#9ca3af", fontSize: 12, marginTop: 2 },
+  playerBet: { color: "#fbbf24", fontSize: 12 },
+  playerCards: { flexDirection: "row" },
+  actions: {
+    padding: 10,
+    backgroundColor: "#0d1f14",
+    borderTopWidth: 1,
+    borderTopColor: "#1a3a22",
+  },
   betInput: {
     flex: 1,
-    backgroundColor: '#1a2e1a',
+    backgroundColor: "#1a2e1a",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#e5e7eb',
+    color: "#e5e7eb",
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: "#374151",
     marginRight: 8,
   },
-  quickBetRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  quickBetRow: { flexDirection: "row", gap: 8, marginTop: 4 },
   quickBetBtn: {
     flex: 1,
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
     borderRadius: 8,
     paddingVertical: 6,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  quickBetText: { color: '#9ca3af', fontSize: 12, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  quickBetText: { color: "#9ca3af", fontSize: 12, fontWeight: "600" },
+  actionRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   actionBtn: {
     flex: 1,
     borderRadius: 10,
     padding: 13,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  foldBtn: { backgroundColor: '#7f1d1d' },
-  checkBtn: { backgroundColor: '#1e3a5f' },
-  callBtn: { backgroundColor: '#1d4ed8' },
-  raiseBtn: { backgroundColor: '#92400e' },
-  allInBtn: { backgroundColor: '#6b21a8' },
-  actionText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  foldBtn: { backgroundColor: "#7f1d1d" },
+  checkBtn: { backgroundColor: "#1e3a5f" },
+  callBtn: { backgroundColor: "#1d4ed8" },
+  raiseBtn: { backgroundColor: "#92400e" },
+  allInBtn: { backgroundColor: "#6b21a8" },
+  actionText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   readyBtn: {
     margin: 10,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
     borderRadius: 10,
     padding: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  readyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  backBtn: { padding: 12, alignItems: 'center' },
-  backBtnText: { color: '#6b7280', fontSize: 13 },
+  readyBtnText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  backBtn: { padding: 12, alignItems: "center" },
+  backBtnText: { color: "#6b7280", fontSize: 13 },
 });

@@ -6,21 +6,21 @@
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 后端框架 | NestJS 11 + TypeScript |
-| 数据库 | PostgreSQL 16 + Prisma ORM |
-| 缓存/队列 | Redis 7 + BullMQ |
-| 鉴权 | JWT + bcrypt + Passport |
-| 实时通信 | WebSocket（Socket.io） |
-| 游戏引擎 | 自研 `table-engine`（手牌评估、Pot Odds、自动出桌） |
-| Web 前端 | Next.js 16 + React 19 + Tailwind CSS 4 |
-| 移动端 | React Native 0.83（Expo SDK 55） |
-| 管理后台 | Next.js 16 + Recharts + SWR |
-| 文档站 | Next.js + MDX |
-| Monorepo | Turborepo + pnpm 10 |
-| 测试 | Jest + Playwright |
-| 部署 | Docker + Nginx |
+| 层级      | 技术                                                |
+| --------- | --------------------------------------------------- |
+| 后端框架  | NestJS 11 + TypeScript                              |
+| 数据库    | PostgreSQL 16 + Prisma ORM                          |
+| 缓存/队列 | Redis 7 + BullMQ                                    |
+| 鉴权      | JWT + bcrypt + Passport                             |
+| 实时通信  | WebSocket（Socket.io）                              |
+| 游戏引擎  | 自研 `table-engine`（手牌评估、Pot Odds、自动出桌） |
+| Web 前端  | Next.js 16 + React 19 + Tailwind CSS 4              |
+| 移动端    | React Native 0.83（Expo SDK 55）                    |
+| 管理后台  | Next.js 16 + Recharts + SWR                         |
+| 文档站    | Next.js + MDX                                       |
+| Monorepo  | Turborepo + pnpm 10                                 |
+| 测试      | Jest + Playwright                                   |
+| 部署      | Docker + Nginx                                      |
 
 ## 项目结构
 
@@ -72,68 +72,68 @@ npm run dev              # 端口 3003
 
 ## 数据库模型（Prisma）
 
-| Model | 说明 |
-|-------|------|
-| `User` | 用户：username/nickname 唯一，role (PLAYER/ADMIN/SUPER_ADMIN)，status (OFFLINE/ONLINE/PLAYING)，elo 评分，邮箱验证 |
-| `Wallet` | 钱包：balance (真实货币)，chips (游戏筹码)，frozenChips (锁住) |
-| `Room` | 房间：盲注、准入、最大人数、密码、状态、tier (MICRO~PREMIUM)、isMatchmaking |
-| `Table` | 牌桌：关联 Room，state (WAITING/DEALING/PREFLOP/FLOP/TURN/RIVER/SHOWDOWN)，状态快照 |
-| `Hand` | 单局：potSize，winnerId，创建时间索引 |
-| `HandAction` | 操作：FOLD/CHECK/CALL/RAISE/ALLIN/STRADDLE/SIT-OUT |
-| `Settlement` | 结算：handId + userId + amount |
-| `Transaction` | 资金流水：DEPOSIT/WITHDRAW/GAME_WIN/GAME_LOSS |
-| `Friend` | 好友关系：PENDING/ACCEPTED/REJECTED/BLOCKED |
-| `DepositAddress` | 用户专属 ETH 充值地址（HD 钱包派生） |
-| `DepositRecord` | USDT 充值记录：txHash, amount, chips, status |
-| `WithdrawRequest` | 提现请求：PENDING/PROCESSING/CONFIRMED/FAILED，含链上 txHash |
-| `ScanCursor` | 区块扫描游标：避免事件遗漏 |
-| `AdminLog` | 管理员操作审计日志 |
-| `ScanCursor` | 区块同步游标 |
+| Model             | 说明                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `User`            | 用户：username/nickname 唯一，role (PLAYER/ADMIN/SUPER_ADMIN)，status (OFFLINE/ONLINE/PLAYING)，elo 评分，邮箱验证 |
+| `Wallet`          | 钱包：balance (真实货币)，chips (游戏筹码)，frozenChips (锁住)                                                     |
+| `Room`            | 房间：盲注、准入、最大人数、密码、状态、tier (MICRO~PREMIUM)、isMatchmaking                                        |
+| `Table`           | 牌桌：关联 Room，state (WAITING/DEALING/PREFLOP/FLOP/TURN/RIVER/SHOWDOWN)，状态快照                                |
+| `Hand`            | 单局：potSize，winnerId，创建时间索引                                                                              |
+| `HandAction`      | 操作：FOLD/CHECK/CALL/RAISE/ALLIN/STRADDLE/SIT-OUT                                                                 |
+| `Settlement`      | 结算：handId + userId + amount                                                                                     |
+| `Transaction`     | 资金流水：DEPOSIT/WITHDRAW/GAME_WIN/GAME_LOSS                                                                      |
+| `Friend`          | 好友关系：PENDING/ACCEPTED/REJECTED/BLOCKED                                                                        |
+| `DepositAddress`  | 用户专属 ETH 充值地址（HD 钱包派生）                                                                               |
+| `DepositRecord`   | USDT 充值记录：txHash, amount, chips, status                                                                       |
+| `WithdrawRequest` | 提现请求：PENDING/PROCESSING/CONFIRMED/FAILED，含链上 txHash                                                       |
+| `ScanCursor`      | 区块扫描游标：避免事件遗漏                                                                                         |
+| `AdminLog`        | 管理员操作审计日志                                                                                                 |
+| `ScanCursor`      | 区块同步游标                                                                                                       |
 
 ## 后端模块（apps/backend/src）
 
-| 模块 | 说明 |
-|------|------|
-| `auth/` | JWT 鉴权、注册（username+password、邮箱验证码）、登录限流 Guard |
-| `user/` | 用户管理、头像上传/删除 |
-| `room/` | 房间 CRUD |
-| `table-engine/` | **游戏核心引擎**：手牌评估 (hand-evaluator.ts)、Pot Odds、Straddle、自动出桌 (sit-out-detector)、all-in 保护、TableManager、牌局状态机 |
-| `websocket/` | Socket.io 网关 + 各 Handler：game.handler（游戏操作）、room-events（房间事件）、system.handler（系统广播）、admin.handler、validate（参数校验） |
-| `matchmaking/` | ELO 匹配服务 |
-| `wallet/` | 筹码管理 |
-| `deposit/` | USDT 充值：地址生成、轮询扫块、兑换筹码 |
-| `withdraw/` | 提现请求处理 |
-| `notification/` | 邮件/推送通知（Resend） |
-| `admin/` | 管理后台 API：用户管理、房间管理、财务管理、数据统计、系统状态、广播 |
-| `friend/` | 好友系统：申请/接受/拒绝 |
-| `bot/` | AI 机器人 |
-| `health/` | 健康检查端点 |
-| `config/` | JWT 配置 |
-| `prisma/` | Prisma Service |
-| `redis/` | Redis Service + BullMQ |
+| 模块            | 说明                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth/`         | JWT 鉴权、注册（username+password、邮箱验证码）、登录限流 Guard                                                                                 |
+| `user/`         | 用户管理、头像上传/删除                                                                                                                         |
+| `room/`         | 房间 CRUD                                                                                                                                       |
+| `table-engine/` | **游戏核心引擎**：手牌评估 (hand-evaluator.ts)、Pot Odds、Straddle、自动出桌 (sit-out-detector)、all-in 保护、TableManager、牌局状态机          |
+| `websocket/`    | Socket.io 网关 + 各 Handler：game.handler（游戏操作）、room-events（房间事件）、system.handler（系统广播）、admin.handler、validate（参数校验） |
+| `matchmaking/`  | ELO 匹配服务                                                                                                                                    |
+| `wallet/`       | 筹码管理                                                                                                                                        |
+| `deposit/`      | USDT 充值：地址生成、轮询扫块、兑换筹码                                                                                                         |
+| `withdraw/`     | 提现请求处理                                                                                                                                    |
+| `notification/` | 邮件/推送通知（Resend）                                                                                                                         |
+| `admin/`        | 管理后台 API：用户管理、房间管理、财务管理、数据统计、系统状态、广播                                                                            |
+| `friend/`       | 好友系统：申请/接受/拒绝                                                                                                                        |
+| `bot/`          | AI 机器人                                                                                                                                       |
+| `health/`       | 健康检查端点                                                                                                                                    |
+| `config/`       | JWT 配置                                                                                                                                        |
+| `prisma/`       | Prisma Service                                                                                                                                  |
+| `redis/`        | Redis Service + BullMQ                                                                                                                          |
 
 ## WebSocket 事件（客户端）
 
 **客户端 → 服务器**
 
-| Event | 说明 |
-|-------|------|
-| `join-room` | 加入房间 |
-| `leave-room` | 离开房间 |
+| Event           | 说明                                               |
+| --------------- | -------------------------------------------------- |
+| `join-room`     | 加入房间                                           |
+| `leave-room`    | 离开房间                                           |
 | `player-action` | 玩家操作（fold/call/raise/allin/straddle/sit-out） |
-| `ready-to-play` | 准备开始 |
-| `chat-message` | 聊天消息 |
+| `ready-to-play` | 准备开始                                           |
+| `chat-message`  | 聊天消息                                           |
 
 **服务器 → 客户端**
 
-| Event | 说明 |
-|-------|------|
-| `game-state` | 牌桌完整状态 |
-| `player-action-result` | 操作结果 |
-| `hand-result` | 单局结果 |
-| `room-update` | 房间状态更新 |
-| `system-message` | 系统消息（被踢、房间关闭等） |
-| `seat-countdown` | solo 玩家倒计时 |
+| Event                  | 说明                         |
+| ---------------------- | ---------------------------- |
+| `game-state`           | 牌桌完整状态                 |
+| `player-action-result` | 操作结果                     |
+| `hand-result`          | 单局结果                     |
+| `room-update`          | 房间状态更新                 |
+| `system-message`       | 系统消息（被踢、房间关闭等） |
+| `seat-countdown`       | solo 玩家倒计时              |
 
 **WebSocket 常量**（避免客户端和服务端 drift）
 
@@ -148,54 +148,55 @@ VALID_ACTIONS: fold, check, call, raise, allin, straddle, sit-out
 ## packages/shared 导出
 
 ```ts
-import { api } from '@texas/shared/api'      // axios 封装
-import { socket } from '@texas/shared/socket' // Socket.io 客户端
-import { auth } from '@texas/shared/auth'      // Token 管理
-import type { GameState } from '@texas/shared/types'
+import { api } from "@texas/shared/api"; // axios 封装
+import { socket } from "@texas/shared/socket"; // Socket.io 客户端
+import { auth } from "@texas/shared/auth"; // Token 管理
+import type { GameState } from "@texas/shared/types";
 ```
 
 ## 前端页面（apps/web/app）
 
-| 路径 | 说明 |
-|------|------|
-| `/` | 首页 |
-| `/login` | 登录 |
-| `/register` | 注册 |
-| `/rooms` | 房间列表 |
-| `/room/[id]` | 游戏桌页面（PC） |
+| 路径                | 说明                 |
+| ------------------- | -------------------- |
+| `/`                 | 首页                 |
+| `/login`            | 登录                 |
+| `/register`         | 注册                 |
+| `/rooms`            | 房间列表             |
+| `/room/[id]`        | 游戏桌页面（PC）     |
 | `/room-mobile/[id]` | 游戏桌页面（Mobile） |
-| `/hands` | 历史牌局 |
-| `/friends` | 好友列表 |
-| `/stats` | 玩家统计 |
-| `/settings` | 设置 |
-| `/deposit` | 充值 |
-| `/withdraw` | 提现 |
+| `/hands`            | 历史牌局             |
+| `/friends`          | 好友列表             |
+| `/stats`            | 玩家统计             |
+| `/settings`         | 设置                 |
+| `/deposit`          | 充值                 |
+| `/withdraw`         | 提现                 |
 
 ## 管理后台页面（apps/admin/app）
 
-| 路径 | 说明 |
-|------|------|
-| `/login` | 管理员登录 |
-| `/dashboard` | 数据总览 |
-| `/users` | 用户列表 + 详情 |
-| `/rooms` | 房间管理 |
-| `/finance` | 财务流水 |
-| `/analytics` | 数据统计图表 |
-| `/system` | 系统状态 + 广播 |
-| `/withdraw` | 提现审核 |
+| 路径         | 说明            |
+| ------------ | --------------- |
+| `/login`     | 管理员登录      |
+| `/dashboard` | 数据总览        |
+| `/users`     | 用户列表 + 详情 |
+| `/rooms`     | 房间管理        |
+| `/finance`   | 财务流水        |
+| `/analytics` | 数据统计图表    |
+| `/system`    | 系统状态 + 广播 |
+| `/withdraw`  | 提现审核        |
 
 ## Docker 基础设施
 
-| 容器 | IP | 说明 |
-|------|-----|------|
-| nginx | 172.28.0.2 | 反向代理（80/443） |
-| web | 172.28.0.10 | Next.js 生产构建 |
-| backend | 172.28.0.11 | NestJS + Prisma + BullMQ |
-| admin | 172.28.0.12 | Next.js 管理后台 |
-| postgres | 172.28.0.13 | PostgreSQL 16 |
-| redis | 172.28.0.14 | Redis 7 |
+| 容器     | IP          | 说明                     |
+| -------- | ----------- | ------------------------ |
+| nginx    | 172.28.0.2  | 反向代理（80/443）       |
+| web      | 172.28.0.10 | Next.js 生产构建         |
+| backend  | 172.28.0.11 | NestJS + Prisma + BullMQ |
+| admin    | 172.28.0.12 | Next.js 管理后台         |
+| postgres | 172.28.0.13 | PostgreSQL 16            |
+| redis    | 172.28.0.14 | Redis 7                  |
 
 Compose 文件分层：
+
 - `docker-compose.yml` — 主文件（所有服务）
 - `docker-compose.local.yml` — 本地开发覆盖
 - `docker-compose.remote.yml` — 远程生产镜像覆盖

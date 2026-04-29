@@ -1,0 +1,400 @@
+---
+title: P2-NOTIFY-001 — 站内通知中心
+description: 应用内通知中心，支持好友上线提醒、俱乐部赛事通知、每周返水、财务通知等，驱动玩家留存。
+status: planning
+---
+
+# P2-NOTIFY-001 — 站内通知中心
+
+## 1. Feature Overview
+
+| Item | Detail |
+|------|--------|
+| **Feature** | In-App Notification Center |
+| **Spec ID** | P2-NOTIFY-001 |
+| **Goal** | 集中展示站内通知，提升玩家留存与回访率 |
+| **Competitor Baseline** | GGPoker ✅ / PokerStars ✅ / 888poker ✅ / ACR ✅ (无朋友提醒) |
+| **Project Status** | ❌ 无站内通知 ❌ 无朋友提醒 ❌ 无俱乐部系统 |
+
+### 竞品对照
+
+| 平台 | 站内通知 | 朋友上线提醒 | Club/公会 |
+|------|---------|-------------|-----------|
+| GGPoker | ✅ | ✅ | ✅ |
+| PokerStars | ✅ | ✅ | ❌ StarsCoin |
+| 888poker | ✅ | ✅ | ✅ 888 Club |
+| ACR Poker | ✅ | ❌ | ✅ Rewards |
+| **本项目** | ❌ | ❌ | ❌ |
+
+---
+
+## 2. Notification Types
+
+### 2.1 `friend_online` — 好友上线
+
+**Trigger:** 用户登录上线时，通过已有 `notifyFriendsOfStatusChange` (app.gateway.ts:485–504) 触发。
+
+**WS Event:** `notification`
+
+```ts
+// Server → Client
+{
+  "id": "notif_001",
+  "type": "friend_online",
+  "title": "好友上线",
+  "body": "你的好友 Alice 已经上线",
+  "metadata": {
+    "friendUserId": "user_xxx",
+    "friendNickname": "Alice",
+    "friendAvatar": "https://..."
+  },
+  "read": false,
+  "createdAt": "2026-04-29T12:00:00Z"
+}
+```
+
+### 2.2 `club_tournament_starting` — 俱乐部赛事即将开始
+
+**Trigger:** 俱乐部赛事开始前 15 分钟（BullMQ 定时任务）。
+
+**WS Event:** `notification`
+
+```ts
+{
+  "id": "notif_002",
+  "type": "club_tournament_starting",
+  "title": "赛事提醒",
+  "body": "「王者俱乐部」NLH $10报名赛将在15分钟后开始！",
+  "metadata": {
+    "clubId": "club_xxx",
+    "clubName": "王者俱乐部",
+    "tournamentId": "tourney_001",
+    "tournamentName": "NLH $10买入赛",
+    "startsAt": "2026-04-29T12:15:00Z"
+  },
+  "read": false,
+  "createdAt": "2026-04-29T12:00:00Z"
+}
+```
+
+### 2.3 `tournament_starting` — 公开赛事即将开始
+
+**Trigger:** 公开赛事开始前 15 分钟（来自 P1-SCHEDULE-001 赛程系统）。
+
+**WS Event:** `notification`
+
+```ts
+{
+  "id": "notif_003",
+  "type": "tournament_starting",
+  "title": "赛事即将开始",
+  "body": "「周日大师赛」$100买入将在15分钟后开赛，抓紧报名！",
+  "metadata": {
+    "tournamentId": "tourney_002",
+    "tournamentName": "周日大师赛",
+    "buyIn": 100,
+    "startsAt": "2026-04-29T13:00:00Z"
+  },
+  "read": false,
+  "createdAt": "2026-04-29T12:45:00Z"
+}
+```
+
+### 2.4 `hand_result` — 大额手牌获胜 (P2)
+
+**Trigger:** 玩家单局获胜超过一定阈值（配置决定，如 ≥ 50bb）。
+
+**WS Event:** `notification`
+
+```ts
+{
+  "id": "notif_004",
+  "type": "hand_result",
+  "title": "精彩手牌",
+  "body": "你在 NLH $5/$10 牌桌赢得 $512.50！",
+  "metadata": {
+    "handId": "hand_xxx",
+    "roomId": "room_xxx",
+    "amount": 512.50,
+    "handRank": "full_house"
+  },
+  "read": false,
+  "createdAt": "2026-04-29T14:00:00Z"
+}
+```
+
+### 2.5 `rakeback_ready` — 每周返水到账 (P1-RAKEBACK)
+
+**Trigger:** 每周一 UTC 0点结算后发放（P1-RAKEBACK 模块）。
+
+**WS Event:** `notification`
+
+```ts
+{
+  "id": "notif_005",
+  "type": "rakeback_ready",
+  "title": "本周返水已到账",
+  "body": "你本周获得 $12.50 返水，已自动充值到账户。",
+  "metadata": {
+    "rakebackAmount": 12.50,
+    "weekStart": "2026-04-21",
+    "weekEnd": "2026-04-27"
+  },
+  "read": false,
+  "createdAt": "2026-04-29T00:00:00Z"
+}
+```
+
+### 2.6 `deposit_received` — USDT 充值到账
+
+**Trigger:** 链上扫块确认后（deposit 模块已有逻辑）。
+
+**WS Event:** `notification`
+
+```ts
+{
+  "id": "notif_006",
+  "type": "deposit_received",
+  "title": "充值到账",
+  "body": "你的 50 USDT 充值已确认，已兑换为 5000 筹码。",
+  "metadata": {
+    "txHash": "0x...",
+    "amount": 50.00,
+    "chips": 5000,
+    "currency": "USDT"
+  },
+  "read": false,
+  "createdAt": "2026-04-29T10:00:00Z"
+}
+```
+
+---
+
+## 3. Data Model (Prisma)
+
+```prisma
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @index()
+  type      String   // "friend_online" | "club_tournament_starting" | ...
+  title     String
+  body      String
+  metadata  Json?    // 类型相关的额外数据
+  read      Boolean  @default(false) @index()
+  createdAt DateTime @default(now()) @index()
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, read, createdAt(sort: Desc)])
+}
+```
+
+**索引说明：**
+- `userId + createdAt` 降序：用于拉取最近通知列表（分页）
+- `userId + read + createdAt` 降序：用于未读数统计查询
+
+---
+
+## 4. WebSocket Events
+
+### 4.1 Server → Client
+
+**Event: `notification`**
+
+触发所有需要实时推送的通知。Payload 为完整的 Notification 对象（见上文各类型 schema）。
+
+### 4.2 Client → Server
+
+**Event: `mark_read`**
+
+客户端标记单条或批量通知为已读。
+
+```ts
+// Client → Server
+{
+  "notificationIds": ["notif_001", "notif_002"]  // string[]，支持单条或批量
+}
+
+// Server → Client (ack or pushed update)
+{
+  "marked": ["notif_001", "notif_002"]
+}
+```
+
+**Event: `mark_all_read`**
+
+```ts
+// Client → Server
+{}
+
+// Server → Client
+{
+  "markedCount": 15
+}
+```
+
+---
+
+## 5. Frontend UI
+
+### 5.1 Bell Icon (Header)
+
+- 位于页面右上角，JWT 登录后显示
+- 未读数 > 0 时显示红色 Badge（最多显示 "99+"）
+- 点击打开下拉面板
+
+### 5.2 Dropdown Panel
+
+- 最多显示最近 20 条通知（分页加载）
+- 每条显示：图标（按类型）、标题、摘要、相对时间
+- 按类型区分颜色标签：
+  - `friend_online` — 蓝色（朋友）
+  - `club_tournament_starting` / `tournament_starting` — 紫色（赛事）
+  - `rakeback_ready` — 金色（返水）
+  - `deposit_received` — 绿色（财务）
+  - `hand_result` — 橙色（战绩）
+
+### 5.3 Mark All Read
+
+- 面板底部「全部已读」按钮
+- 调用 `mark_all_read` WS 事件
+
+### 5.4 Empty State
+
+- 无通知时显示：🎉 "暂无新通知"
+- 有历史通知时提供「查看全部」跳转链接
+
+---
+
+## 6. Retention Policy
+
+| 规则 | 值 |
+|------|-----|
+| 每用户最大保留条数 | **100 条**（按 createdAt 倒序） |
+| 超过 100 条时 | 定时任务删除最旧的已读通知 |
+| 超过 30 天 | 无条件删除（无论已读状态） |
+| 清理触发 | 后台 Cron Job，每日 UTC 00:00 执行 |
+
+```sql
+-- 清理 SQL 示例（每日 Cron）
+DELETE FROM "Notification"
+WHERE "userId" = $1
+  AND "createdAt" < NOW() - INTERVAL '30 days';
+
+WITH ranked AS (
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY "userId" ORDER BY "createdAt" DESC) as rn
+  FROM "Notification" WHERE "userId" = $1
+)
+DELETE FROM "Notification" WHERE id IN (SELECT id FROM ranked WHERE rn > 100);
+```
+
+---
+
+## 7. Implementation Phases
+
+### Phase 1 — 基础通知 + 好友上线提醒
+
+| Task | Owner |
+|------|-------|
+| Prisma: 新增 `Notification` model + 迁移 | backend |
+| Backend: `NotificationService`（创建、查询、标记已读） | backend |
+| Backend: 复用 `notifyFriendsOfStatusChange` 逻辑，追加持久化 Notification 记录 | backend |
+| WS: 新增 `notification` 事件派发 | backend |
+| WS: `mark_read` / `mark_all_read` handler | backend |
+| Frontend: Bell Icon + Dropdown Panel + 未读计数 | frontend |
+| Cron: 30天/100条 清理任务 | backend |
+
+**依赖：** 无（从零搭建通知基础设施）
+
+### Phase 2 — 赛事提醒
+
+| Task | Owner |
+|------|-------|
+| 接入 P1-SCHEDULE-001 赛程系统，赛事创建/变更时推送通知 | backend |
+| Club 模块（未来）：俱乐部赛事创建时推送 `club_tournament_starting` | backend (future) |
+| Frontend: 通知面板增加「赛事」类型筛选 Tab | frontend |
+
+**依赖：** Phase 1 完成 + P1-SCHEDULE-001 赛程系统
+
+### Phase 3 — 财务通知
+
+| Task | Owner |
+|------|-------|
+| `rakeback_ready` 通知集成（P1-RAKEBACK 结算触发） | backend |
+| `deposit_received` 通知集成（deposit 模块已有扫块逻辑） | backend |
+| `hand_result` 大额手牌通知（可选，视需求扩展） | backend |
+
+**依赖：** Phase 1 完成 + P1-RAKEBACK 模块
+
+---
+
+## 8. Backend Architecture
+
+```
+NotificationModule
+├── notification.service.ts   // 创建/查询/标记已读/清理
+├── notification.gateway.ts    // WS 事件处理（可选，也可在 app.gateway.ts 扩展）
+└── notification.cron.ts       // 30天/100条 定时清理
+
+// 调用点（现有代码扩展）
+app.gateway.ts
+├── notifyFriendsOfStatusChange() → 追加 Notification.create() + emit 'notification'
+deposit.service.ts
+└── onDepositConfirmed() → NotificationService.create() + emit 'notification'
+rakeback.service.ts (P1-RAKEBACK)
+└── onRakebackCalculated() → NotificationService.create() + emit 'notification'
+schedule.service.ts (P1-SCHEDULE-001)
+└── onTournamentStarting() → NotificationService.create() + emit 'notification'
+```
+
+---
+
+## 9. Reusing Existing Infrastructure
+
+`app.gateway.ts:485–504` 的 `notifyFriendsOfStatusChange` 已通过 `wsManager.emitToUser` 向好友推送 `friend_status_update` 事件。**Phase 1 改造方案：**
+
+```ts
+// app.gateway.ts notifyFriendsOfStatusChange()
+private async notifyFriendsOfStatusChange(userId: string, online: boolean): Promise<void> {
+  // ... 现有好友推送逻辑 ...
+
+  if (online) {
+    // ✅ Phase 1: 新增：持久化通知
+    const user = await this.userService.findById(userId);
+    await Promise.all(friends.map((friend) =>
+      this.notificationService.create({
+        userId: friend.friendId,
+        type: 'friend_online',
+        title: '好友上线',
+        body: `你的好友 ${user.nickname} 已经上线`,
+        metadata: {
+          friendUserId: userId,
+          friendNickname: user.nickname,
+          friendAvatar: user.avatar,
+        },
+      }).then((notif) =>
+        // ✅ 实时推送
+        this.wsManager.emitToUser(friend.friendId, 'notification', notif)
+      )
+    ));
+  }
+}
+```
+
+---
+
+## 10. API Endpoints (REST)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/notifications` | 分页获取当前用户通知列表 |
+| PATCH | `/notifications/read` | 批量标记已读（body: `{ ids: string[] }`） |
+| PATCH | `/notifications/read-all` | 全部标记已读 |
+| GET | `/notifications/unread-count` | 获取未读数（用于 Badge） |
+
+```
+GET /notifications?page=1&limit=20
+Response: { data: Notification[], total, page, limit, unreadCount }
+
+GET /notifications/unread-count
+Response: { count: number }
+```

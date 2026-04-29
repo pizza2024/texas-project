@@ -1,18 +1,18 @@
 "use client";
 
-import { useTranslation } from 'react-i18next';
-import '@/lib/i18n';
-import { useEffect, useRef, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import type { NextRouter } from 'next/router';
-import { Button } from '@/components/ui/button';
-import api from '@/lib/api';
-import { disconnectSocket, getSocket } from '@/lib/socket';
-import { showSystemMessage } from '@/lib/system-message';
-import { SearchingOverlay } from '@/components/lobby/searching-overlay';
-import { PasswordDialog } from '@/components/lobby/password-dialog';
-import { UserDropdown } from '@/components/lobby/user-dropdown';
-import { RoomCard } from '@/components/lobby/room-card';
+import { useTranslation } from "react-i18next";
+import "@/lib/i18n";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import type { NextRouter } from "next/router";
+import { Button } from "@/components/ui/button";
+import api from "@/lib/api";
+import { disconnectSocket, getSocket } from "@/lib/socket";
+import { showSystemMessage } from "@/lib/system-message";
+import { SearchingOverlay } from "@/components/lobby/searching-overlay";
+import { PasswordDialog } from "@/components/lobby/password-dialog";
+import { UserDropdown } from "@/components/lobby/user-dropdown";
+import { RoomCard } from "@/components/lobby/room-card";
 
 /* ---------- Quick Match Dialog ---------- */
 
@@ -59,9 +59,10 @@ const TIERS = [
   },
 ] as const;
 
-const SNG_FILTERS = [
-  { id: 'all', label: '全部' },
-  { id: 'sng', label: '🏆 SNG' },
+const ROOM_TABS = [
+  { id: "all" as const, label: "全部" },
+  { id: "ring" as const, label: "Ring" },
+  { id: "tournament" as const, label: "Tournament" },
 ] as const;
 
 type QuickMatchTier = (typeof TIERS)[number]["id"];
@@ -238,7 +239,7 @@ interface CreateRoomDialogProps {
 function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
   const [form, setForm] = useState<CreateRoomForm>({
     ...DEFAULT_FORM,
-    name: `Table ${((typeof crypto !== 'undefined' && crypto.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] : Date.now()) % 1000) + 1}`,
+    name: `Table ${((typeof crypto !== "undefined" && crypto.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] : Date.now()) % 1000) + 1}`,
   });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<
@@ -489,38 +490,58 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
 
           {/* Anonymous mode toggle */}
           <div>
-            <label style={labelStyle}>{t("lobby.createDialog.anonymous")}</label>
+            <label style={labelStyle}>
+              {t("lobby.createDialog.anonymous")}
+            </label>
             <button
               type="button"
-              onClick={() => setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))}
+              onClick={() =>
+                setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))
+              }
               className="w-full h-9 rounded-lg flex items-center justify-between px-3 text-sm transition-all"
               style={{
-                background: form.isAnonymous ? 'rgba(168,85,247,0.15)' : 'rgba(0,0,0,0.35)',
-                border: form.isAnonymous ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(234,179,8,0.18)',
+                background: form.isAnonymous
+                  ? "rgba(168,85,247,0.15)"
+                  : "rgba(0,0,0,0.35)",
+                border: form.isAnonymous
+                  ? "1px solid rgba(168,85,247,0.4)"
+                  : "1px solid rgba(234,179,8,0.18)",
               }}
             >
               <span
                 className="font-medium"
-                style={{ color: form.isAnonymous ? '#c084fc' : 'rgba(255,255,255,0.6)' }}
+                style={{
+                  color: form.isAnonymous ? "#c084fc" : "rgba(255,255,255,0.6)",
+                }}
               >
                 🎭 {t("lobby.createDialog.anonymousLabel")}
               </span>
               <div
                 className="w-10 h-5 rounded-full transition-all duration-200 relative"
                 style={{
-                  background: form.isAnonymous ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.1)',
+                  background: form.isAnonymous
+                    ? "rgba(168,85,247,0.6)"
+                    : "rgba(255,255,255,0.1)",
                 }}
               >
                 <div
                   className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200"
                   style={{
-                    background: form.isAnonymous ? '#c084fc' : 'rgba(255,255,255,0.4)',
-                    left: form.isAnonymous ? '22px' : '2px',
+                    background: form.isAnonymous
+                      ? "#c084fc"
+                      : "rgba(255,255,255,0.4)",
+                    left: form.isAnonymous ? "22px" : "2px",
                   }}
                 />
               </div>
             </button>
-            <p style={{ fontSize: '0.68rem', color: 'rgba(156,163,175,0.55)', marginTop: '0.25rem' }}>
+            <p
+              style={{
+                fontSize: "0.68rem",
+                color: "rgba(156,163,175,0.55)",
+                marginTop: "0.25rem",
+              }}
+            >
               {t("lobby.createDialog.anonymousHint")}
             </p>
           </div>
@@ -600,15 +621,15 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
 
   const { buyin, maxPlayers, prizeDistribution } = room.tournamentConfig;
   const totalPrize = buyin * maxPlayers;
-  const firstPrize = Math.floor(totalPrize * prizeDistribution[0] / 100);
-  const secondPrize = Math.floor(totalPrize * prizeDistribution[1] / 100);
-  const thirdPrize = Math.floor(totalPrize * prizeDistribution[2] / 100);
+  const firstPrize = Math.floor((totalPrize * prizeDistribution[0]) / 100);
+  const secondPrize = Math.floor((totalPrize * prizeDistribution[1]) / 100);
+  const thirdPrize = Math.floor((totalPrize * prizeDistribution[2]) / 100);
 
   return (
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+      style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
@@ -616,9 +637,11 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
       <div
         className="w-full max-w-sm rounded-2xl p-6 space-y-5"
         style={{
-          background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
-          border: '1px solid rgba(245,158,11,0.3)',
-          boxShadow: '0 0 60px rgba(245,158,11,0.1), 0 20px 60px rgba(0,0,0,0.8)',
+          background:
+            "linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)",
+          border: "1px solid rgba(245,158,11,0.3)",
+          boxShadow:
+            "0 0 60px rgba(245,158,11,0.1), 0 20px 60px rgba(0,0,0,0.8)",
         }}
       >
         {/* Header */}
@@ -627,9 +650,9 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
           <div>
             <p
               className="text-[10px] font-bold tracking-[0.3em] uppercase"
-              style={{ color: 'rgba(245,158,11,0.6)' }}
+              style={{ color: "rgba(245,158,11,0.6)" }}
             >
-              {t('lobby.tournament.sng')}
+              {t("lobby.tournament.sng")}
             </p>
             <h2 className="text-lg font-black tracking-wide text-white">
               {room.name}
@@ -648,11 +671,14 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
           <div
             className="rounded-xl p-3 text-center"
             style={{
-              background: 'rgba(245,158,11,0.08)',
-              border: '1px solid rgba(245,158,11,0.2)',
+              background: "rgba(245,158,11,0.08)",
+              border: "1px solid rgba(245,158,11,0.2)",
             }}
           >
-            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'rgba(245,158,11,0.5)' }}>
+            <p
+              className="text-[10px] uppercase tracking-widest mb-1"
+              style={{ color: "rgba(245,158,11,0.5)" }}
+            >
               Buy-in
             </p>
             <p className="text-base font-black text-amber-400">
@@ -662,14 +688,17 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
           <div
             className="rounded-xl p-3 text-center"
             style={{
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.2)',
+              background: "rgba(16,185,129,0.08)",
+              border: "1px solid rgba(16,185,129,0.2)",
             }}
           >
-            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'rgba(52,211,153,0.5)' }}>
+            <p
+              className="text-[10px] uppercase tracking-widest mb-1"
+              style={{ color: "rgba(52,211,153,0.5)" }}
+            >
               Total Prize
             </p>
-            <p className="text-base font-black" style={{ color: '#6ee7b7' }}>
+            <p className="text-base font-black" style={{ color: "#6ee7b7" }}>
               {totalPrize.toLocaleString()}
             </p>
           </div>
@@ -677,46 +706,85 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
 
         {/* Prize Breakdown */}
         <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-center" style={{ color: 'rgba(245,158,11,0.5)' }}>
+          <p
+            className="text-[10px] uppercase tracking-widest text-center"
+            style={{ color: "rgba(245,158,11,0.5)" }}
+          >
             Prize Distribution
           </p>
           <div className="space-y-1.5">
             {/* 1st */}
             <div
               className="flex items-center gap-3 rounded-lg px-3 py-2"
-              style={{ background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.15)' }}
+              style={{
+                background: "rgba(252,211,77,0.08)",
+                border: "1px solid rgba(252,211,77,0.15)",
+              }}
             >
               <span className="text-lg">🥇</span>
-              <span className="flex-1 text-xs font-bold" style={{ color: '#fcd34d' }}>1st</span>
-              <span className="text-xs font-bold" style={{ color: '#fcd34d' }}>{prizeDistribution[0]}%</span>
-              <span className="text-sm font-black text-white">{firstPrize.toLocaleString()}</span>
+              <span
+                className="flex-1 text-xs font-bold"
+                style={{ color: "#fcd34d" }}
+              >
+                1st
+              </span>
+              <span className="text-xs font-bold" style={{ color: "#fcd34d" }}>
+                {prizeDistribution[0]}%
+              </span>
+              <span className="text-sm font-black text-white">
+                {firstPrize.toLocaleString()}
+              </span>
             </div>
             {/* 2nd */}
             <div
               className="flex items-center gap-3 rounded-lg px-3 py-2"
-              style={{ background: 'rgba(209,213,219,0.06)', border: '1px solid rgba(209,213,219,0.12)' }}
+              style={{
+                background: "rgba(209,213,219,0.06)",
+                border: "1px solid rgba(209,213,219,0.12)",
+              }}
             >
               <span className="text-lg">🥈</span>
-              <span className="flex-1 text-xs font-bold" style={{ color: '#d1d5db' }}>2nd</span>
-              <span className="text-xs font-bold" style={{ color: '#d1d5db' }}>{prizeDistribution[1]}%</span>
-              <span className="text-sm font-black text-white">{secondPrize.toLocaleString()}</span>
+              <span
+                className="flex-1 text-xs font-bold"
+                style={{ color: "#d1d5db" }}
+              >
+                2nd
+              </span>
+              <span className="text-xs font-bold" style={{ color: "#d1d5db" }}>
+                {prizeDistribution[1]}%
+              </span>
+              <span className="text-sm font-black text-white">
+                {secondPrize.toLocaleString()}
+              </span>
             </div>
             {/* 3rd */}
             <div
               className="flex items-center gap-3 rounded-lg px-3 py-2"
-              style={{ background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.15)' }}
+              style={{
+                background: "rgba(180,83,9,0.08)",
+                border: "1px solid rgba(180,83,9,0.15)",
+              }}
             >
               <span className="text-lg">🥉</span>
-              <span className="flex-1 text-xs font-bold" style={{ color: '#b45309' }}>3rd</span>
-              <span className="text-xs font-bold" style={{ color: '#b45309' }}>{prizeDistribution[2]}%</span>
-              <span className="text-sm font-black text-white">{thirdPrize.toLocaleString()}</span>
+              <span
+                className="flex-1 text-xs font-bold"
+                style={{ color: "#b45309" }}
+              >
+                3rd
+              </span>
+              <span className="text-xs font-bold" style={{ color: "#b45309" }}>
+                {prizeDistribution[2]}%
+              </span>
+              <span className="text-sm font-black text-white">
+                {thirdPrize.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Players */}
         <div className="text-center">
-          <p className="text-[10px]" style={{ color: 'rgba(156,163,175,0.5)' }}>
+          <p className="text-[10px]" style={{ color: "rgba(156,163,175,0.5)" }}>
             {maxPlayers} players max
           </p>
         </div>
@@ -726,12 +794,13 @@ function PrizeModal({ room, onClose, onJoin }: PrizeModalProps) {
           onClick={() => onJoin(room.id)}
           className="w-full h-11 rounded-xl font-black tracking-widest text-sm uppercase transition-all hover:scale-[1.02] active:scale-[0.98]"
           style={{
-            background: 'linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
-            color: '#000',
-            boxShadow: '0 0 20px rgba(245,158,11,0.25)',
+            background:
+              "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
+            color: "#000",
+            boxShadow: "0 0 20px rgba(245,158,11,0.25)",
           }}
         >
-          {t('lobby.tournament.joinTournament')}
+          {t("lobby.tournament.joinTournament")}
         </button>
       </div>
     </div>
@@ -748,11 +817,11 @@ interface Room {
   isPrivate?: boolean;
   isClubOnly?: boolean;
   clubId?: string;
-  tier?: 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM';
+  tier?: "MICRO" | "LOW" | "MEDIUM" | "HIGH" | "PREMIUM";
   isTournament?: boolean;
   isAnonymous?: boolean;
   tournamentConfig?: {
-    type: 'SNG';
+    type: "SNG";
     buyin: number;
     maxPlayers: number;
     prizeDistribution: [number, number, number];
@@ -764,7 +833,7 @@ interface RoomStatus {
   currentPlayers: number;
   maxPlayers: number;
   isFull: boolean;
-  gameState?: 'waiting' | 'playing';
+  gameState?: "waiting" | "playing";
 }
 
 interface CurrentRoomResponse {
@@ -787,11 +856,17 @@ export default function RoomsPage() {
   const [createDialogCount, setCreateDialogCount] = useState(0);
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState<'ALL' | 'MICRO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'PREMIUM'>('ALL');
-  const [tournamentFilter, setTournamentFilter] = useState<'all' | 'sng'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tierFilter, setTierFilter] = useState<
+    "ALL" | "MICRO" | "LOW" | "MEDIUM" | "HIGH" | "PREMIUM"
+  >("ALL");
+  const [roomTab, setRoomTab] = useState<"all" | "ring" | "tournament">(
+    "all",
+  );
   const [myClubIds, setMyClubIds] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'players' | 'blinds' | 'name'>('players');
+  const [sortBy, setSortBy] = useState<"players" | "blinds" | "name">(
+    "players",
+  );
   const isSearchingRef = useRef(false);
   const [passwordDialog, setPasswordDialog] = useState<{
     roomId: string;
@@ -813,12 +888,15 @@ export default function RoomsPage() {
       }
 
       try {
-        const [currentRoomRes, roomsRes, profileRes, clubsRes] = await Promise.all([
-          api.get<CurrentRoomResponse>("/tables/me/current-room"),
-          api.get("/rooms"),
-          api.get("/auth/profile"),
-          api.get<{ data: { id: string }[] }>("/clubs/me/clubs").catch(() => ({ data: { data: [] } })),
-        ]);
+        const [currentRoomRes, roomsRes, profileRes, clubsRes] =
+          await Promise.all([
+            api.get<CurrentRoomResponse>("/tables/me/current-room"),
+            api.get("/rooms"),
+            api.get("/auth/profile"),
+            api
+              .get<{ data: { id: string }[] }>("/clubs/me/clubs")
+              .catch(() => ({ data: { data: [] } })),
+          ]);
 
         if (cancelled) return;
 
@@ -879,8 +957,8 @@ export default function RoomsPage() {
         }
       } catch {
         if (!cancelled) {
-          localStorage.removeItem('token');
-          router.replace('/login');
+          localStorage.removeItem("token");
+          router.replace("/login");
         }
       } finally {
         if (!cancelled) {
@@ -976,15 +1054,18 @@ export default function RoomsPage() {
         fetchRooms();
       }
     };
-    ((router as unknown) as NextRouter).events?.on("routeChangeComplete", handleRouteChange);
+    (router as unknown as NextRouter).events?.on(
+      "routeChangeComplete",
+      handleRouteChange,
+    );
 
     return () => {
       cancelled = true;
-      socket.off('room_created', onRoomCreated);
-      socket.off('room_dissolved', onRoomDissolved);
-      socket.off('room_status_updated', onRoomStatusUpdated);
-      socket.off('match_found', onMatchFound);
-      socket.off('match_error', onMatchError);
+      socket.off("room_created", onRoomCreated);
+      socket.off("room_dissolved", onRoomDissolved);
+      socket.off("room_status_updated", onRoomStatusUpdated);
+      socket.off("match_found", onMatchFound);
+      socket.off("match_error", onMatchError);
       disconnectSocket();
     };
   }, [router, pathname, t]);
@@ -1082,26 +1163,31 @@ export default function RoomsPage() {
       }
       const q = searchQuery.toLowerCase().trim();
       if (q && !room.name.toLowerCase().includes(q)) return false;
-      if (tierFilter !== 'ALL') {
+      if (tierFilter !== "ALL") {
         // Derive tier from blindSmall value (heuristic — mirrors TIERS definitions)
         const tierOfRoom =
-          room.blindSmall <= 5   ? 'MICRO'  :
-          room.blindSmall <= 10  ? 'LOW'    :
-          room.blindSmall <= 25  ? 'MEDIUM' :
-          room.blindSmall <= 50  ? 'HIGH'   :
-                                    'PREMIUM';
+          room.blindSmall <= 5
+            ? "MICRO"
+            : room.blindSmall <= 10
+              ? "LOW"
+              : room.blindSmall <= 25
+                ? "MEDIUM"
+                : room.blindSmall <= 50
+                  ? "HIGH"
+                  : "PREMIUM";
         if (tierOfRoom !== tierFilter) return false;
       }
-      if (tournamentFilter === 'sng' && !room.isTournament) return false;
+      if (roomTab === "ring" && room.isTournament) return false;
+      if (roomTab === "tournament" && !room.isTournament) return false;
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === 'players') {
+      if (sortBy === "players") {
         const aPlayers = roomStatusMap[a.id]?.currentPlayers ?? 0;
         const bPlayers = roomStatusMap[b.id]?.currentPlayers ?? 0;
         return bPlayers - aPlayers; // desc
       }
-      if (sortBy === 'blinds') {
+      if (sortBy === "blinds") {
         return (b.blindBig ?? 0) - (a.blindBig ?? 0); // desc
       }
       return a.name.localeCompare(b.name); // asc
@@ -1118,33 +1204,60 @@ export default function RoomsPage() {
       >
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 space-y-8">
           {/* Header skeleton */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6"
+          <div
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6"
             style={{ borderBottom: "1px solid rgba(234,179,8,0.15)" }}
           >
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg animate-pulse" style={{ background: "rgba(245,158,11,0.15)" }} />
-                <div className="w-32 h-8 rounded animate-pulse" style={{ background: "rgba(245,158,11,0.1)" }} />
+                <div
+                  className="w-10 h-10 rounded-lg animate-pulse"
+                  style={{ background: "rgba(245,158,11,0.15)" }}
+                />
+                <div
+                  className="w-32 h-8 rounded animate-pulse"
+                  style={{ background: "rgba(245,158,11,0.1)" }}
+                />
               </div>
-              <div className="w-24 h-3 rounded animate-pulse ml-13" style={{ background: "rgba(245,158,11,0.06)" }} />
+              <div
+                className="w-24 h-3 rounded animate-pulse ml-13"
+                style={{ background: "rgba(245,158,11,0.06)" }}
+              />
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-24 h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+                <div
+                  key={i}
+                  className="w-24 h-10 rounded-lg animate-pulse"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                />
               ))}
-              <div className="w-10 h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+              <div
+                className="w-10 h-10 rounded-lg animate-pulse"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              />
             </div>
           </div>
 
           {/* Filter bar skeleton */}
           <div className="flex flex-wrap items-center gap-3 pb-2">
-            <div className="w-48 h-9 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <div
+              className="w-48 h-9 rounded-lg animate-pulse"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            />
             <div className="flex items-center gap-1.5 flex-wrap">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="w-16 h-8 rounded-full animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+                <div
+                  key={i}
+                  className="w-16 h-8 rounded-full animate-pulse"
+                  style={{ background: "rgba(255,255,255,0.06)" }}
+                />
               ))}
             </div>
-            <div className="w-20 h-8 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+            <div
+              className="w-20 h-8 rounded-lg animate-pulse"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            />
           </div>
 
           {/* Room card grid skeleton */}
@@ -1154,7 +1267,8 @@ export default function RoomsPage() {
                 key={i}
                 className="rounded-2xl p-4 flex flex-col gap-3"
                 style={{
-                  background: "linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)",
+                  background:
+                    "linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)",
                   border: "1px solid rgba(234,179,8,0.15)",
                   animationDelay: `${i * 100}ms`,
                 }}
@@ -1162,21 +1276,45 @@ export default function RoomsPage() {
                 {/* Header row */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 space-y-2">
-                    <div className="w-3/4 h-5 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)" }} />
-                    <div className="w-1/2 h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.05)" }} />
+                    <div
+                      className="w-3/4 h-5 rounded animate-pulse"
+                      style={{ background: "rgba(255,255,255,0.08)" }}
+                    />
+                    <div
+                      className="w-1/2 h-3 rounded animate-pulse"
+                      style={{ background: "rgba(255,255,255,0.05)" }}
+                    />
                   </div>
-                  <div className="w-14 h-7 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
+                  <div
+                    className="w-14 h-7 rounded-lg animate-pulse"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  />
                 </div>
 
                 {/* Progress bar skeleton */}
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <div className="h-full rounded-full animate-pulse" style={{ width: "60%", background: "rgba(255,255,255,0.1)" }} />
+                <div
+                  className="h-1 rounded-full overflow-hidden"
+                  style={{ background: "rgba(255,255,255,0.05)" }}
+                >
+                  <div
+                    className="h-full rounded-full animate-pulse"
+                    style={{
+                      width: "60%",
+                      background: "rgba(255,255,255,0.1)",
+                    }}
+                  />
                 </div>
 
                 {/* Footer row */}
                 <div className="flex items-center justify-between">
-                  <div className="w-1/3 h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.06)" }} />
-                  <div className="w-16 h-7 rounded-lg animate-pulse" style={{ background: "rgba(245,158,11,0.12)" }} />
+                  <div
+                    className="w-1/3 h-3 rounded animate-pulse"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  />
+                  <div
+                    className="w-16 h-7 rounded-lg animate-pulse"
+                    style={{ background: "rgba(245,158,11,0.12)" }}
+                  />
                 </div>
               </div>
             ))}
@@ -1214,9 +1352,7 @@ export default function RoomsPage() {
         />
       )}
 
-      {isSearching && (
-        <SearchingOverlay onCancel={handleCancelSearch} />
-      )}
+      {isSearching && <SearchingOverlay onCancel={handleCancelSearch} />}
 
       {/* Password dialog for private rooms */}
       {passwordDialog && (
@@ -1299,7 +1435,13 @@ export default function RoomsPage() {
                   "0 0 20px rgba(16,185,129,0.2), 0 4px 10px rgba(0,0,0,0.4)",
               }}
             >
-              ⚡ <span className="hidden sm:inline">{t("lobby.quickMatchBtn")}</span><span className="sm:hidden">{t("lobby.quickMatchBtn").split(' ')[0]}</span>
+              ⚡{" "}
+              <span className="hidden sm:inline">
+                {t("lobby.quickMatchBtn")}
+              </span>
+              <span className="sm:hidden">
+                {t("lobby.quickMatchBtn").split(" ")[0]}
+              </span>
             </Button>
 
             {/* Create Table button */}
@@ -1319,7 +1461,9 @@ export default function RoomsPage() {
               }}
             >
               <span className="hidden sm:inline">{t("lobby.createTable")}</span>
-              <span className="sm:hidden">+ {t("lobby.createTable").split(' ').pop()}</span>
+              <span className="sm:hidden">
+                + {t("lobby.createTable").split(" ").pop()}
+              </span>
             </Button>
 
             {/* Deposit button — sm+ only */}
@@ -1392,91 +1536,107 @@ export default function RoomsPage() {
         <div className="flex flex-wrap items-center gap-3 pb-2">
           {/* Search input */}
           <div className="relative flex-1 min-w-[160px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">🔍</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
+              🔍
+            </span>
             <input
               type="text"
-              placeholder={t('lobby.searchPlaceholder')}
+              placeholder={t("lobby.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-8 pr-3 rounded-lg text-sm text-white placeholder-gray-500 outline-none"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(234,179,8,0.18)',
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(234,179,8,0.18)",
               }}
             />
           </div>
 
+          {/* Room type tab navigation */}
+          <div className="flex items-center gap-1.5">
+            {ROOM_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setRoomTab(tab.id)}
+                className="h-8 px-4 rounded-full text-xs font-bold tracking-wide transition-all"
+                style={{
+                  background:
+                    roomTab === tab.id
+                      ? "rgba(234,179,8,0.85)"
+                      : "rgba(255,255,255,0.06)",
+                  color: roomTab === tab.id ? "#000" : "rgba(200,200,200,0.7)",
+                  border:
+                    roomTab === tab.id
+                      ? "none"
+                      : "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                {tab.id === "all"
+                  ? t("lobby.tabAll")
+                  : tab.id === "ring"
+                    ? t("lobby.tabRing")
+                    : t("lobby.tabTournament")}
+              </button>
+            ))}
+          </div>
+
           {/* Tier filter pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {(['ALL', 'MICRO', 'LOW', 'MEDIUM', 'HIGH', 'PREMIUM'] as const).map((tier) => (
+            {(
+              ["ALL", "MICRO", "LOW", "MEDIUM", "HIGH", "PREMIUM"] as const
+            ).map((tier) => (
               <button
                 key={tier}
                 onClick={() => setTierFilter(tier)}
                 className="h-8 px-3 rounded-full text-[10px] font-bold tracking-wide uppercase transition-all"
                 style={{
-                  background: tierFilter === tier
-                    ? 'rgba(234,179,8,0.85)'
-                    : 'rgba(255,255,255,0.06)',
-                  color: tierFilter === tier
-                    ? '#000'
-                    : 'rgba(200,200,200,0.7)',
-                  border: tierFilter === tier
-                    ? 'none'
-                    : '1px solid rgba(255,255,255,0.1)',
+                  background:
+                    tierFilter === tier
+                      ? "rgba(234,179,8,0.85)"
+                      : "rgba(255,255,255,0.06)",
+                  color: tierFilter === tier ? "#000" : "rgba(200,200,200,0.7)",
+                  border:
+                    tierFilter === tier
+                      ? "none"
+                      : "1px solid rgba(255,255,255,0.1)",
                 }}
               >
-                {tier === 'ALL' ? t('lobby.filterAll') : tier.charAt(0) + tier.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* SNG filter pills */}
-          <div className="flex items-center gap-1.5">
-            {SNG_FILTERS.map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setTournamentFilter(filter.id)}
-                className="h-8 px-3 rounded-full text-[10px] font-bold tracking-wide transition-all"
-                style={{
-                  background: tournamentFilter === filter.id
-                    ? 'rgba(245,158,11,0.85)'
-                    : 'rgba(255,255,255,0.06)',
-                  color: tournamentFilter === filter.id
-                    ? '#000'
-                    : 'rgba(200,200,200,0.7)',
-                  border: tournamentFilter === filter.id
-                    ? 'none'
-                    : '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                {filter.label}
+                {tier === "ALL"
+                  ? t("lobby.filterAll")
+                  : tier.charAt(0) + tier.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
 
           {/* Sort dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest opacity-40" style={{ color: 'rgba(245,158,11,0.6)' }}>
-              {t('lobby.sortBy')}
+            <span
+              className="text-[10px] uppercase tracking-widest opacity-40"
+              style={{ color: "rgba(245,158,11,0.6)" }}
+            >
+              {t("lobby.sortBy")}
             </span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className="h-8 px-2 rounded-lg text-xs font-bold text-white outline-none cursor-pointer"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(234,179,8,0.18)',
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(234,179,8,0.18)",
               }}
             >
-              <option value="players">{t('lobby.sortPlayers')}</option>
-              <option value="blinds">{t('lobby.sortBlinds')}</option>
-              <option value="name">{t('lobby.sortName')}</option>
+              <option value="players">{t("lobby.sortPlayers")}</option>
+              <option value="blinds">{t("lobby.sortBlinds")}</option>
+              <option value="name">{t("lobby.sortName")}</option>
             </select>
           </div>
 
           {/* Result count */}
-          <span className="text-xs opacity-40" style={{ color: 'rgba(245,158,11,0.6)' }}>
-            {t('lobby.resultCount', { count: filteredRooms.length })}
+          <span
+            className="text-xs opacity-40"
+            style={{ color: "rgba(245,158,11,0.6)" }}
+          >
+            {t("lobby.resultCount", { count: filteredRooms.length })}
           </span>
         </div>
 
@@ -1497,7 +1657,10 @@ export default function RoomsPage() {
         ) : filteredRooms.length === 0 ? (
           <div className="text-center py-16 space-y-3">
             <div className="text-4xl opacity-20">🔍</div>
-            <p className="text-sm font-semibold tracking-wide" style={{ color: "rgba(245,158,11,0.4)" }}>
+            <p
+              className="text-sm font-semibold tracking-wide"
+              style={{ color: "rgba(245,158,11,0.4)" }}
+            >
               {t("lobby.noMatch")}
             </p>
           </div>

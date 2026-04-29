@@ -12,10 +12,7 @@ import {
   isTokenExpired,
 } from "@/lib/auth";
 import { UserAvatar } from "@/components/user-avatar";
-import {
-  RAKEBACK_TIERS,
-  type RakebackTier,
-} from "@texas/shared";
+import { RAKEBACK_TIERS, type RakebackTier } from "@texas/shared";
 
 type Tier = RakebackTier;
 
@@ -453,9 +450,13 @@ export default function RakebackPage() {
                 {t("rakeback.tierBenefits")}
               </p>
               <div className="space-y-2">
-                {(["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"] as Tier[]).map((tierName) => {
+                {(
+                  ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"] as Tier[]
+                ).map((tierName) => {
                   const tCfg = tierConfig[tierName];
-                  const sharedTier = RAKEBACK_TIERS.find((t) => t.tier === tierName)!;
+                  const sharedTier = RAKEBACK_TIERS.find(
+                    (t) => t.tier === tierName,
+                  )!;
                   const ranges: Record<Tier, string> = {
                     BRONZE: `0 - ${(RAKEBACK_TIERS[1].minRake - 1).toLocaleString()}`,
                     SILVER: `${RAKEBACK_TIERS[1].minRake.toLocaleString()} - ${(RAKEBACK_TIERS[2].minRake - 1).toLocaleString()}`,

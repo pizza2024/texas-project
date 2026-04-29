@@ -55,6 +55,7 @@ enum ScheduleStatus {
 ## API 端点
 
 ### 获取赛事日历
+
 ```
 GET /schedule
 Query: ?status=OPEN&type=BTC
@@ -62,12 +63,14 @@ Response: TournamentSchedule[]
 ```
 
 ### 获取单个赛事详情
+
 ```
 GET /schedule/:id
 Response: TournamentSchedule + RoomInfo
 ```
 
 ### 玩家报名
+
 ```
 POST /schedule/:id/register
 Body: { chipsToPay: number }
@@ -75,12 +78,14 @@ Response: { success: boolean; chipsRemaining: number }
 ```
 
 ### 取消报名
+
 ```
 DELETE /schedule/:id/register
 Response: { success: boolean; chipsRefunded: number }
 ```
 
 ### 赛事开始提醒（WebSocket）
+
 ```
 服务器 → 客户端: tournament-starting
 {
@@ -144,17 +149,20 @@ Response: { success: boolean; chipsRefunded: number }
 ## 后端逻辑
 
 ### 倒计时开赛（BTC 模式）
+
 1. 调度器每分钟扫描 `TournamentSchedule` 中 `startsAt <= now + 5min && status = OPEN`
 2. BTC 类型：`startsAt` 每 5 分钟生成一个 Slot
 3. `registrationDeadline = startsAt`，截止后 `status → CLOSED`
 4. 满员或倒计时归零 → 创建真实 Room，`status → STARTED`
 
 ### 赛事提醒推送
+
 - `startsAt - 5 min`：WebSocket `tournament-starting`（5分钟提醒）
 - `startsAt - 1 min`：邮件/推送（可选）
 - `startsAt - 30 sec`：WebSocket 弹窗 + 客户端 toast
 
 ### SNG 自动创建
+
 1. 玩家手动"创建 SNG 房间"（Phase 1 P1-TOURNAMENT-001）
 2. Schedule 是**自动调度**，Room 是实际游戏桌
 

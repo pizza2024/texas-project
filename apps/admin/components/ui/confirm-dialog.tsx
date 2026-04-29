@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState } from "react";
+import { X } from "lucide-react";
 
 interface ConfirmDialogProps {
   title: string;
@@ -13,7 +13,12 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({
-  title, message, confirmLabel = '确认', danger = false, onConfirm, onClose,
+  title,
+  message,
+  confirmLabel = "确认",
+  danger = false,
+  onConfirm,
+  onClose,
 }: ConfirmDialogProps) {
   const [loading, setLoading] = useState(false);
 
@@ -49,11 +54,11 @@ export default function ConfirmDialog({
             disabled={loading}
             className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors ${
               danger
-                ? 'bg-red-600 hover:bg-red-500 text-white'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                ? "bg-red-600 hover:bg-red-500 text-white"
+                : "bg-indigo-600 hover:bg-indigo-500 text-white"
             }`}
           >
-            {loading ? '处理中...' : confirmLabel}
+            {loading ? "处理中..." : confirmLabel}
           </button>
         </div>
       </div>

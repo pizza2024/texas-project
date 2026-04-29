@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useCallback, useState } from 'react';
-import Cropper from 'react-easy-crop';
-import type { Area, Point } from 'react-easy-crop';
+import { useCallback, useState } from "react";
+import Cropper from "react-easy-crop";
+import type { Area, Point } from "react-easy-crop";
 
 // ─── Canvas helper: crop + compress ────────────────────────────────────────
 
@@ -13,10 +13,10 @@ async function getCroppedBlob(
   quality = 0.82,
 ): Promise<Blob> {
   const image = await loadImage(imageSrc);
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = outputSize;
   canvas.height = outputSize;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext("2d")!;
 
   ctx.drawImage(
     image,
@@ -34,9 +34,9 @@ async function getCroppedBlob(
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error('Canvas is empty'));
+        else reject(new Error("Canvas is empty"));
       },
-      'image/jpeg',
+      "image/jpeg",
       quality,
     );
   });
@@ -45,7 +45,7 @@ async function getCroppedBlob(
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;
@@ -81,11 +81,11 @@ export function AvatarCropDialog({
   const [processing, setProcessing] = useState(false);
 
   const {
-    title = '调整头像',
-    zoom: zoomLabel = '缩放',
-    confirm = '确认',
-    cancel = '取消',
-    processing: processingLabel = '处理中…',
+    title = "调整头像",
+    zoom: zoomLabel = "缩放",
+    confirm = "确认",
+    cancel = "取消",
+    processing: processingLabel = "处理中…",
   } = labels;
 
   const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
@@ -107,36 +107,44 @@ export function AvatarCropDialog({
     /* Backdrop */
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(6px)' }}
+      style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)" }}
     >
       <div
         className="w-full max-w-sm rounded-3xl overflow-hidden flex flex-col"
         style={{
-          background: 'linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)',
-          border: '1px solid rgba(234,179,8,0.22)',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.75), 0 0 40px rgba(234,179,8,0.06)',
+          background:
+            "linear-gradient(160deg, rgba(12,22,16,0.99) 0%, rgba(6,12,9,1) 100%)",
+          border: "1px solid rgba(234,179,8,0.22)",
+          boxShadow:
+            "0 24px 60px rgba(0,0,0,0.75), 0 0 40px rgba(234,179,8,0.06)",
         }}
       >
         {/* Header */}
         <div
           className="px-6 py-4 flex items-center justify-between"
-          style={{ borderBottom: '1px solid rgba(234,179,8,0.12)' }}
+          style={{ borderBottom: "1px solid rgba(234,179,8,0.12)" }}
         >
-          <span className="text-sm font-black tracking-[0.15em] uppercase" style={{ color: '#fcd34d' }}>
+          <span
+            className="text-sm font-black tracking-[0.15em] uppercase"
+            style={{ color: "#fcd34d" }}
+          >
             🖼️ {title}
           </span>
           <button
             type="button"
             onClick={onCancel}
             className="w-8 h-8 rounded-full flex items-center justify-center text-lg transition-colors hover:bg-white/10"
-            style={{ color: 'rgba(156,163,175,0.8)' }}
+            style={{ color: "rgba(156,163,175,0.8)" }}
           >
             ✕
           </button>
         </div>
 
         {/* Crop area */}
-        <div className="relative w-full" style={{ height: 300, background: '#000' }}>
+        <div
+          className="relative w-full"
+          style={{ height: 300, background: "#000" }}
+        >
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -150,20 +158,29 @@ export function AvatarCropDialog({
             style={{
               containerStyle: { borderRadius: 0 },
               cropAreaStyle: {
-                border: '2px solid rgba(250,204,21,0.85)',
-                boxShadow: '0 0 0 9999px rgba(0,0,0,0.62)',
+                border: "2px solid rgba(250,204,21,0.85)",
+                boxShadow: "0 0 0 9999px rgba(0,0,0,0.62)",
               },
             }}
           />
         </div>
 
         {/* Zoom slider */}
-        <div className="px-6 py-4 space-y-2" style={{ borderTop: '1px solid rgba(234,179,8,0.1)' }}>
+        <div
+          className="px-6 py-4 space-y-2"
+          style={{ borderTop: "1px solid rgba(234,179,8,0.1)" }}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: 'rgba(245,158,11,0.65)' }}>
+            <span
+              className="text-[11px] font-bold tracking-[0.15em] uppercase"
+              style={{ color: "rgba(245,158,11,0.65)" }}
+            >
               {zoomLabel}
             </span>
-            <span className="text-[11px] font-black tabular-nums" style={{ color: 'rgba(245,158,11,0.75)' }}>
+            <span
+              className="text-[11px] font-black tabular-nums"
+              style={{ color: "rgba(245,158,11,0.75)" }}
+            >
               {zoom.toFixed(1)}×
             </span>
           </div>
@@ -181,7 +198,7 @@ export function AvatarCropDialog({
         {/* Actions */}
         <div
           className="px-6 py-4 flex gap-3"
-          style={{ borderTop: '1px solid rgba(234,179,8,0.1)' }}
+          style={{ borderTop: "1px solid rgba(234,179,8,0.1)" }}
         >
           <button
             type="button"
@@ -189,9 +206,9 @@ export function AvatarCropDialog({
             onClick={onCancel}
             className="flex-1 h-10 rounded-xl text-xs font-black tracking-[0.12em] uppercase transition-all disabled:opacity-50"
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: 'rgba(229,231,235,0.8)',
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "rgba(229,231,235,0.8)",
             }}
           >
             {cancel}
@@ -203,10 +220,10 @@ export function AvatarCropDialog({
             className="flex-2 flex-grow-[2] h-10 rounded-xl text-xs font-black tracking-[0.12em] uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             style={{
               background: processing
-                ? 'rgba(245,158,11,0.25)'
-                : 'linear-gradient(135deg, rgba(146,64,14,0.9) 0%, rgba(217,119,6,0.9) 60%, rgba(245,158,11,0.9) 100%)',
-              border: '1px solid rgba(245,158,11,0.45)',
-              color: processing ? 'rgba(253,230,138,0.7)' : '#000',
+                ? "rgba(245,158,11,0.25)"
+                : "linear-gradient(135deg, rgba(146,64,14,0.9) 0%, rgba(217,119,6,0.9) 60%, rgba(245,158,11,0.9) 100%)",
+              border: "1px solid rgba(245,158,11,0.45)",
+              color: processing ? "rgba(253,230,138,0.7)" : "#000",
             }}
           >
             {processing ? (

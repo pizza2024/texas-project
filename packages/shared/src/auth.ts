@@ -9,14 +9,14 @@ export interface StorageAdapter {
   removeItem(key: string): void | Promise<void>;
 }
 
-const TOKEN_KEY = 'token';
-const POST_LOGIN_REDIRECT_KEY = 'post-login-redirect';
+const TOKEN_KEY = "token";
+const POST_LOGIN_REDIRECT_KEY = "post-login-redirect";
 
 // ── JWT 工具 ─────────────────────────────────────────────────────────────────
 
 function decodeBase64Url(value: string): string {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
   return atob(padded);
 }
 
@@ -24,9 +24,13 @@ export function getTokenPayload(
   token: string,
 ): { sub?: string; exp?: number; username?: string } | null {
   try {
-    const [, payload] = token.split('.');
+    const [, payload] = token.split(".");
     if (!payload) return null;
-    return JSON.parse(decodeBase64Url(payload)) as { sub?: string; exp?: number; username?: string };
+    return JSON.parse(decodeBase64Url(payload)) as {
+      sub?: string;
+      exp?: number;
+      username?: string;
+    };
   } catch {
     return null;
   }
@@ -54,11 +58,10 @@ export function createAuthService(storage: StorageAdapter) {
     setToken: (token: string): void | Promise<void> =>
       storage.setItem(TOKEN_KEY, token),
 
-    removeToken: (): void | Promise<void> =>
-      storage.removeItem(TOKEN_KEY),
+    removeToken: (): void | Promise<void> => storage.removeItem(TOKEN_KEY),
 
     rememberRedirect: (path: string): void | Promise<void> => {
-      if (!path.startsWith('/room/')) return;
+      if (!path.startsWith("/room/")) return;
       return storage.setItem(POST_LOGIN_REDIRECT_KEY, path);
     },
 

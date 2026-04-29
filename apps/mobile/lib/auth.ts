@@ -2,14 +2,14 @@
  * 移动端 auth 工具
  * 使用 expo-secure-store 存储 token（比 AsyncStorage 更安全）
  */
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 import {
   createAuthService,
   getTokenPayload,
   getTokenExpiryTime,
   isTokenExpired,
-} from '@texas/shared';
-import type { StorageAdapter } from '@texas/shared';
+} from "@texas/shared";
+import type { StorageAdapter } from "@texas/shared";
 
 const secureStoreAdapter: StorageAdapter = {
   getItem: (key) => SecureStore.getItemAsync(key),

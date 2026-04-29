@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 
 export function PWAProvider() {
   return <PWAInstallPrompt />;

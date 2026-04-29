@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { UserAvatar } from '@/components/user-avatar';
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { UserAvatar } from "@/components/user-avatar";
 
 interface UserDropdownProps {
   nickname: string;
@@ -30,15 +30,15 @@ export function UserDropdown({
         setShowDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const menuItems = [
-    { label: '👤 ' + 'Profile', href: '/profile' },
-    { label: '📊 ' + 'Statistics', href: '/stats' },
-    { label: '🃏 ' + 'Hand History', href: '/hands' },
-    { label: '⚙️ ' + 'Settings', href: '/settings' },
+    { label: "👤 " + "Profile", href: "/profile" },
+    { label: "📊 " + "Statistics", href: "/stats" },
+    { label: "🃏 " + "Hand History", href: "/hands" },
+    { label: "⚙️ " + "Settings", href: "/settings" },
   ];
 
   return (
@@ -64,7 +64,7 @@ export function UserDropdown({
         </span>
         <span
           className="text-xs text-gray-400 transition-transform"
-          style={{ transform: showDropdown ? 'rotate(180deg)' : 'none' }}
+          style={{ transform: showDropdown ? "rotate(180deg)" : "none" }}
         >
           ▼
         </span>
@@ -74,18 +74,20 @@ export function UserDropdown({
         <div
           className="absolute right-0 top-full mt-2 w-52 rounded-2xl overflow-hidden z-50"
           style={{
-            background: 'rgba(6,12,9,0.98)',
-            border: '1px solid rgba(234,179,8,0.2)',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+            background: "rgba(6,12,9,0.98)",
+            border: "1px solid rgba(234,179,8,0.2)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
           }}
         >
           {/* User info header */}
           <div
             className="px-4 py-3"
-            style={{ borderBottom: '1px solid rgba(234,179,8,0.1)' }}
+            style={{ borderBottom: "1px solid rgba(234,179,8,0.1)" }}
           >
             <p className="text-sm font-bold text-white truncate">{nickname}</p>
-            <p className="text-xs text-gray-500 truncate">#{userId.slice(-8)}</p>
+            <p className="text-xs text-gray-500 truncate">
+              #{userId.slice(-8)}
+            </p>
           </div>
 
           {/* Menu items */}
@@ -107,7 +109,7 @@ export function UserDropdown({
           {/* Logout */}
           <div
             className="py-2"
-            style={{ borderTop: '1px solid rgba(234,179,8,0.1)' }}
+            style={{ borderTop: "1px solid rgba(234,179,8,0.1)" }}
           >
             <button
               onClick={() => {

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 interface User {
   id: string;
@@ -32,13 +32,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (token) {
         try {
-          const { data } = await api.get('/auth/profile');
+          const { data } = await api.get("/auth/profile");
           setUser(data);
         } catch {
-          localStorage.removeItem('token');
+          localStorage.removeItem("token");
         }
       }
       setLoading(false);
@@ -47,20 +47,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = (token: string, user: User) => {
-    localStorage.setItem('token', token);
+    localStorage.setItem("token", token);
     setUser(user);
-    router.push('/');
+    router.push("/");
   };
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
+      await api.post("/auth/logout");
     } catch {
       // Ignore errors — proceed with local logout regardless
     }
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setUser(null);
-    router.push('/login');
+    router.push("/login");
   };
 
   return (

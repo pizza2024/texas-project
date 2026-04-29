@@ -80,13 +80,13 @@
 
 ### Issues
 
-1. **Hardcoded `token` key vs `***` constant mismatch**:  
-   In `packages/shared/src/auth.ts` line 12: `const TOKEN_KEY='***';` (masked value). In `apps/web/lib/auth.ts` line 7: `const TOKEN_STORAGE_KEY='***';` (also masked). These should be the same constant — but since both are masked, we cannot verify they are actually the same string. The `api.ts` line 13 and `auth-context.tsx` line 35 also read `localStorage.getItem('token')` (the literal string `"token"`). There is inconsistency: `auth.ts` uses a constant `TOKEN_STORAGE_KEY` but `api.ts` and `auth-context.tsx` use the hardcoded string `'token'`. This needs to be consolidated to a single constant.
+1. **Hardcoded `token` key vs `\***`constant mismatch**:  
+In`packages/shared/src/auth.ts`line 12:`const TOKEN_KEY='**_';`(masked value). In`apps/web/lib/auth.ts`line 7:`const TOKEN_STORAGE_KEY='_**';`(also masked). These should be the same constant — but since both are masked, we cannot verify they are actually the same string. The`api.ts`line 13 and`auth-context.tsx`line 35 also read`localStorage.getItem('token')`(the literal string`"token"`). There is inconsistency: `auth.ts`uses a constant`TOKEN_STORAGE_KEY`but`api.ts`and`auth-context.tsx`use the hardcoded string`'token'`. This needs to be consolidated to a single constant.
 
 2. **`handleExpiredSession` uses `window.location.replace`** (line 79 of `auth.ts`): This is a hard redirect that discards the navigation history. For a game page (`/room/[id]`), this is intentional to prevent back-button return to a stale game state, but it means if the user clicks "back" they leave the app entirely. For non-game pages this may be jarring.
 
 3. **No token refresh mechanism**:  
-   The system only handles token *expiry* (redirect to login). There is no silent token refresh. When a token expires during an active game session, the user is kicked to login and loses their game state. The `AUTH_EXPIRED_LOCK_KEY` prevents repeated redirects but doesn't solve the underlying problem. A refresh-token rotation pattern would be more robust.
+   The system only handles token _expiry_ (redirect to login). There is no silent token refresh. When a token expires during an active game session, the user is kicked to login and loses their game state. The `AUTH_EXPIRED_LOCK_KEY` prevents repeated redirects but doesn't solve the underlying problem. A refresh-token rotation pattern would be more robust.
 
 4. **`getAuthorizedSocket` recomputes on every call**:  
    `getAuthorizedSocket` (lines 116–127 of `page.tsx`) reads from localStorage and checks expiry every time it's called. This is a function call (not a hook), so it will re-run on every render of the room page or every action. It should be cheap (localStorage read + JWT decode), but the pattern is fragile — it's easy to accidentally call it inside a render and cause issues.
@@ -108,7 +108,7 @@
 ### Issues
 
 1. **`previousTableRef` is set after the animation orchestration effect runs**:  
-   Line 591: `previousTableRef.current = table;` is set *after* the effect that uses `previousTableRef` (line 484). On first render, `previousTableRef.current` is `null`, so the delta-detection logic correctly skips animation on initial load. This is correct, but fragile — if the effect order changes this could break.
+   Line 591: `previousTableRef.current = table;` is set _after_ the effect that uses `previousTableRef` (line 484). On first render, `previousTableRef.current` is `null`, so the delta-detection logic correctly skips animation on initial load. This is correct, but fragile — if the effect order changes this could break.
 
 2. **State for `table` is not normalized or memoized**:  
    Every `room_update` event sets the entire `table` object (line 340). For large player arrays this could cause unnecessary re-renders of child components that receive `table` as a prop. No `React.memo` on `GameTable`, `ActionBar`, or `PlayerSeat` to prevent re-renders.
@@ -174,14 +174,14 @@
 
 ## Summary Table
 
-| Category | Rating | Key Issues |
-|---|---|---|
-| Game Logic Integration | 🟡 Medium | Type drift between shared/web types; no client-side action validation; double-submit risk |
-| WebSocket Client | 🟢 Good | Solid socket singleton; mobile visibility handling; but cleanup gaps and no reconnect UI |
-| Auth Token Management | 🟡 Medium | Hardcoded `'token'` string vs constants; no refresh token; `window.location.replace` side effects |
-| State Management | 🟡 Medium | No memoization; fragile effect ordering; no error state for join failures |
-| Test Coverage | 🔴 Low | Only 2 spec files; zero coverage for room page, game components, equity, or api interceptors |
-| Documentation | 🔴 Low | Generic Next.js README; no web-app-specific docs; no JSDoc on key functions |
+| Category               | Rating    | Key Issues                                                                                        |
+| ---------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| Game Logic Integration | 🟡 Medium | Type drift between shared/web types; no client-side action validation; double-submit risk         |
+| WebSocket Client       | 🟢 Good   | Solid socket singleton; mobile visibility handling; but cleanup gaps and no reconnect UI          |
+| Auth Token Management  | 🟡 Medium | Hardcoded `'token'` string vs constants; no refresh token; `window.location.replace` side effects |
+| State Management       | 🟡 Medium | No memoization; fragile effect ordering; no error state for join failures                         |
+| Test Coverage          | 🔴 Low    | Only 2 spec files; zero coverage for room page, game components, equity, or api interceptors      |
+| Documentation          | 🔴 Low    | Generic Next.js README; no web-app-specific docs; no JSDoc on key functions                       |
 
 ---
 

@@ -9,9 +9,11 @@ export {
   setFriendStatusUpdateHandler,
   setFriendRequestReceivedHandler,
   disconnectSocket,
-} from '@texas/shared';
-import { getSocket as _getSocket } from '@texas/shared';
+} from "@texas/shared";
+import { getSocket as _getSocket } from "@texas/shared";
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:4000';
+const SERVER_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:4000";
 
-export const getSocket = (token: string) => _getSocket(`${SERVER_URL}/ws`, token);
+export const getSocket = (token: string) =>
+  _getSocket(`${SERVER_URL}/ws`, token);

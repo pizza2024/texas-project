@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import {
-  BlastLobbyList,
-  CreateBlastDialog,
-} from "@/components/blast";
+import { BlastLobbyList, CreateBlastDialog } from "@/components/blast";
 import { BLAST_BUYINS } from "@texas/shared/types/tournament";
 import api from "@/lib/api";
 
@@ -115,9 +112,7 @@ export default function BlastPage() {
                     background: isSelected
                       ? "rgba(249,115,22,0.2)"
                       : "rgba(255,255,255,0.03)",
-                    color: isSelected
-                      ? "#f97316"
-                      : "rgba(156,163,175,0.6)",
+                    color: isSelected ? "#f97316" : "rgba(156,163,175,0.6)",
                     border: isSelected
                       ? "1px solid rgba(249,115,22,0.3)"
                       : "1px solid rgba(255,255,255,0.06)",

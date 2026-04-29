@@ -2,7 +2,12 @@
 // IMPORTANT: These values must stay in sync with the backend RakebackService.
 // Update both locations when changing tier thresholds.
 
-export type RakebackTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
+export type RakebackTier =
+  | "BRONZE"
+  | "SILVER"
+  | "GOLD"
+  | "PLATINUM"
+  | "DIAMOND";
 
 export interface RakebackTierConfig {
   tier: RakebackTier;
@@ -17,11 +22,11 @@ export interface RakebackTierConfig {
  * A user's tier is the highest tier whose minRake threshold they meet.
  */
 export const RAKEBACK_TIERS: RakebackTierConfig[] = [
-  { tier: 'BRONZE', minRake: 0, rate: 15 },
-  { tier: 'SILVER', minRake: 500, rate: 22 },
-  { tier: 'GOLD', minRake: 2_000, rate: 30 },
-  { tier: 'PLATINUM', minRake: 10_000, rate: 40 },
-  { tier: 'DIAMOND', minRake: 50_000, rate: 50 },
+  { tier: "BRONZE", minRake: 0, rate: 15 },
+  { tier: "SILVER", minRake: 500, rate: 22 },
+  { tier: "GOLD", minRake: 2_000, rate: 30 },
+  { tier: "PLATINUM", minRake: 10_000, rate: 40 },
+  { tier: "DIAMOND", minRake: 50_000, rate: 50 },
 ];
 
 /** Get tier config for a given totalRake value */

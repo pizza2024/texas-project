@@ -36,7 +36,7 @@ this.table.lastHandResult = this.table.players
 
 The `winAmount` **local variable** is correct (it's captured before `pot = 0`). However, for **consistency with `performShowdown`**, the result object should reflect the actual amount credited — which it does. This is not the bug.
 
-**The actual bug:** After `resolveFoldWin`, the `winner.stack` is credited correctly, but `lastHandResult[winner].winAmount` is a *local variable* that happens to equal the correct amount. This is internally consistent. **Not a bug after all.** Re-reading carefully — `winAmount` is a local const captured before `pot = 0`, so `winner.stack` and `lastHandResult[winner].winAmount` are both `originalPot - rake`. This is correct.
+**The actual bug:** After `resolveFoldWin`, the `winner.stack` is credited correctly, but `lastHandResult[winner].winAmount` is a _local variable_ that happens to equal the correct amount. This is internally consistent. **Not a bug after all.** Re-reading carefully — `winAmount` is a local const captured before `pot = 0`, so `winner.stack` and `lastHandResult[winner].winAmount` are both `originalPot - rake`. This is correct.
 
 **Cross-checking with `performShowdown`**: `winAmounts` is a Map populated from pot distribution, and `lastHandResult[i].winAmount` reads from `winAmounts.get(p.id)`. This is correct.
 
@@ -86,8 +86,8 @@ this.table.lastHandResult = this.table.players
   .map((p) => ({
     playerId: p.id,
     nickname: p.nickname,
-    handName: p.id === winner.id ? '其他玩家弃牌' : '弃牌',
-    bestCards: [],  // ← ALWAYS empty, even for the winner
+    handName: p.id === winner.id ? "其他玩家弃牌" : "弃牌",
+    bestCards: [], // ← ALWAYS empty, even for the winner
     winAmount: p.id === winner.id ? winAmount : 0,
     totalBet: p.totalBet,
   }));
@@ -119,7 +119,7 @@ return gateway.withUserLock(userId, async () => {
 });
 ```
 
-`client.leave()` removes the socket from the Socket.io room *before* the room lock is acquired and before the server-side room state is updated. Between `client.leave()` and `leaveCurrentRoom()` completing, a `game-state` broadcast could be sent to the empty room (since the socket has already left), and concurrent handlers could observe an inconsistent state.
+`client.leave()` removes the socket from the Socket.io room _before_ the room lock is acquired and before the server-side room state is updated. Between `client.leave()` and `leaveCurrentRoom()` completing, a `game-state` broadcast could be sent to the empty room (since the socket has already left), and concurrent handlers could observe an inconsistent state.
 
 **Impact:** Race condition — stale game-state broadcasts to a room the player has already left visually.
 
@@ -136,7 +136,7 @@ const balance = isAlreadySeated
   ? null
   : await gateway.tableManager.getUserAvailableBalance(userId);
 // ...balance check...
-await gateway.tableManager.freezePlayerBalance(userId, balance);  // freezes ALL of balance
+await gateway.tableManager.freezePlayerBalance(userId, balance); // freezes ALL of balance
 // ...player is seated...
 ```
 
@@ -171,7 +171,7 @@ There's no `availableBalance >= amount` check — if `amount > chips`, `coinBala
 
 ```typescript
 if (userId.startsWith(BOT_ID_PREFIX)) {
-  return [walletOp];  // Skips coinBalance sync for "bots"
+  return [walletOp]; // Skips coinBalance sync for "bots"
 }
 const userOp = this.prisma.user.update({
   where: { id: userId },
@@ -229,8 +229,14 @@ await this.prisma.$transaction(
 );
 // Separate transaction:
 await this.prisma.$transaction([
-  this.prisma.user.updateMany({ where: { elo: { lt: ELO_MIN } }, data: { elo: ELO_MIN } }),
-  this.prisma.user.updateMany({ where: { elo: { gt: ELO_MAX } }, data: { elo: ELO_MAX } }),
+  this.prisma.user.updateMany({
+    where: { elo: { lt: ELO_MIN } },
+    data: { elo: ELO_MIN },
+  }),
+  this.prisma.user.updateMany({
+    where: { elo: { gt: ELO_MAX } },
+    data: { elo: ELO_MAX },
+  }),
 ]);
 ```
 
@@ -275,10 +281,12 @@ The `isMessageProcessed` idempotency guard is defined in `connection-state.servi
 **File:** `table-engine/table-manager.service.ts`, `getUserCurrentRoom()` (lines 483–540)
 
 ```typescript
-const roomId = this.userRooms.get(userId);  // O(1) in-memory index
+const roomId = this.userRooms.get(userId); // O(1) in-memory index
 if (roomId) {
   const table = this.tables.get(roomId);
-  if (table) { /* return immediately */ }
+  if (table) {
+    /* return immediately */
+  }
   // Indexed but table not in memory → clean up stale entry
   this.userRooms.delete(userId);
 }
@@ -319,13 +327,14 @@ The disconnect grace period timer (`DISCONNECT_GRACE_PERIOD_MS = 15000`) is held
 **File:** `auth/auth.service.ts`, `requestEmailCode()` (lines 142–184)
 
 ```typescript
-const existingCode = await this.redisService.get(rateLimitKey);  // Redis unavailable → null
-if (existingCode) {  // null → false → rate limit pass-through
-  throw new BadRequestException('Please wait 60 seconds...');
+const existingCode = await this.redisService.get(rateLimitKey); // Redis unavailable → null
+if (existingCode) {
+  // null → false → rate limit pass-through
+  throw new BadRequestException("Please wait 60 seconds...");
 }
 ```
 
-When Redis is unavailable, `get` returns `null`, so the rate limit check passes. However, the OTP *storage* (`redisService.set`) would also silently fail (non-fatal in the implementation), meaning the OTP would never actually be stored. The user receives no code and the endpoint returns success — they don't know it failed.
+When Redis is unavailable, `get` returns `null`, so the rate limit check passes. However, the OTP _storage_ (`redisService.set`) would also silently fail (non-fatal in the implementation), meaning the OTP would never actually be stored. The user receives no code and the endpoint returns success — they don't know it failed.
 
 **Impact:** User-facing silent failure during Redis outage; no error is surfaced.
 
@@ -360,36 +369,36 @@ The email code verification invalidates the code, clears attempts, and issues an
 
 These are correctly implemented and worth highlighting:
 
-| Pattern | Location | Notes |
-|---------|----------|-------|
-| **Atomic settlement writes** | `persistSettlementRecords()` | Hand row created first as sentinel; settlement+transaction atomic |
-| **TOCTOU prevention** | `exchangeChipsToBalance()` | Balance check inside `$transaction` |
-| **Double-spend protection** | `rejectWithdrawRequest()` | Re-checks status inside transaction |
-| **Rate limit fail-closed** | `connection-state.service.ts` | Denies requests when Redis unavailable |
-| **Per-room/user locks** | `app.gateway.ts` `withRoomLock`/`withUserLock` | Correctly chains promises, absorbs rejections |
-| **Multi-instance brute-force protection** | `checkPasswordAttemptLimit()` | Redis-backed |
-| **Straddle/All-in guards** | `table-player-ops.ts` | `calledAllIn` properly prevents re-opening action |
-| **Side pot algorithm** | `table-round.ts` `buildPots()` | Correctly handles multi-level all-in scenarios |
-| **ELO floor/ceiling** | `matchmaking.service.ts` | Post-update enforcement exists |
-| **Startup cleanup** | `cleanupOfflineResidueOnStartup()` | Clears ghost seats from crashed servers |
-| **Recovery flow** | `timer.service.ts` `ensureRecoveredRoundFlow()` | Restores timers on restart |
-| **Deck shuffle** | `table-game-logic.ts` `shuffle()` | Uses `crypto.getRandomValues` (CSPRNG) |
-| **Session invalidation on reconnect** | `handleConnection()` | Single-device enforcement |
-| **Club membership check** | `handleJoinRoom()` | Club-only rooms verified server-side |
+| Pattern                                   | Location                                        | Notes                                                             |
+| ----------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| **Atomic settlement writes**              | `persistSettlementRecords()`                    | Hand row created first as sentinel; settlement+transaction atomic |
+| **TOCTOU prevention**                     | `exchangeChipsToBalance()`                      | Balance check inside `$transaction`                               |
+| **Double-spend protection**               | `rejectWithdrawRequest()`                       | Re-checks status inside transaction                               |
+| **Rate limit fail-closed**                | `connection-state.service.ts`                   | Denies requests when Redis unavailable                            |
+| **Per-room/user locks**                   | `app.gateway.ts` `withRoomLock`/`withUserLock`  | Correctly chains promises, absorbs rejections                     |
+| **Multi-instance brute-force protection** | `checkPasswordAttemptLimit()`                   | Redis-backed                                                      |
+| **Straddle/All-in guards**                | `table-player-ops.ts`                           | `calledAllIn` properly prevents re-opening action                 |
+| **Side pot algorithm**                    | `table-round.ts` `buildPots()`                  | Correctly handles multi-level all-in scenarios                    |
+| **ELO floor/ceiling**                     | `matchmaking.service.ts`                        | Post-update enforcement exists                                    |
+| **Startup cleanup**                       | `cleanupOfflineResidueOnStartup()`              | Clears ghost seats from crashed servers                           |
+| **Recovery flow**                         | `timer.service.ts` `ensureRecoveredRoundFlow()` | Restores timers on restart                                        |
+| **Deck shuffle**                          | `table-game-logic.ts` `shuffle()`               | Uses `crypto.getRandomValues` (CSPRNG)                            |
+| **Session invalidation on reconnect**     | `handleConnection()`                            | Single-device enforcement                                         |
+| **Club membership check**                 | `handleJoinRoom()`                              | Club-only rooms verified server-side                              |
 
 ---
 
 ## PRIORITY SUMMARY
 
-| # | Severity | Issue | File |
-|---|----------|-------|------|
-| 1 | 🛑 Critical | `advanceStreet` lacks `return` after `eligible.length === 0` — NaN in `winAmounts` | `table-round.ts` |
-| 2 | 🛑 Critical | `bestCards: []` for fold-win winner in `lastHandResult` | `table-round.ts` |
-| 3 | 🔴 High | `client.leave()` before room lock — broadcast race | `game.handler.ts` |
-| 4 | 🔴 High | No re-validation of frozen balance while seated | `game.handler.ts`, `wallet.service.ts` |
-| 5 | 🔴 High | Bot prefix collision breaks `coinBalance` sync | `wallet.service.ts` |
-| 6 | 🟡 Medium | `getRealBalance` read outside transaction | `wallet.service.ts` |
-| 7 | 🟡 Medium | ELO bounds enforcement as separate transaction | `matchmaking.service.ts` |
-| 8 | 🟡 Medium | `getBalance` returns total, not available — caller discipline required | `wallet.service.ts` |
-| 9 | 🟢 Low | In-memory IP map is instance-local | `matchmaking.service.ts` |
-| 10 | 🟢 Low | Redis unavailable: OTP storage silently fails | `auth.service.ts` |
+| #   | Severity    | Issue                                                                              | File                                   |
+| --- | ----------- | ---------------------------------------------------------------------------------- | -------------------------------------- |
+| 1   | 🛑 Critical | `advanceStreet` lacks `return` after `eligible.length === 0` — NaN in `winAmounts` | `table-round.ts`                       |
+| 2   | 🛑 Critical | `bestCards: []` for fold-win winner in `lastHandResult`                            | `table-round.ts`                       |
+| 3   | 🔴 High     | `client.leave()` before room lock — broadcast race                                 | `game.handler.ts`                      |
+| 4   | 🔴 High     | No re-validation of frozen balance while seated                                    | `game.handler.ts`, `wallet.service.ts` |
+| 5   | 🔴 High     | Bot prefix collision breaks `coinBalance` sync                                     | `wallet.service.ts`                    |
+| 6   | 🟡 Medium   | `getRealBalance` read outside transaction                                          | `wallet.service.ts`                    |
+| 7   | 🟡 Medium   | ELO bounds enforcement as separate transaction                                     | `matchmaking.service.ts`               |
+| 8   | 🟡 Medium   | `getBalance` returns total, not available — caller discipline required             | `wallet.service.ts`                    |
+| 9   | 🟢 Low      | In-memory IP map is instance-local                                                 | `matchmaking.service.ts`               |
+| 10  | 🟢 Low      | Redis unavailable: OTP storage silently fails                                      | `auth.service.ts`                      |

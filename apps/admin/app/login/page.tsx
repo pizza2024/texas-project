@@ -22,9 +22,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "登录失败";
       setError(
-        message === "HTTP 401"
-          ? "用户名或密码错误，或无管理员权限"
-          : message,
+        message === "HTTP 401" ? "用户名或密码错误，或无管理员权限" : message,
       );
     } finally {
       setLoading(false);
@@ -37,7 +35,9 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="text-4xl sm:text-5xl mb-3">🃏</div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Texas Hold&apos;em</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            Texas Hold&apos;em
+          </h1>
           <p className="text-slate-400 text-sm mt-1">管理员控制台</p>
         </div>
 

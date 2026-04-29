@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import api from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { ReplayPlayerCards } from './ReplayPlayerCards';
-import { ReplayCommunityCards } from './ReplayCommunityCards';
-import { ReplayActionLog } from './ReplayActionLog';
-import { ReplayStageNav } from './ReplayStageNav';
-import { EquityCurveChart } from './EquityCurveChart';
-import { PotOddsTooltip } from './PotOddsTooltip';
-import { AutoPlayPanel } from './AutoPlayPanel';
+import { useEffect, useState, useCallback, useRef } from "react";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { ReplayPlayerCards } from "./ReplayPlayerCards";
+import { ReplayCommunityCards } from "./ReplayCommunityCards";
+import { ReplayActionLog } from "./ReplayActionLog";
+import { ReplayStageNav } from "./ReplayStageNav";
+import { EquityCurveChart } from "./EquityCurveChart";
+import { PotOddsTooltip } from "./PotOddsTooltip";
+import { AutoPlayPanel } from "./AutoPlayPanel";
 
 export interface ReplayPlayer {
   id: string;
@@ -47,7 +47,7 @@ export interface HandReplayData {
   timeline: ReplayActionNode[];
 }
 
-const STAGES = ['PREFLOP', 'FLOP', 'TURN', 'RIVER', 'SHOWDOWN'];
+const STAGES = ["PREFLOP", "FLOP", "TURN", "RIVER", "SHOWDOWN"];
 
 interface ReplayModalProps {
   handId: string;
@@ -64,7 +64,8 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [showEquityChart, setShowEquityChart] = useState(false);
-  const [hoveredActionNode, setHoveredActionNode] = useState<ReplayActionNode | null>(null);
+  const [hoveredActionNode, setHoveredActionNode] =
+    useState<ReplayActionNode | null>(null);
   const actionLogRef = useRef<HTMLDivElement>(null);
 
   // Fetch replay data
@@ -76,54 +77,71 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
         const json = res.data;
         if (!cancelled) setData(json);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Unknown error');
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : "Unknown error");
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     void load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [handId]);
 
   const currentNode = data?.timeline[currentIndex] ?? null;
 
-  const goToStage = useCallback((stage: string) => {
-    if (!data) return;
-    const idx = data.timeline.findIndex(n => n.stage === stage);
-    if (idx >= 0) setCurrentIndex(idx);
-  }, [data]);
+  const goToStage = useCallback(
+    (stage: string) => {
+      if (!data) return;
+      const idx = data.timeline.findIndex((n) => n.stage === stage);
+      if (idx >= 0) setCurrentIndex(idx);
+    },
+    [data],
+  );
 
   const goToPrev = useCallback(() => {
-    setCurrentIndex(i => Math.max(0, i - 1));
+    setCurrentIndex((i) => Math.max(0, i - 1));
   }, []);
 
   const goToNext = useCallback(() => {
     if (!data) return;
-    setCurrentIndex(i => Math.min(data.timeline.length - 1, i + 1));
+    setCurrentIndex((i) => Math.min(data.timeline.length - 1, i + 1));
   }, [data]);
 
   // Auto-play index change handler (supports functional update like setState)
-  const handleIndexChange = useCallback((value: number | ((prev: number) => number)) => {
-    setCurrentIndex(value);
-  }, []);
+  const handleIndexChange = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      setCurrentIndex(value);
+    },
+    [],
+  );
 
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') goToPrev();
-      else if (e.key === 'ArrowRight') goToNext();
-      else if (e.key === 'Escape') onClose();
+      if (e.key === "ArrowLeft") goToPrev();
+      else if (e.key === "ArrowRight") goToNext();
+      else if (e.key === "Escape") onClose();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [goToPrev, goToNext, onClose]);
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: "rgba(0,0,0,0.85)" }}
+      >
         <div className="text-center">
           <div className="inline-block w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-          <p className="mt-3 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Loading hand replay...</p>
+          <p
+            className="mt-3 text-sm"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            Loading hand replay...
+          </p>
         </div>
       </div>
     );
@@ -131,63 +149,81 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
 
   if (error || !data) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.85)' }}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ background: "rgba(0,0,0,0.85)" }}
+      >
         <div className="text-center max-w-sm">
-          <p className="text-red-400 mb-4">{error ?? 'Failed to load replay'}</p>
+          <p className="text-red-400 mb-4">
+            {error ?? "Failed to load replay"}
+          </p>
           <Button onClick={onClose}>Close</Button>
         </div>
       </div>
     );
   }
 
-  const stage = currentNode?.stage ?? 'PREFLOP';
+  const stage = currentNode?.stage ?? "PREFLOP";
   const communityCards = currentNode?.communityCards ?? [];
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: 'linear-gradient(180deg, #0d2818 0%, #060e10 100%)' }}
+      style={{
+        background: "linear-gradient(180deg, #0d2818 0%, #060e10 100%)",
+      }}
     >
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 border-b"
-        style={{ borderColor: 'rgba(245,158,11,0.2)', background: 'rgba(0,0,0,0.4)' }}
+        style={{
+          borderColor: "rgba(245,158,11,0.2)",
+          background: "rgba(0,0,0,0.4)",
+        }}
       >
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
             className="text-sm font-medium transition-colors"
-            style={{ color: 'rgba(245,158,11,0.8)' }}
+            style={{ color: "rgba(245,158,11,0.8)" }}
           >
             ✕ Close
           </button>
-          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#f59e0b' }}>
+          <span
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "#f59e0b" }}
+          >
             #{handId.slice(0, 8)} — {data.roomName}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
             {new Date(data.date).toLocaleString()}
           </span>
           <button
             type="button"
-            onClick={() => setShowEquityChart(s => !s)}
+            onClick={() => setShowEquityChart((s) => !s)}
             className="text-sm px-3 py-1 rounded transition-colors"
             style={{
-              background: showEquityChart ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)',
-              color: showEquityChart ? '#f59e0b' : 'rgba(255,255,255,0.6)',
+              background: showEquityChart
+                ? "rgba(245,158,11,0.2)"
+                : "rgba(255,255,255,0.08)",
+              color: showEquityChart ? "#f59e0b" : "rgba(255,255,255,0.6)",
             }}
           >
             📊 Equity
           </button>
           <button
             type="button"
-            onClick={() => setIsFullscreen(f => !f)}
+            onClick={() => setIsFullscreen((f) => !f)}
             className="text-sm px-3 py-1 rounded"
-            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.6)",
+            }}
           >
-            {isFullscreen ? '⊡ Exit Fullscreen' : '⛶ Fullscreen'}
+            {isFullscreen ? "⊡ Exit Fullscreen" : "⛶ Fullscreen"}
           </button>
         </div>
       </div>
@@ -200,7 +236,9 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
       />
 
       {/* Main content area */}
-      <div className={`flex-1 flex overflow-hidden ${isFullscreen ? '' : 'max-w-5xl mx-auto w-full p-4'}`}>
+      <div
+        className={`flex-1 flex overflow-hidden ${isFullscreen ? "" : "max-w-5xl mx-auto w-full p-4"}`}
+      >
         {/* Left: Community cards + Player cards */}
         <div className="flex-1 flex flex-col gap-4">
           {/* Equity chart panel */}
@@ -208,8 +246,8 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
             <div
               className="rounded-xl overflow-hidden"
               style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(245,158,11,0.2)',
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(245,158,11,0.2)",
               }}
             >
               <EquityCurveChart data={data} currentStage={stage} />
@@ -218,7 +256,10 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
 
           {/* Community cards */}
           <div className="flex flex-col items-center gap-2">
-            <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span
+              className="text-xs uppercase tracking-widest"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            >
               Board — {stage}
             </span>
             <ReplayCommunityCards cards={communityCards} stage={stage} />
@@ -230,7 +271,7 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
               players={data.players}
               currentPlayerId={currentNode?.playerId ?? null}
               winnerId={data.winnerId}
-              showdown={stage === 'SHOWDOWN'}
+              showdown={stage === "SHOWDOWN"}
             />
           </div>
         </div>
@@ -239,7 +280,7 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
         <div
           ref={actionLogRef}
           className="w-72 flex-shrink-0 border-l overflow-y-auto relative"
-          style={{ borderColor: 'rgba(245,158,11,0.15)' }}
+          style={{ borderColor: "rgba(245,158,11,0.15)" }}
         >
           <ReplayActionLog
             nodes={data.timeline}
@@ -251,10 +292,17 @@ export function ReplayModal({ handId, onClose }: ReplayModalProps) {
       </div>
 
       {/* Pot odds tooltip */}
-      <PotOddsTooltip node={hoveredActionNode} visible={!!hoveredActionNode} anchorRef={actionLogRef} />
+      <PotOddsTooltip
+        node={hoveredActionNode}
+        visible={!!hoveredActionNode}
+        anchorRef={actionLogRef}
+      />
 
       {/* Auto-play panel */}
-      <div className="border-t px-4 py-3" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
+      <div
+        className="border-t px-4 py-3"
+        style={{ borderColor: "rgba(245,158,11,0.15)" }}
+      >
         <AutoPlayPanel
           timelineLength={data.timeline.length}
           currentIndex={currentIndex}

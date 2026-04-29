@@ -8,58 +8,58 @@
 
 ### 固定用例（原cron任务中的基础测试）
 
-| 用例ID | 类别 | 测试项 | 测试方式 | 预期结果 |
-|--------|------|--------|----------|----------|
-| BASE_01 | 认证 | 登录成功 | `POST /auth/login` with test1/test123 | HTTP 200, token获取, 余额10000 |
-| BASE_02 | 房间 | 房间列表 | `GET /rooms` | HTTP 200, 返回房间数组 |
-| BASE_03 | 房间 | 创建房间 | `POST /rooms` with blindSmall/blindBig | HTTP 201, blindSmall/blindBig字段正确 |
-| BASE_04 | WebSocket | Socket.io握手 | `GET /socket.io/?EIO=4&transport=polling` | HTTP 200, 握手包 |
-| BASE_05 | Git | GitHub Actions | `gh run list --limit 3` | 列出最近runs |
+| 用例ID  | 类别      | 测试项         | 测试方式                                  | 预期结果                              |
+| ------- | --------- | -------------- | ----------------------------------------- | ------------------------------------- |
+| BASE_01 | 认证      | 登录成功       | `POST /auth/login` with test1/test123     | HTTP 200, token获取, 余额10000        |
+| BASE_02 | 房间      | 房间列表       | `GET /rooms`                              | HTTP 200, 返回房间数组                |
+| BASE_03 | 房间      | 创建房间       | `POST /rooms` with blindSmall/blindBig    | HTTP 201, blindSmall/blindBig字段正确 |
+| BASE_04 | WebSocket | Socket.io握手  | `GET /socket.io/?EIO=4&transport=polling` | HTTP 200, 握手包                      |
+| BASE_05 | Git       | GitHub Actions | `gh run list --limit 3`                   | 列出最近runs                          |
 
 ---
 
 ### 扩展用例（新增）
 
-#### 第一部分：认证类 (TC_AUTH_*)
+#### 第一部分：认证类 (TC*AUTH*\*)
 
-| 用例ID | 测试项 | 测试方式 | 预期结果 |
-|--------|--------|----------|----------|
-| TC_AUTH_01 | 登录成功 | `POST /auth/login` - test1/test123 | HTTP 200, 返回 access_token，coinBalance=10000 |
-| TC_AUTH_02 | 登录失败（错误密码） | `POST /auth/login` - test1/wrongpassword | HTTP 401 Unauthorized |
-| TC_AUTH_03 | 登录失败（不存在的用户） | `POST /auth/login` - nonexistent/test123 | HTTP 401 Unauthorized |
-| TC_AUTH_04 | 获取用户资料（有效token） | `GET /auth/profile` with Bearer token | HTTP 200, 返回用户详细信息 |
+| 用例ID     | 测试项                    | 测试方式                                 | 预期结果                                       |
+| ---------- | ------------------------- | ---------------------------------------- | ---------------------------------------------- |
+| TC_AUTH_01 | 登录成功                  | `POST /auth/login` - test1/test123       | HTTP 200, 返回 access_token，coinBalance=10000 |
+| TC_AUTH_02 | 登录失败（错误密码）      | `POST /auth/login` - test1/wrongpassword | HTTP 401 Unauthorized                          |
+| TC_AUTH_03 | 登录失败（不存在的用户）  | `POST /auth/login` - nonexistent/test123 | HTTP 401 Unauthorized                          |
+| TC_AUTH_04 | 获取用户资料（有效token） | `GET /auth/profile` with Bearer token    | HTTP 200, 返回用户详细信息                     |
 
-#### 第二部分：房间类 (TC_ROOM_*)
+#### 第二部分：房间类 (TC*ROOM*\*)
 
-| 用例ID | 测试项 | 测试方式 | 预期结果 |
-|--------|--------|----------|----------|
-| TC_ROOM_01 | 获取房间列表（分页） | `GET /rooms?page=1&limit=10` | HTTP 200, 返回data数组+total字段 |
-| TC_ROOM_02 | 创建公开房间 | `POST /rooms` (无password字段) | HTTP 201, isPrivate=false |
-| TC_ROOM_03 | 创建密码房间 | `POST /rooms` (带password字段) | HTTP 201, isPrivate=true, API不返回password |
-| TC_ROOM_04 | 进入密码房间（正确密码） | `POST /rooms/:id/verify-password` correct | HTTP 200, {valid: true} |
-| TC_ROOM_05 | 进入密码房间（错误密码） | `POST /rooms/:id/verify-password` wrong | HTTP 200, {valid: false} |
-| TC_ROOM_06 | 获取单个房间详情 | `GET /rooms/:id` | HTTP 200, 返回该房间完整信息 |
+| 用例ID     | 测试项                   | 测试方式                                  | 预期结果                                    |
+| ---------- | ------------------------ | ----------------------------------------- | ------------------------------------------- |
+| TC_ROOM_01 | 获取房间列表（分页）     | `GET /rooms?page=1&limit=10`              | HTTP 200, 返回data数组+total字段            |
+| TC_ROOM_02 | 创建公开房间             | `POST /rooms` (无password字段)            | HTTP 201, isPrivate=false                   |
+| TC_ROOM_03 | 创建密码房间             | `POST /rooms` (带password字段)            | HTTP 201, isPrivate=true, API不返回password |
+| TC_ROOM_04 | 进入密码房间（正确密码） | `POST /rooms/:id/verify-password` correct | HTTP 200, {valid: true}                     |
+| TC_ROOM_05 | 进入密码房间（错误密码） | `POST /rooms/:id/verify-password` wrong   | HTTP 200, {valid: false}                    |
+| TC_ROOM_06 | 获取单个房间详情         | `GET /rooms/:id`                          | HTTP 200, 返回该房间完整信息                |
 
-#### 第三部分：边界条件 (TC_BOUND_*)
+#### 第三部分：边界条件 (TC*BOUND*\*)
 
-| 用例ID | 测试项 | 测试方式 | 预期结果 |
-|--------|--------|----------|----------|
-| TC_BOUND_01 | 最小盲注创建房间 | blindSmall=1, blindBig=2, maxPlayers=2 | HTTP 201（系统接受最小盲注） |
-| TC_BOUND_02 | 超长房间名（31字符） | name="AAAA...A"(31个A) | HTTP 201或400（前端maxLength=30会拦截） |
-| TC_BOUND_03 | 无效座位数（maxPlayers=0） | maxPlayers=0 | HTTP 201或400（有效范围2-9） |
-| TC_BOUND_04 | minBuyIn小于bigBlind | minBuyIn=10, blindBig=20 | HTTP 201（系统可能自动修正） |
-| TC_BOUND_05 | 无token创建房间 | 不带Authorization header | HTTP 401 Unauthorized |
+| 用例ID      | 测试项                     | 测试方式                               | 预期结果                                |
+| ----------- | -------------------------- | -------------------------------------- | --------------------------------------- |
+| TC_BOUND_01 | 最小盲注创建房间           | blindSmall=1, blindBig=2, maxPlayers=2 | HTTP 201（系统接受最小盲注）            |
+| TC_BOUND_02 | 超长房间名（31字符）       | name="AAAA...A"(31个A)                 | HTTP 201或400（前端maxLength=30会拦截） |
+| TC_BOUND_03 | 无效座位数（maxPlayers=0） | maxPlayers=0                           | HTTP 201或400（有效范围2-9）            |
+| TC_BOUND_04 | minBuyIn小于bigBlind       | minBuyIn=10, blindBig=20               | HTTP 201（系统可能自动修正）            |
+| TC_BOUND_05 | 无token创建房间            | 不带Authorization header               | HTTP 401 Unauthorized                   |
 
-#### 第四部分：WebSocket (TC_WS_*)
+#### 第四部分：WebSocket (TC*WS*\*)
 
-| 用例ID | 测试项 | 测试方式 | 预期结果 |
-|--------|--------|----------|----------|
+| 用例ID   | 测试项              | 测试方式                                  | 预期结果                      |
+| -------- | ------------------- | ----------------------------------------- | ----------------------------- |
 | TC_WS_01 | Socket.io HTTPS握手 | `GET /socket.io/?EIO=4&transport=polling` | HTTP 200, 返回socket.io握手包 |
 
-#### 第五部分：Git (TC_GIT_*)
+#### 第五部分：Git (TC*GIT*\*)
 
-| 用例ID | 测试项 | 测试方式 | 预期结果 |
-|--------|--------|----------|----------|
+| 用例ID    | 测试项             | 测试方式                | 预期结果                 |
+| --------- | ------------------ | ----------------------- | ------------------------ |
 | TC_GIT_01 | GitHub Actions状态 | `gh run list --limit 3` | 列出最近3个workflow runs |
 
 ---
@@ -67,6 +67,7 @@
 ## API 端点参考
 
 ### 认证相关
+
 - `POST /auth/login` - 用户登录
   - Body: `{"username": "string", "password": "string"}`
   - 响应: `{"access_token": "string", "user": {...}}`
@@ -74,6 +75,7 @@
   - Header: `Authorization: Bearer <token>`
 
 ### 房间相关
+
 - `GET /rooms` - 房间列表
   - Query: `?page=1&limit=50`
   - 响应: `{data: Room[], total: number}`
@@ -85,6 +87,7 @@
   - Body: `{"password": "string"}`
 
 ### WebSocket
+
 - Socket.io endpoint: `https://api.pizza2024.com/socket.io/?EIO=4&transport=polling`
 
 ---
@@ -103,17 +106,18 @@
 ## 快速匹配（Quick Match）说明
 
 快速匹配功能通过 WebSocket 实现，不是 REST API：
+
 - 用户选择盲注级别（MICRO/LOW/MEDIUM/HIGH/PREMIUM）
 - 系统自动分配或创建匹配房间
 - 相关端在 `POST /socket.io/...` (WebSocket协议)
 
-| 级别 | 盲注 | 最小买入 | 最大座位 |
-|------|------|----------|----------|
-| MICRO | 5/10 | 100 | 6 |
-| LOW | 10/20 | 200 | 6 |
-| MEDIUM | 25/50 | 500 | 9 |
-| HIGH | 50/100 | 1000 | 9 |
-| PREMIUM | 100/200 | 2000 | 6 |
+| 级别    | 盲注    | 最小买入 | 最大座位 |
+| ------- | ------- | -------- | -------- |
+| MICRO   | 5/10    | 100      | 6        |
+| LOW     | 10/20   | 200      | 6        |
+| MEDIUM  | 25/50   | 500      | 9        |
+| HIGH    | 50/100  | 1000     | 9        |
+| PREMIUM | 100/200 | 2000     | 6        |
 
 ---
 

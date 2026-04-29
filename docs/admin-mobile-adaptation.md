@@ -10,14 +10,14 @@
 
 ### 1.1 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| 框架 | Next.js 16.1.6（App Router） |
-| UI 库 | React 19.2.3 |
-| 样式 | Tailwind CSS v4（`@tailwindcss/postcss`） |
-| 图表 | Recharts 2.15.3 |
-| 数据请求 | SWR 2.3.3 |
-| 图标 | Lucide React |
+| 类别     | 技术                                      |
+| -------- | ----------------------------------------- |
+| 框架     | Next.js 16.1.6（App Router）              |
+| UI 库    | React 19.2.3                              |
+| 样式     | Tailwind CSS v4（`@tailwindcss/postcss`） |
+| 图表     | Recharts 2.15.3                           |
+| 数据请求 | SWR 2.3.3                                 |
+| 图标     | Lucide React                              |
 
 ### 1.2 项目结构
 
@@ -56,12 +56,12 @@ apps/admin/
 
 通过全项目搜索响应式 Tailwind 类：
 
-| 断点 | 使用次数 | 示例 |
-|------|---------|------|
-| `sm:` | 0 | — |
-| `md:` | 1 | `grid-cols-2 md:grid-cols-4`（system 页面） |
-| `lg:` | 0 | — |
-| `xl:` | 3 | `xl:grid-cols-4`（dashboard 统计卡片）、`xl:grid-cols-2`（图表） |
+| 断点  | 使用次数 | 示例                                                             |
+| ----- | -------- | ---------------------------------------------------------------- |
+| `sm:` | 0        | —                                                                |
+| `md:` | 1        | `grid-cols-2 md:grid-cols-4`（system 页面）                      |
+| `lg:` | 0        | —                                                                |
+| `xl:` | 3        | `xl:grid-cols-4`（dashboard 统计卡片）、`xl:grid-cols-2`（图表） |
 
 **结论：几乎没有任何响应式实现。** 仅有的一处 `md:` 用在 system 页面状态格子上。
 
@@ -103,12 +103,14 @@ apps/admin/
 ### 2.1 方案选型
 
 **核心思路：**
+
 - 基于 Tailwind CSS v4 原生响应式能力，**不引入额外 UI 库**
 - 侧边栏改造为 **Offcanvas Drawer** 模式（汉堡菜单触发）
 - 表格改造为 **响应式卡片列表**（移动端）与 **表格**（桌面端）共存
 - 图表保持 `ResponsiveContainer`，调整高度和边距
 
 **为什么不引入 Material UI / Ant Design？**
+
 - 项目风格已高度定制（深色主题）
 - 仅需解决布局层面的问题，不需要完整组件库
 - Tailwind v4 配合 CSS 变量完全可覆盖需求
@@ -124,7 +126,7 @@ apps/admin/
 // components/layout/sidebar.tsx 改造
 "use client";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";  // 新增 Menu 图标
+import { Menu, X } from "lucide-react"; // 新增 Menu 图标
 
 // 侧边栏内容抽取为 SidebarContent 组件（复用）
 // 新增 MobileSidebar 组件：fixed inset-0 drawer，从左侧滑入
@@ -135,12 +137,12 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 
 关键 Tailwind 类：
 
-| 状态 | 类名 |
-|------|------|
-| 桌面侧边栏 | `hidden md:flex fixed left-0 w-60 h-screen` |
+| 状态       | 类名                                                            |
+| ---------- | --------------------------------------------------------------- |
+| 桌面侧边栏 | `hidden md:flex fixed left-0 w-60 h-screen`                     |
 | 移动端抽屉 | `fixed inset-0 z-50 bg-black/60 backdrop-blur-sm` + 内部 `w-72` |
-| 抽屉内容 | `translate-x-0`（开）/ `-translate-x-full`（关） |
-| 汉堡按钮 | `md:hidden fixed top-4 left-4 z-50` |
+| 抽屉内容   | `translate-x-0`（开）/ `-translate-x-full`（关）                |
+| 汉堡按钮   | `md:hidden fixed top-4 left-4 z-50`                             |
 
 ### 2.3 表格响应式改造
 
@@ -182,9 +184,7 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 // 现状：height={200} 固定高度
 // 改造：min-height + 调整间距
 <ResponsiveContainer width="100%" minHeight={180}>
-  <AreaChart>
-    ...
-  </AreaChart>
+  <AreaChart>...</AreaChart>
 </ResponsiveContainer>
 ```
 
@@ -214,6 +214,7 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
    - 移动端点击按钮打开抽屉
 
 **预计改动文件：**
+
 - `apps/admin/components/layout/sidebar.tsx`
 - `apps/admin/components/layout/admin-layout.tsx`
 
@@ -225,6 +226,7 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 6. 改造 `analytics/page.tsx` 房间排行表格 → 卡片列表（移动端）
 
 **预计改动文件：**
+
 - `apps/admin/app/users/page.tsx`
 - `apps/admin/app/rooms/page.tsx`
 - `apps/admin/app/withdraw/page.tsx`
@@ -236,6 +238,7 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 8. 图表容器添加 `minHeight`，调整 padding
 
 **预计改动文件：**
+
 - `apps/admin/app/dashboard/page.tsx`
 - `apps/admin/app/finance/page.tsx`（统计卡片）
 
@@ -249,19 +252,19 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 
 ## 四、关键修改文件清单
 
-| 文件 | 修改类型 | 优先级 |
-|------|---------|--------|
-| `apps/admin/components/layout/sidebar.tsx` | 重构：抽取内容 + 新增移动端抽屉 | P0 |
-| `apps/admin/components/layout/admin-layout.tsx` | 重构：添加汉堡菜单、响应式布局 | P0 |
-| `apps/admin/app/users/page.tsx` | 重构：表格→卡片列表 | P0 |
-| `apps/admin/app/rooms/page.tsx` | 重构：表格→卡片列表 | P0 |
-| `apps/admin/app/withdraw/page.tsx` | 重构：表格→卡片列表 | P0 |
-| `apps/admin/app/analytics/page.tsx` | 重构：房间排行表格→卡片 | P0 |
-| `apps/admin/app/dashboard/page.tsx` | 优化：统计卡片断点 + 图表 | P1 |
-| `apps/admin/app/finance/page.tsx` | 优化：统计卡片断点 + padding | P1 |
-| `apps/admin/app/system/page.tsx` | 优化：grid 断点完善 | P2 |
-| `apps/admin/app/login/page.tsx` | 优化：表单宽度限制 | P2 |
-| `apps/admin/app/globals.css` | 增强：可添加移动端滚动条等全局样式 | P2 |
+| 文件                                            | 修改类型                           | 优先级 |
+| ----------------------------------------------- | ---------------------------------- | ------ |
+| `apps/admin/components/layout/sidebar.tsx`      | 重构：抽取内容 + 新增移动端抽屉    | P0     |
+| `apps/admin/components/layout/admin-layout.tsx` | 重构：添加汉堡菜单、响应式布局     | P0     |
+| `apps/admin/app/users/page.tsx`                 | 重构：表格→卡片列表                | P0     |
+| `apps/admin/app/rooms/page.tsx`                 | 重构：表格→卡片列表                | P0     |
+| `apps/admin/app/withdraw/page.tsx`              | 重构：表格→卡片列表                | P0     |
+| `apps/admin/app/analytics/page.tsx`             | 重构：房间排行表格→卡片            | P0     |
+| `apps/admin/app/dashboard/page.tsx`             | 优化：统计卡片断点 + 图表          | P1     |
+| `apps/admin/app/finance/page.tsx`               | 优化：统计卡片断点 + padding       | P1     |
+| `apps/admin/app/system/page.tsx`                | 优化：grid 断点完善                | P2     |
+| `apps/admin/app/login/page.tsx`                 | 优化：表单宽度限制                 | P2     |
+| `apps/admin/app/globals.css`                    | 增强：可添加移动端滚动条等全局样式 | P2     |
 
 ---
 
@@ -270,11 +273,11 @@ import { Menu, X } from "lucide-react";  // 新增 Menu 图标
 Tailwind v4 默认断点（通过 `@tailwindcss/postcss`）：
 
 | 类前缀 | 最小宽度 |
-|--------|---------|
-| `sm:` | 640px |
-| `md:` | 768px |
-| `lg:` | 1024px |
-| `xl:` | 1280px |
-| `2xl:` | 1536px |
+| ------ | -------- |
+| `sm:`  | 640px    |
+| `md:`  | 768px    |
+| `lg:`  | 1024px   |
+| `xl:`  | 1280px   |
+| `2xl:` | 1536px   |
 
 > 注意：v4 使用 CSS 原生 `@theme` 机制，默认断点与 v3 一致，无需额外配置 `tailwind.config.js`。

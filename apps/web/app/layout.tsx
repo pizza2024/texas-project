@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   minimumScale: 1,
   userScalable: false,
   themeColor: "#060e10",
-  viewportFit: 'cover',
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -61,9 +61,7 @@ export default function RootLayout({
         <I18nProvider>
           <SystemMessageProvider>
             <SocketSessionProvider>
-              <ErrorBoundary>
-              {children}
-              </ErrorBoundary>
+              <ErrorBoundary>{children}</ErrorBoundary>
               <PWAProvider />
             </SocketSessionProvider>
           </SystemMessageProvider>

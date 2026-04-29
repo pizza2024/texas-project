@@ -113,7 +113,10 @@ describe('TableManagerService', () => {
 
     await service.leaveCurrentRoom('user-1');
 
-    expect(walletService.resetBalanceAndUnfreeze).toHaveBeenCalledWith('user-1', 1000);
+    expect(walletService.resetBalanceAndUnfreeze).toHaveBeenCalledWith(
+      'user-1',
+      1000,
+    );
     expect(emitSpy).toHaveBeenCalledWith(ROOM_STATUS_UPDATED_EVENT, {
       roomId: room.id,
       currentPlayers: 1,

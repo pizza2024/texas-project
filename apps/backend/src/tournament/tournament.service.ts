@@ -38,10 +38,14 @@ import {
 /** Redis key for tournament blind timer sorted set */
 const TOURNAMENT_TIMERS_KEY = 'tournament:blind_timers';
 
+const MATCHMAKING_TIMEOUT_MS = 30_000;
+
 @Injectable()
 export class TournamentService implements OnModuleDestroy {
   private readonly logger = new Logger(TournamentService.name);
   private readonly blindTimers = new Map<string, NodeJS.Timeout>();
+  /** Maps lobbyId → NodeJS.Timeout for matchmaking timeouts */
+  private readonly matchmakingTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -58,6 +62,72 @@ export class TournamentService implements OnModuleDestroy {
       clearTimeout(timer);
     }
     this.blindTimers.clear();
+    for (const timer of this.matchmakingTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.matchmakingTimers.clear();
+  }
+
+  /**
+   * Start a 30-second matchmaking timeout for a lobby.
+   * If the lobby doesn't fill within the timeout, the lobby is cancelled and
+   * players are notified via the `matchmaking_timeout` socket event.
+   */
+  startMatchmakingTimeout(
+    lobbyId: string,
+    server: import('socket.io').Server,
+  ): void {
+    this.clearMatchmakingTimeout(lobbyId);
+
+    const timer = setTimeout(() => {
+      this.handleMatchmakingTimeout(lobbyId, server);
+      this.matchmakingTimers.delete(lobbyId);
+    }, MATCHMAKING_TIMEOUT_MS);
+
+    this.matchmakingTimers.set(lobbyId, timer);
+    this.logger.log(
+      `Matchmaking timeout started for lobby ${lobbyId} (${MATCHMAKING_TIMEOUT_MS}ms)`,
+    );
+  }
+
+  /**
+   * Clear an existing matchmaking timeout (e.g. when lobby fills successfully).
+   */
+  clearMatchmakingTimeout(lobbyId: string): void {
+    const existing = this.matchmakingTimers.get(lobbyId);
+    if (existing) {
+      clearTimeout(existing);
+      this.matchmakingTimers.delete(lobbyId);
+    }
+  }
+
+  /**
+   * Handle matchmaking timeout — cancel the lobby and notify players.
+   */
+  private async handleMatchmakingTimeout(
+    lobbyId: string,
+    server: import('socket.io').Server,
+  ): Promise<void> {
+    const lobby = await this.getBlastLobby(lobbyId);
+    if (!lobby) return;
+
+    // Only process if lobby is still waiting (not already started/filled)
+    if (lobby.status !== 'waiting') return;
+
+    this.logger.log(`Matchmaking timeout for lobby ${lobbyId} — cancelling`);
+
+    // Remove from queue
+    if (this.redis.isAvailable) {
+      await this.redis.lrem(BLAST_LOBBY_QUEUE_KEY, lobbyId).catch(() => {});
+      await this.redis.del(BLAST_LOBBY_KEY_PREFIX + lobbyId).catch(() => {});
+    }
+
+    // Notify all players in the lobby
+    for (const playerId of lobby.playerIds) {
+      server.to(`user:${playerId}`).emit('matchmaking_timeout', { lobbyId });
+    }
+
+    server.to(`lobby:${lobbyId}`).emit('matchmaking_timeout', { lobbyId });
   }
 
   /**

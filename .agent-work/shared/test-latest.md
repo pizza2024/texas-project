@@ -1,51 +1,55 @@
-# Test Latest — 第2轮
-**时间:** 2026-04-29 18:00 | **HEAD:** `fdaecbe`
+# Test Latest — r46
+
+**时间:** 2026-04-30 07:15
+**HEAD:** `0e25785`
 
 ---
 
-## 最高优先级（需 Coding 立即处理）
+## 系统状态
 
-### 🔴 P1 — Private Blast Lobby 无法被加入
-
-`POST /rooms/blast/:id/join` 缺少 `password` 参数，但 `POST /rooms/blast` 支持创建密码保护的私人房间。
-
-**验证依据：**
-- `tournament.controller.ts:36-65` — `CreateBlastLobbyDto` 有 `password?: string`
-- `tournament.controller.ts:80-100` — `joinBlastLobby` 无 password 参数
-- 私人房间创建后，其他玩家**无法加入**
-
-**修复方案：**
-```typescript
-// tournament.controller.ts — joinBlastLobby 添加 password
-async joinBlastLobby(
-  @Param('id') lobbyId: string,
-  @Body('password') password: string | undefined,
-  @Req() req: AuthenticatedRequest,
-)
-```
-同时 `tournamentService.joinBlastLobby` 需支持密码验证逻辑。
-
-### 🟡 P1 — task-queue.md 状态过时（自第1轮遗留）
-
-P0-SEC/P1-SEC 标记"待修复"但代码已有保护。
+| 维度 | 状态 |
+|------|------|
+| P0 | ✅ 清零 |
+| P1 | ✅ 清零 |
+| Backend 单元测试 | ✅ 32 suites / 451 tests / 0 failures |
+| TypeScript Build | ✅ prisma generate + nest build 通过 |
+| 代码清洁度 | ✅ 无 TODO/FIXME/debugger |
 
 ---
 
-## 次优先级
+## 新代码审查
+
+### P2-WITHDRAW-UX-001 — 提现地址簿 ✅
+
+**Backend:**
+- `WithdrawAddress` Prisma model ✅ (Cascade delete, unique constraint)
+- 4个 REST 端点 (GET/POST/DELETE/PATCH) ✅ JWT 鉴权完整
+- `setDefaultAddress` 使用 `$transaction` 防止 race condition ✅
+- `deleteAddress` 默认地址升格逻辑正确 ⚠️ 非原子（低风险）
+
+**Frontend:**
+- 地址簿面板 UI 完整（新增/删除/默认/选择）✅
+- i18n 完整（en + zh-CN）✅
+- 无调试代码 ✅
+
+**⚠️ 发布前:** 需执行 `prisma migrate deploy`
+
+---
+
+## 遗留问题
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P2-BLAST-TEST | BlastService Phase 3 单元测试（startBlastGame/endBlastGame/forfeitBlast）|
-| P2-NEW-030 | 房间实时人数显示（Productor 已输出规格）|
+| WIP-001 | BLAST matchmaking timeout 调用方连接 | ⚠️ 待确认 |
+| WIP-002 | BLAST drawBlastMultiplier() | ⚠️ 待确认 |
 
 ---
 
-## 本轮测试结果
+## 下轮优先
 
-- **测试:** 452 passed, 0 failed ✅
-- **TS 编译:** 0 errors ✅
-- **无新 commit（距上轮 30 分钟内）**
+1. **P2-WITHDRAW-UX-002** — 提现手续费透明化
+2. BLAST matchmaking WS 事件验证
 
 ---
 
-*Test Agent 第2轮 — 2026-04-29 18:00*
+_Test r46 — 2026-04-30 07:15_

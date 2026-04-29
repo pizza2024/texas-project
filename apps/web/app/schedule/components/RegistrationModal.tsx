@@ -54,7 +54,9 @@ export function RegistrationModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-white">Tournament Registration</h2>
+          <h2 className="text-lg font-bold text-white">
+            Tournament Registration
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-xl leading-none transition-colors"

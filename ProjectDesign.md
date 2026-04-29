@@ -8,30 +8,30 @@
 
 ### 1.1 当前技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 后端框架 | NestJS 11 + TypeScript |
-| 数据库 | SQLite + Prisma ORM |
-| 鉴权 | JWT + bcrypt + Passport |
-| 实时通信 | WebSocket（Socket.io） |
+| 层级     | 技术                               |
+| -------- | ---------------------------------- |
+| 后端框架 | NestJS 11 + TypeScript             |
+| 数据库   | SQLite + Prisma ORM                |
+| 鉴权     | JWT + bcrypt + Passport            |
+| 实时通信 | WebSocket（Socket.io）             |
 | 前端框架 | Next.js 16 + React 19 + TypeScript |
-| 样式 | Tailwind CSS 4 |
-| Monorepo | Turborepo |
-| 测试 | Jest |
-| API 文档 | Swagger/OpenAPI |
+| 样式     | Tailwind CSS 4                     |
+| Monorepo | Turborepo                          |
+| 测试     | Jest                               |
+| API 文档 | Swagger/OpenAPI                    |
 
 ### 1.2 现有数据模型
 
-| 实体 | 用途 | 关键字段 |
-|------|------|---------|
-| User | 玩家账号 | id, username, nickname, avatar, status, coinBalance, createdAt, lastLoginAt |
-| Wallet | 余额追踪 | id, userId, balance, frozenBalance |
-| Room | 游戏房间 | id, name, blindSmall, blindBig, maxPlayers, minBuyIn, password, status |
-| Table | 牌桌实例 | id, roomId, state, stateSnapshot, snapshotUpdatedAt |
-| Hand | 单局牌局 | id, tableId, winnerId, potSize, createdAt |
-| HandAction | 玩家操作 | id, handId, userId, action, amount, createdAt |
-| Settlement | 结算记录 | id, handId, userId, amount, createdAt |
-| Transaction | 资金流水 | id, userId, amount, type, createdAt |
+| 实体        | 用途     | 关键字段                                                                    |
+| ----------- | -------- | --------------------------------------------------------------------------- |
+| User        | 玩家账号 | id, username, nickname, avatar, status, coinBalance, createdAt, lastLoginAt |
+| Wallet      | 余额追踪 | id, userId, balance, frozenBalance                                          |
+| Room        | 游戏房间 | id, name, blindSmall, blindBig, maxPlayers, minBuyIn, password, status      |
+| Table       | 牌桌实例 | id, roomId, state, stateSnapshot, snapshotUpdatedAt                         |
+| Hand        | 单局牌局 | id, tableId, winnerId, potSize, createdAt                                   |
+| HandAction  | 玩家操作 | id, handId, userId, action, amount, createdAt                               |
+| Settlement  | 结算记录 | id, handId, userId, amount, createdAt                                       |
+| Transaction | 资金流水 | id, userId, amount, type, createdAt                                         |
 
 ### 1.3 现有 REST 接口（面向玩家）
 
@@ -69,11 +69,13 @@ apps/
 ```
 
 **优点：**
+
 - 彻底隔离，安全边界最清晰
 - 可以独立部署到内网，不对外暴露
 - 独立的数据库连接池，不影响游戏服务性能
 
 **缺点：**
+
 - 重复维护两套 Prisma schema，数据同步复杂
 - 重复实现 UserService、WalletService 等业务逻辑
 - 冷启动维护成本高，改动 schema 需要同时更新两个后端
@@ -90,6 +92,7 @@ apps/
 ```
 
 **优点：**
+
 - 共享同一套数据库/Prisma/业务服务，无数据同步问题
 - 管理接口统一加 `/admin` 前缀 + `AdminGuard` 隔离权限
 - 独立管理前端可部署到不同域名/端口，天然隔离
@@ -97,6 +100,7 @@ apps/
 - 避免重复代码，维护成本低
 
 **缺点：**
+
 - 管理模块和游戏模块共享同一个 Node 进程（可通过 Docker 多实例解决）
 - 需要严格的 Guard 确保管理接口不被玩家访问
 
@@ -139,6 +143,7 @@ model User {
 ```
 
 `AdminGuard` 校验逻辑：
+
 1. 验证 JWT 合法性（复用现有 JwtStrategy）
 2. 从 token payload 中取 `sub`（userId）
 3. 查数据库确认 `user.role` 为 `ADMIN` 或 `SUPER_ADMIN`
@@ -239,14 +244,14 @@ apps/admin/
 
 ### 4.2 技术选型
 
-| 需求 | 选型 | 理由 |
-|------|------|------|
-| 框架 | Next.js 16（App Router） | 与 `apps/web` 保持一致 |
-| 样式 | Tailwind CSS 4 | 一致性，快速开发 |
-| 图表 | Recharts | React 原生，轻量 |
-| 表格 | TanStack Table | 功能完整，分页/排序/筛选 |
-| 状态 | React 内置 hooks + SWR | 简单轻量，适合管理台 |
-| 图标 | Lucide React | 已在 root 依赖中 |
+| 需求 | 选型                     | 理由                     |
+| ---- | ------------------------ | ------------------------ |
+| 框架 | Next.js 16（App Router） | 与 `apps/web` 保持一致   |
+| 样式 | Tailwind CSS 4           | 一致性，快速开发         |
+| 图表 | Recharts                 | React 原生，轻量         |
+| 表格 | TanStack Table           | 功能完整，分页/排序/筛选 |
+| 状态 | React 内置 hooks + SWR   | 简单轻量，适合管理台     |
+| 图标 | Lucide React             | 已在 root 依赖中         |
 
 ### 4.3 管理台 UI 设计风格
 
@@ -262,11 +267,11 @@ apps/admin/
 
 ### 5.1 角色体系
 
-| 角色 | 说明 | 权限范围 |
-|------|------|---------|
-| PLAYER | 普通玩家 | 玩家端所有功能 |
-| ADMIN | 运营管理员 | 查看数据、管理用户/房间、查看财务 |
-| SUPER_ADMIN | 超级管理员 | 所有权限 + 系统设置 + 创建管理员 |
+| 角色        | 说明       | 权限范围                          |
+| ----------- | ---------- | --------------------------------- |
+| PLAYER      | 普通玩家   | 玩家端所有功能                    |
+| ADMIN       | 运营管理员 | 查看数据、管理用户/房间、查看财务 |
+| SUPER_ADMIN | 超级管理员 | 所有权限 + 系统设置 + 创建管理员  |
 
 ### 5.2 安全措施
 
@@ -295,6 +300,7 @@ model AdminLog {
 ## 六、开发阶段规划
 
 ### Phase 1：基础框架（优先级：高）
+
 - [ ] `User` 模型添加 `role` 字段并迁移数据库
 - [ ] 实现 `AdminGuard` 和管理员鉴权逻辑
 - [ ] 实现用户管理接口（列表、详情、封禁、余额调整）
@@ -302,16 +308,19 @@ model AdminLog {
 - [ ] 管理台登录 + 用户列表页
 
 ### Phase 2：核心功能（优先级：高）
+
 - [ ] 房间管理接口 + 页面
 - [ ] 财务流水接口 + 页面
 - [ ] 用户详情页（包含操作历史）
 - [ ] `AdminLog` 审计日志
 
 ### Phase 3：数据统计（优先级：中）
+
 - [ ] 数据统计接口（概览、趋势、排行）
 - [ ] Dashboard 图表页面
 
 ### Phase 4：系统功能（优先级：低）
+
 - [ ] 系统广播消息
 - [ ] 全局维护模式
 - [ ] 系统状态监控
@@ -320,10 +329,10 @@ model AdminLog {
 
 ## 七、文件变更影响评估
 
-| 文件/模块 | 变更类型 | 影响 |
-|-----------|---------|------|
-| `prisma/schema.prisma` | 新增 `role` 字段 + `AdminLog` 模型 | 需要迁移，不破坏现有数据 |
-| `src/auth/auth.service.ts` | JWT payload 新增 `role` 字段 | 兼容现有 token（旧 token 无 role 字段时 Guard fallback 为 PLAYER） |
-| `src/admin/` | 全新模块，不修改现有代码 | 零影响 |
-| `apps/admin/` | 全新应用 | 零影响 |
-| `turbo.json` | 无需修改，`apps/*` 自动包含 | 零影响 |
+| 文件/模块                  | 变更类型                           | 影响                                                               |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
+| `prisma/schema.prisma`     | 新增 `role` 字段 + `AdminLog` 模型 | 需要迁移，不破坏现有数据                                           |
+| `src/auth/auth.service.ts` | JWT payload 新增 `role` 字段       | 兼容现有 token（旧 token 无 role 字段时 Guard fallback 为 PLAYER） |
+| `src/admin/`               | 全新模块，不修改现有代码           | 零影响                                                             |
+| `apps/admin/`              | 全新应用                           | 零影响                                                             |
+| `turbo.json`               | 无需修改，`apps/*` 自动包含        | 零影响                                                             |

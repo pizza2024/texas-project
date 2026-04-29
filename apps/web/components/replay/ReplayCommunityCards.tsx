@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
 interface ReplayCommunityCardsProps {
   cards: string[];
   stage: string;
 }
 
-function CommunityCard({ card, index, revealed }: { card: string; index: number; revealed: boolean }) {
+function CommunityCard({
+  card,
+  index,
+  revealed,
+}: {
+  card: string;
+  index: number;
+  revealed: boolean;
+}) {
   return (
     <div
       className="relative"
@@ -18,29 +26,39 @@ function CommunityCard({ card, index, revealed }: { card: string; index: number;
         style={{
           width: 48,
           height: 68,
-          background: revealed ? 'white' : 'linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%)',
+          background: revealed
+            ? "white"
+            : "linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%)",
           border: revealed
-            ? '2px solid rgba(0,0,0,0.15)'
-            : '2px solid rgba(245,158,11,0.3)',
+            ? "2px solid rgba(0,0,0,0.15)"
+            : "2px solid rgba(245,158,11,0.3)",
           opacity: revealed ? 1 : 0.3,
-          transform: revealed ? 'scale(1)' : 'scale(0.9)',
+          transform: revealed ? "scale(1)" : "scale(0.9)",
         }}
       >
-        {revealed && card !== '??' ? (
+        {revealed && card !== "??" ? (
           <>
             {(() => {
               const rank = card.slice(0, -1);
               const suit = card.slice(-1);
-              const isRed = suit === 'h' || suit === 'd';
+              const isRed = suit === "h" || suit === "d";
               return (
                 <>
                   <span
                     className="font-black"
-                    style={{ fontSize: 18, color: isRed ? '#dc2626' : '#1e293b' }}
+                    style={{
+                      fontSize: 18,
+                      color: isRed ? "#dc2626" : "#1e293b",
+                    }}
                   >
                     {rank}
                   </span>
-                  <span style={{ fontSize: 16, color: isRed ? '#dc2626' : '#1e293b' }}>
+                  <span
+                    style={{
+                      fontSize: 16,
+                      color: isRed ? "#dc2626" : "#1e293b",
+                    }}
+                  >
                     {suit}
                   </span>
                 </>
@@ -48,23 +66,33 @@ function CommunityCard({ card, index, revealed }: { card: string; index: number;
             })()}
           </>
         ) : (
-          <span style={{ fontSize: 22, color: 'rgba(245,158,11,0.4)' }}>🎴</span>
+          <span style={{ fontSize: 22, color: "rgba(245,158,11,0.4)" }}>
+            🎴
+          </span>
         )}
       </div>
     </div>
   );
 }
 
-export function ReplayCommunityCards({ cards, stage }: ReplayCommunityCardsProps) {
-  const revealedCount = stage === 'SHOWDOWN' ? 5
-    : stage === 'RIVER' ? 5
-    : stage === 'TURN' ? 4
-    : stage === 'FLOP' ? 3
-    : 0;
+export function ReplayCommunityCards({
+  cards,
+  stage,
+}: ReplayCommunityCardsProps) {
+  const revealedCount =
+    stage === "SHOWDOWN"
+      ? 5
+      : stage === "RIVER"
+        ? 5
+        : stage === "TURN"
+          ? 4
+          : stage === "FLOP"
+            ? 3
+            : 0;
 
   // Pad cards to 5
   const padded = [...cards];
-  while (padded.length < 5) padded.push('??');
+  while (padded.length < 5) padded.push("??");
 
   return (
     <div className="flex gap-2 items-center">

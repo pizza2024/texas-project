@@ -1,6 +1,22 @@
-'use client';
+"use client";
 
-const PLAYER_EMOJIS = ['🦁', '🐯', '🦊', '🐼', '🐨', '🦅', '🦋', '🐉', '🦄', '🎩', '👑', '🃏', '🎰', '🎲', '🦈'];
+const PLAYER_EMOJIS = [
+  "🦁",
+  "🐯",
+  "🦊",
+  "🐼",
+  "🐨",
+  "🦅",
+  "🦋",
+  "🐉",
+  "🦄",
+  "🎩",
+  "👑",
+  "🃏",
+  "🎰",
+  "🎲",
+  "🦈",
+];
 
 export function getPlayerEmoji(id: string): string {
   let hash = 0;
@@ -11,9 +27,9 @@ export function getPlayerEmoji(id: string): string {
 }
 
 const API_BASE =
-  typeof process !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000')
-    : 'http://localhost:4000';
+  typeof process !== "undefined"
+    ? (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000")
+    : "http://localhost:4000";
 
 interface UserAvatarProps {
   /** DB user id — used for emoji fallback hash */
@@ -39,7 +55,7 @@ export function UserAvatar({
   userId,
   avatar,
   size = 44,
-  className = '',
+  className = "",
   style,
   onClick,
 }: UserAvatarProps) {
@@ -60,20 +76,22 @@ export function UserAvatar({
           className="w-full h-full object-cover"
           onError={(e) => {
             const img = e.target as HTMLImageElement;
-            img.style.display = 'none';
+            img.style.display = "none";
             const parent = img.parentElement;
             if (parent && !parent.dataset.emojiShown) {
-              parent.dataset.emojiShown = '1';
-              const span = document.createElement('span');
+              parent.dataset.emojiShown = "1";
+              const span = document.createElement("span");
               span.textContent = emoji;
               span.style.fontSize = `${Math.round(size * 0.52)}px`;
-              span.style.lineHeight = '1';
+              span.style.lineHeight = "1";
               parent.appendChild(span);
             }
           }}
         />
       ) : (
-        <span style={{ fontSize: Math.round(size * 0.52), lineHeight: 1 }}>{emoji}</span>
+        <span style={{ fontSize: Math.round(size * 0.52), lineHeight: 1 }}>
+          {emoji}
+        </span>
       )}
     </div>
   );

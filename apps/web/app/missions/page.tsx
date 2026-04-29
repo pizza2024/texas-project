@@ -20,7 +20,7 @@ interface Mission {
   key: string;
   title: string;
   description: string;
-  type: 'ONE_TIME' | 'DAILY' | 'WEEKLY';
+  type: "ONE_TIME" | "DAILY" | "WEEKLY";
   rewardChips: number;
   target: number;
   progress: number;
@@ -145,10 +145,7 @@ function MissionCard({
             border: `1px solid ${cfg.border}`,
           }}
         >
-          <span
-            className="text-base font-bold"
-            style={{ color: cfg.color }}
-          >
+          <span className="text-base font-bold" style={{ color: cfg.color }}>
             {formatChips(mission.rewardChips)}
           </span>
           <span
@@ -163,10 +160,7 @@ function MissionCard({
       {/* Progress bar */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span
-            className="text-xs"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >
+          <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
             {t("missions.progress")}
           </span>
           <span
@@ -338,10 +332,7 @@ export default function MissionsPage() {
       >
         {label}
       </span>
-      <div
-        className="flex-1 h-px"
-        style={{ background: `${color}33` }}
-      />
+      <div className="flex-1 h-px" style={{ background: `${color}33` }} />
     </div>
   );
 
@@ -394,8 +385,7 @@ export default function MissionsPage() {
                   ? "rgba(34,197,94,0.3)"
                   : "rgba(248,113,113,0.3)"
               }`,
-              color:
-                claimMessage.type === "success" ? "#4ade80" : "#f87171",
+              color: claimMessage.type === "success" ? "#4ade80" : "#f87171",
             }}
           >
             {claimMessage.text}
@@ -406,12 +396,12 @@ export default function MissionsPage() {
           <div className="flex flex-col items-center justify-center py-24 space-y-3">
             <div
               className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: "rgba(245,158,11,0.3)", borderTopColor: "transparent" }}
+              style={{
+                borderColor: "rgba(245,158,11,0.3)",
+                borderTopColor: "transparent",
+              }}
             />
-            <span
-              className="text-sm"
-              style={{ color: "rgba(245,158,11,0.6)" }}
-            >
+            <span className="text-sm" style={{ color: "rgba(245,158,11,0.6)" }}>
               {t("common.loading")}
             </span>
           </div>

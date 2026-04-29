@@ -3,14 +3,16 @@
 本项目测试环境部署基线已切换为 Docker Compose。
 
 请使用以下文件作为唯一上线依据：
+
 - DEPLOYMENT_PLAN.md
 - docker-compose.yml
 - docker/Dockerfile.app
 - docker/.env.staging.example
 
 本文件保留仅用于历史参考，不再维护。
-   - 数据库索引优化
-   - Redis 缓存策略
+
+- 数据库索引优化
+- Redis 缓存策略
 
 ---
 

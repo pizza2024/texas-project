@@ -1,14 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import AdminLayout from '@/components/layout/admin-layout';
-import StatCard from '@/components/ui/stat-card';
-import { getOverview, getRevenue, getUserGrowth } from '@/lib/api';
+import { useEffect, useState } from "react";
+import AdminLayout from "@/components/layout/admin-layout";
+import StatCard from "@/components/ui/stat-card";
+import { getOverview, getRevenue, getUserGrowth } from "@/lib/api";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, AreaChart, Area,
-} from 'recharts';
-import type { OverviewStats, RevenueItem, GrowthItem } from '@/lib/types';
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
+import type { OverviewStats, RevenueItem, GrowthItem } from "@/lib/types";
 
 export default function DashboardPage() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
@@ -17,10 +24,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getOverview(), getRevenue('day', 14), getUserGrowth(14)])
+    Promise.all([getOverview(), getRevenue("day", 14), getUserGrowth(14)])
       .then(([ov, rev, gr]) => {
         setOverview(ov);
-        setRevenue(rev.map((r: RevenueItem) => ({ ...r, date: r.date.slice(5) })));
+        setRevenue(
+          rev.map((r: RevenueItem) => ({ ...r, date: r.date.slice(5) })),
+        );
         setGrowth(gr.map((g: GrowthItem) => ({ ...g, date: g.date.slice(5) })));
       })
       .finally(() => setLoading(false));
@@ -29,7 +38,9 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-4 sm:p-6 lg:p-8 text-slate-400 text-sm">加载中...</div>
+        <div className="p-4 sm:p-6 lg:p-8 text-slate-400 text-sm">
+          加载中...
+        </div>
       </AdminLayout>
     );
   }
@@ -41,10 +52,30 @@ export default function DashboardPage() {
 
         {/* Stat cards — 2 cols on mobile, 4 cols on sm+ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard title="总用户数" value={overview?.totalUsers ?? 0} icon="👥" color="blue" />
-          <StatCard title="活跃房间" value={overview?.activeRooms ?? 0} icon="🏠" color="green" />
-          <StatCard title="总牌局数" value={overview?.totalHands ?? 0} icon="🃏" color="purple" />
-          <StatCard title="今日流水" value={`¥${(overview?.todayFlow ?? 0).toLocaleString()}`} icon="💰" color="yellow" />
+          <StatCard
+            title="总用户数"
+            value={overview?.totalUsers ?? 0}
+            icon="👥"
+            color="blue"
+          />
+          <StatCard
+            title="活跃房间"
+            value={overview?.activeRooms ?? 0}
+            icon="🏠"
+            color="green"
+          />
+          <StatCard
+            title="总牌局数"
+            value={overview?.totalHands ?? 0}
+            icon="🃏"
+            color="purple"
+          />
+          <StatCard
+            title="今日流水"
+            value={`¥${(overview?.todayFlow ?? 0).toLocaleString()}`}
+            icon="💰"
+            color="yellow"
+          />
         </div>
 
         {/* Charts */}
@@ -60,12 +91,26 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2535" />
-                <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ background: '#161b27', border: '1px solid #1e2535', borderRadius: 8, color: '#e2e8f0' }}
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#64748b", fontSize: 11 }}
                 />
-                <Area type="monotone" dataKey="amount" stroke="#6366f1" fill="url(#colorRev)" strokeWidth={2} />
+                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#161b27",
+                    border: "1px solid #1e2535",
+                    borderRadius: 8,
+                    color: "#e2e8f0",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#6366f1"
+                  fill="url(#colorRev)"
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -75,12 +120,26 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={growth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2535" />
-                <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ background: '#161b27', border: '1px solid #1e2535', borderRadius: 8, color: '#e2e8f0' }}
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#64748b", fontSize: 11 }}
                 />
-                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} />
+                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#161b27",
+                    border: "1px solid #1e2535",
+                    borderRadius: 8,
+                    color: "#e2e8f0",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ fill: "#10b981", r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

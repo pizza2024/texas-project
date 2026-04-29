@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const JoinRoomSchema = z.object({
   roomId: z.string().min(1),
@@ -6,18 +6,26 @@ export const JoinRoomSchema = z.object({
 });
 
 export const PlayerActionSchema = z.object({
-  action: z.enum(['check', 'fold', 'call', 'raise', 'allin', 'straddle', 'sit-out']),
+  action: z.enum([
+    "check",
+    "fold",
+    "call",
+    "raise",
+    "allin",
+    "straddle",
+    "sit-out",
+  ]),
   amount: z.number().int().optional(),
   roomId: z.string().min(1).optional(), // Optional - can be derived from user's current room
 });
 
 export const QuickMatchSchema = z.object({
-  tier: z.enum(['MICRO', 'LOW', 'MEDIUM', 'HIGH', 'PREMIUM']),
+  tier: z.enum(["MICRO", "LOW", "MEDIUM", "HIGH", "PREMIUM"]),
 });
 
 /** 5 allowed emoji reactions */
 export const EmojiReactionSchema = z.object({
-  emoji: z.enum(['👍', '❤️', '😂', '😮', '🔥']),
+  emoji: z.enum(["👍", "❤️", "😂", "😮", "🔥"]),
 });
 
 export type JoinRoomInput = z.infer<typeof JoinRoomSchema>;

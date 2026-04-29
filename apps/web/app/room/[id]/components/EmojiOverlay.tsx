@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
+import { useCallback } from "react";
 
 export interface EmojiFlight {
   id: string;
@@ -12,7 +12,10 @@ export interface EmojiFlight {
 }
 
 /** Position each emoji just above the avatar ring for a given seat index. */
-export function getEmojiSeatPosition(seatIndex: number): { top: number; left: number } {
+export function getEmojiSeatPosition(seatIndex: number): {
+  top: number;
+  left: number;
+} {
   const angle = (seatIndex / 9) * 2 * Math.PI;
   const radius = 42;
   return {
@@ -61,7 +64,12 @@ interface EmojiFlightElementProps {
   onAnimationEnd: (id: string) => void;
 }
 
-function EmojiFlightElement({ flight, top, left, onAnimationEnd }: EmojiFlightElementProps) {
+function EmojiFlightElement({
+  flight,
+  top,
+  left,
+  onAnimationEnd,
+}: EmojiFlightElementProps) {
   const duration = EMOJI_ANIMATION_DURATION + (flight.delay ?? 0);
 
   return (
@@ -77,7 +85,7 @@ function EmojiFlightElement({ flight, top, left, onAnimationEnd }: EmojiFlightEl
       <span
         className="text-3xl select-none block"
         style={{
-          filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
+          filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
           animation: `emojiPopIn 200ms ease-out ${flight.delay ?? 0}ms both`,
         }}
       >

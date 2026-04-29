@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 export interface SystemMessageOptions {
   title?: string;
@@ -10,10 +10,12 @@ interface QueuedSystemMessage extends SystemMessageOptions {
   resolve: () => void;
 }
 
-const EVENT_NAME = 'texas-system-message';
+const EVENT_NAME = "texas-system-message";
 
-export function showSystemMessage(options: SystemMessageOptions): Promise<void> {
-  if (typeof window === 'undefined') {
+export function showSystemMessage(
+  options: SystemMessageOptions,
+): Promise<void> {
+  if (typeof window === "undefined") {
     return Promise.resolve();
   }
 
@@ -32,7 +34,7 @@ export function showSystemMessage(options: SystemMessageOptions): Promise<void> 
 export function subscribeSystemMessage(
   listener: (message: QueuedSystemMessage) => void,
 ) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return () => undefined;
   }
 
@@ -62,10 +64,12 @@ interface QueuedConfirmMessage extends ConfirmMessageOptions {
   resolve: (confirmed: boolean) => void;
 }
 
-const CONFIRM_EVENT_NAME = 'texas-confirm-message';
+const CONFIRM_EVENT_NAME = "texas-confirm-message";
 
-export function showConfirmMessage(options: ConfirmMessageOptions): Promise<boolean> {
-  if (typeof window === 'undefined') {
+export function showConfirmMessage(
+  options: ConfirmMessageOptions,
+): Promise<boolean> {
+  if (typeof window === "undefined") {
     return Promise.resolve(false);
   }
 
@@ -81,7 +85,7 @@ export function showConfirmMessage(options: ConfirmMessageOptions): Promise<bool
 export function subscribeConfirmMessage(
   listener: (message: QueuedConfirmMessage) => void,
 ) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return () => undefined;
   }
 

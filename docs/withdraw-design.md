@@ -32,12 +32,12 @@ model WithdrawRequest {
 
 ### Enum-like Status Values
 
-| Status | Description |
-|--------|-------------|
-| `PENDING` | Created, awaiting admin/system processing |
-| `PROCESSING` | Chain transaction submitted |
-| `CONFIRMED` | Chain transaction confirmed (1 block) |
-| `FAILED` | Chain tx failed or rejected; chips returned |
+| Status       | Description                                 |
+| ------------ | ------------------------------------------- |
+| `PENDING`    | Created, awaiting admin/system processing   |
+| `PROCESSING` | Chain transaction submitted                 |
+| `CONFIRMED`  | Chain transaction confirmed (1 block)       |
+| `FAILED`     | Chain tx failed or rejected; chips returned |
 
 ### Indexes
 
@@ -50,15 +50,15 @@ model WithdrawRequest {
 
 ## 2. Business Constants
 
-| Constant | Value |
-|----------|-------|
-| `USDT_TO_CHIPS_RATE` | `100` (1 USDT = 100 chips) |
-| `CHIPS_TO_USDT_RATE` | `0.01` (1 chip = 0.01 USDT) |
-| `MIN_WITHDRAW_CHIPS` | `1000` (minimum = 10 USDT) |
-| `MIN_WITHDRAW_USDT` | `10` |
-| `WITHDRAW_COOLDOWN_MS` | `60_000` (60 seconds) |
-| `CONFIRMATION_BLOCKS` | `1` (wait for 1 block) |
-| `POLL_INTERVAL_MS` | `5_000` (poll every 5s for confirmation) |
+| Constant               | Value                                    |
+| ---------------------- | ---------------------------------------- |
+| `USDT_TO_CHIPS_RATE`   | `100` (1 USDT = 100 chips)               |
+| `CHIPS_TO_USDT_RATE`   | `0.01` (1 chip = 0.01 USDT)              |
+| `MIN_WITHDRAW_CHIPS`   | `1000` (minimum = 10 USDT)               |
+| `MIN_WITHDRAW_USDT`    | `10`                                     |
+| `WITHDRAW_COOLDOWN_MS` | `60_000` (60 seconds)                    |
+| `CONFIRMATION_BLOCKS`  | `1` (wait for 1 block)                   |
+| `POLL_INTERVAL_MS`     | `5_000` (poll every 5s for confirmation) |
 
 ---
 
@@ -67,17 +67,20 @@ model WithdrawRequest {
 ### User Endpoints
 
 #### `POST /withdraw/create`
+
 Create a new withdraw request.
 
 **Request Body:**
+
 ```json
 {
-  "toAddress": "0x...",  // Valid ETH address
-  "amountChips": 5000     // Number of chips to withdraw
+  "toAddress": "0x...", // Valid ETH address
+  "amountChips": 5000 // Number of chips to withdraw
 }
 ```
 
 **Response (201):**
+
 ```json
 {
   "id": "uuid",
@@ -90,6 +93,7 @@ Create a new withdraw request.
 ```
 
 **Error Cases:**
+
 - `400` - Invalid ETH address format
 - `400` - Amount below minimum (1000 chips)
 - `400` - Insufficient available balance
@@ -98,9 +102,11 @@ Create a new withdraw request.
 ---
 
 #### `GET /withdraw/status/:id`
+
 Query withdraw status by ID.
 
 **Response (200):**
+
 ```json
 {
   "id": "uuid",
@@ -117,11 +123,13 @@ Query withdraw status by ID.
 ---
 
 #### `GET /withdraw/history`
+
 Get current user's withdraw history (paginated).
 
 **Query Params:** `page=1&limit=20`
 
 **Response (200):**
+
 ```json
 {
   "data": [
@@ -145,9 +153,11 @@ Get current user's withdraw history (paginated).
 ---
 
 #### `GET /withdraw/balance`
+
 Get current user's available chip balance (for withdraw).
 
 **Response (200):**
+
 ```json
 {
   "availableChips": 15000,
@@ -160,9 +170,11 @@ Get current user's available chip balance (for withdraw).
 ---
 
 #### `GET /withdraw/cooldown`
+
 Get remaining cooldown time.
 
 **Response (200):**
+
 ```json
 {
   "remainingMs": 30000,
@@ -175,11 +187,13 @@ Get remaining cooldown time.
 ### Admin Endpoints
 
 #### `GET /admin/withdraw/requests`
+
 List all withdraw requests (paginated, filterable).
 
 **Query Params:** `page=1&limit=20&status=PENDING&userId=uuid`
 
 **Response (200):**
+
 ```json
 {
   "data": [
@@ -204,6 +218,7 @@ List all withdraw requests (paginated, filterable).
 ---
 
 #### `GET /admin/withdraw/:id`
+
 Get withdraw request details.
 
 **Response (200):** Full withdraw request with user info.
@@ -211,9 +226,11 @@ Get withdraw request details.
 ---
 
 #### `PATCH /admin/withdraw/:id/process`
+
 Process (execute) a pending withdraw request.
 
 **Request Body:**
+
 ```json
 {
   "action": "APPROVE" | "REJECT",
@@ -222,6 +239,7 @@ Process (execute) a pending withdraw request.
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": "uuid",
@@ -240,37 +258,49 @@ Process (execute) a pending withdraw request.
 ```typescript
 class WithdrawService {
   // Create withdraw request (validates, deducts chips immediately)
-  createWithdraw(userId: string, dto: CreateWithdrawDto): Promise<WithdrawRequest>
+  createWithdraw(
+    userId: string,
+    dto: CreateWithdrawDto,
+  ): Promise<WithdrawRequest>;
 
   // Get withdraw status
-  getWithdrawStatus(id: string, userId: string): Promise<WithdrawRequest>
+  getWithdrawStatus(id: string, userId: string): Promise<WithdrawRequest>;
 
   // Get user withdraw history
-  getWithdrawHistory(userId: string, page: number, limit: number): Promise<PaginatedResult>
+  getWithdrawHistory(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResult>;
 
   // Get available balance for withdraw
-  getAvailableBalance(userId: string): Promise<WithdrawBalanceDto>
+  getAvailableBalance(userId: string): Promise<WithdrawBalanceDto>;
 
   // Check cooldown
-  getCooldownRemaining(userId: string): Promise<CooldownDto>
+  getCooldownRemaining(userId: string): Promise<CooldownDto>;
 
   // Admin: list all requests
-  listRequests(query: ListWithdrawQuery): Promise<PaginatedResult>
+  listRequests(query: ListWithdrawQuery): Promise<PaginatedResult>;
 
   // Admin: get single request
-  getRequestById(id: string): Promise<WithdrawRequest>
+  getRequestById(id: string): Promise<WithdrawRequest>;
 
   // Admin: process withdraw (approve/reject)
-  processWithdraw(id: string, adminId: string, action: string, reason?: string): Promise<WithdrawRequest>
+  processWithdraw(
+    id: string,
+    adminId: string,
+    action: string,
+    reason?: string,
+  ): Promise<WithdrawRequest>;
 
   // Internal: execute chain transfer (called after PROCESSING)
-  executeChainWithdraw(request: WithdrawRequest): Promise<string> // returns txHash
+  executeChainWithdraw(request: WithdrawRequest): Promise<string>; // returns txHash
 
   // Internal: poll for confirmation
-  pollWithdrawConfirmation(requestId: string): Promise<void>
+  pollWithdrawConfirmation(requestId: string): Promise<void>;
 
   // Internal: handle chain failure
-  handleWithdrawFailure(requestId: string, reason: string): Promise<void>
+  handleWithdrawFailure(requestId: string, reason: string): Promise<void>;
 }
 ```
 
@@ -284,7 +314,7 @@ PENDING ──(admin APPROVE)──→ PROCESSING ──(tx confirmed)──→ 
 
 ### Chain Interaction
 
-- Use `ethers.Contract` with `USDT.transfer(to, amountInUnits)` 
+- Use `ethers.Contract` with `USDT.transfer(to, amountInUnits)`
 - Owner wallet: `HDNodeWallet.fromMnemonic(mnemonic, "m/44'/60'/0'/0/0")`
 - Provider: `ethers.JsonRpcProvider(process.env.ETH_RPC_URL)`
 - USDT contract: `process.env.USDT_CONTRACT_ADDRESS`
@@ -303,12 +333,14 @@ Use in-memory `Map<string, number>` (userId → timestamp) — same pattern as `
 **Layout:** Mirrors the `/deposit` page structure.
 
 **Components:**
+
 1. **BalanceCard** - Shows available chips, min withdraw info
 2. **WithdrawForm** - Address input + amount input + submit
 3. **CooldownTimer** - 60-second countdown after last withdraw
 4. **HistoryTable** - Paginated withdraw history
 
 **WithdrawForm States:**
+
 - `idle` - Ready to submit
 - `cooldown` - Shows countdown timer, submit disabled
 - `submitting` - Loading state
@@ -316,6 +348,7 @@ Use in-memory `Map<string, number>` (userId → timestamp) — same pattern as `
 - `error` - Shows error message
 
 **Form Validation:**
+
 - ETH address: regex `^0x[a-fA-F0-9]{40}$`
 - Amount: integer, >= 1000 chips
 - Balance check (client-side for UX, server-side for security)
@@ -325,6 +358,7 @@ Use in-memory `Map<string, number>` (userId → timestamp) — same pattern as `
 ### `/admin/withdraw` Page
 
 **Components:**
+
 1. **WithdrawTable** - Paginated, filterable by status
 2. **WithdrawDetailModal** - Shows full request details
 3. **ProcessActions** - Approve/Reject buttons for PENDING requests

@@ -1,15 +1,19 @@
-import { getTokenPayload, getTokenExpiryTime, isTokenExpired } from '@texas/shared';
-import { disconnectSocket } from './socket';
-import { showSystemMessage } from './system-message';
+import {
+  getTokenPayload,
+  getTokenExpiryTime,
+  isTokenExpired,
+} from "@texas/shared";
+import { disconnectSocket } from "./socket";
+import { showSystemMessage } from "./system-message";
 
 export { getTokenPayload, getTokenExpiryTime, isTokenExpired };
 
-const TOKEN_STORAGE_KEY = 'token';
-const POST_LOGIN_REDIRECT_KEY = 'post-login-redirect';
-const AUTH_EXPIRED_LOCK_KEY = 'auth-expired-lock';
+const TOKEN_STORAGE_KEY = "token";
+const POST_LOGIN_REDIRECT_KEY = "post-login-redirect";
+const AUTH_EXPIRED_LOCK_KEY = "auth-expired-lock";
 
 export function getStoredToken() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -17,7 +21,7 @@ export function getStoredToken() {
 }
 
 export function clearStoredToken() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -25,7 +29,7 @@ export function clearStoredToken() {
 }
 
 export function rememberPostLoginRedirect(path: string) {
-  if (typeof window === 'undefined' || !path.startsWith('/room/')) {
+  if (typeof window === "undefined" || !path.startsWith("/room/")) {
     return;
   }
 
@@ -33,7 +37,7 @@ export function rememberPostLoginRedirect(path: string) {
 }
 
 export function consumePostLoginRedirect() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -50,15 +54,15 @@ export async function handleExpiredSession(options?: {
   redirectTo?: string;
   returnTo?: string;
 }) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
-  if (sessionStorage.getItem(AUTH_EXPIRED_LOCK_KEY) === '1') {
+  if (sessionStorage.getItem(AUTH_EXPIRED_LOCK_KEY) === "1") {
     return;
   }
 
-  sessionStorage.setItem(AUTH_EXPIRED_LOCK_KEY, '1');
+  sessionStorage.setItem(AUTH_EXPIRED_LOCK_KEY, "1");
 
   if (options?.returnTo) {
     rememberPostLoginRedirect(options.returnTo);
@@ -69,18 +73,18 @@ export async function handleExpiredSession(options?: {
 
   if (options?.alertMessage) {
     await showSystemMessage({
-      title: '登录已过期',
+      title: "登录已过期",
       message: options.alertMessage,
-      confirmText: '重新登录',
+      confirmText: "重新登录",
     });
   }
 
-  const redirectTo = options?.redirectTo ?? '/login';
+  const redirectTo = options?.redirectTo ?? "/login";
   window.location.replace(redirectTo);
 }
 
 export function clearAuthExpiredLock() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 

@@ -31,7 +31,10 @@ export function CreateBlastDialog({
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const { data } = await api.post<BlastLobby>("/rooms/blast", { buyin, password: password || undefined });
+      const { data } = await api.post<BlastLobby>("/rooms/blast", {
+        buyin,
+        password: password || undefined,
+      });
       setCreatedLobby(data);
       onCreated(data);
       // Auto-close after a brief delay

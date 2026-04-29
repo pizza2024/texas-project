@@ -1,6 +1,7 @@
 # 子代理协作工作区
 
 ## 目录结构
+
 ```
 .agent-work/
 ├── shared/              # 共享信息（三个代理都能读写）
@@ -49,17 +50,20 @@
 ## 代理职责
 
 ### Productor（产品代理）
+
 - 体验项目，记录产品问题
 - 调研竞品，输出产品分析
 - 写 `shared/producer-latest.md`
 
 ### Test（测试代理）
+
 - CodeReview 代码
 - 体验项目，记录测试问题
 - 更新 `shared/task-queue.md`（按 P0/P1/P2 排序）
 - 写 `shared/test-latest.md`
 
 ### Coding（编码代理）
+
 - 优先读取 `task-queue.md`
 - 处理 P0 > P1 > P2 任务
 - 执行代码优化
@@ -67,6 +71,7 @@
 - 写报告记录工作
 
 ## 定时任务 ID
+
 - `productor-agent`: 每15分钟
 - `test-agent`: 每15分钟
 - `coding-agent`: 每15分钟

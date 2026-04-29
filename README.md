@@ -20,14 +20,14 @@ This is a Turborepo monorepo containing:
 ## Recommended Flow
 
 1. Local validation first:
-	- `npm run docker:local:up`
-	- verify `http://localhost:3000`, `http://localhost:3001`, `http://localhost:4000/health`
-	- `npm run docker:local:down`
+   - `npm run docker:local:up`
+   - verify `http://localhost:3000`, `http://localhost:3001`, `http://localhost:4000/health`
+   - `npm run docker:local:down`
 
 2. Then deploy to staging/Lightsail:
-	- `npm run docker:staging:up`
-	- verify `https://api.not-replaced-yet.com/health`
-	- smoke test login, room list/create/join, websocket events
+   - `npm run docker:staging:up`
+   - verify `https://api.not-replaced-yet.com/health`
+   - smoke test login, room list/create/join, websocket events
 
 ## Deployment Docs
 

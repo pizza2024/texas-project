@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
-import '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { UserDropdown } from './user-dropdown';
+import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { UserDropdown } from "./user-dropdown";
 
 interface LobbyHeaderProps {
   nickname: string;
@@ -26,7 +26,7 @@ export function LobbyHeader({
   return (
     <header
       className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6"
-      style={{ borderBottom: '1px solid rgba(234,179,8,0.15)' }}
+      style={{ borderBottom: "1px solid rgba(234,179,8,0.15)" }}
     >
       <div>
         <div className="flex items-center gap-3 mb-1">
@@ -35,148 +35,153 @@ export function LobbyHeader({
             className="text-3xl font-black tracking-[0.08em] uppercase"
             style={{
               background:
-                'linear-gradient(135deg, #d97706 0%, #fcd34d 45%, #d97706 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+                "linear-gradient(135deg, #d97706 0%, #fcd34d 45%, #d97706 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
             }}
           >
-            {t('lobby.title')}
+            {t("lobby.title")}
           </h1>
         </div>
         <p
           className="text-[10px] tracking-[0.3em] uppercase"
-          style={{ color: 'rgba(245,158,11,0.45)' }}
+          style={{ color: "rgba(245,158,11,0.45)" }}
         >
-          {t('lobby.subtitle')}
+          {t("lobby.subtitle")}
         </p>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Quick Match button */}
         <Button
-          onClick={() => {/* passed via prop */}}
+          onClick={() => {
+            /* passed via prop */
+          }}
           className="font-bold tracking-widest text-xs uppercase h-10 px-3 sm:px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #065f46 0%, #047857 40%, #10b981 100%)',
-            color: '#ecfdf5',
-            border: 'none',
+              "linear-gradient(135deg, #065f46 0%, #047857 40%, #10b981 100%)",
+            color: "#ecfdf5",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(16,185,129,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(16,185,129,0.2), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          ⚡ <span className="hidden sm:inline">{t('lobby.quickMatchBtn')}</span>
+          ⚡{" "}
+          <span className="hidden sm:inline">{t("lobby.quickMatchBtn")}</span>
         </Button>
 
         {/* Create Table button */}
         <Button
-          onClick={() => {/* passed via prop */}}
+          onClick={() => {
+            /* passed via prop */
+          }}
           className="font-bold tracking-widest text-xs uppercase h-10 px-3 sm:px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
-            color: '#000',
-            border: 'none',
+              "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
+            color: "#000",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(245,158,11,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(245,158,11,0.2), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          <span className="hidden sm:inline">{t('lobby.createTable')}</span>
+          <span className="hidden sm:inline">{t("lobby.createTable")}</span>
           <span className="sm:hidden">+ Table</span>
         </Button>
 
         {/* Deposit button — sm+ only */}
         <Button
-          onClick={() => router.push('/deposit')}
+          onClick={() => router.push("/deposit")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #064e3b 0%, #065f46 40%, #4ade80 100%)',
-            color: '#ecfdf5',
-            border: 'none',
+              "linear-gradient(135deg, #064e3b 0%, #065f46 40%, #4ade80 100%)",
+            color: "#ecfdf5",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(74,222,128,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(74,222,128,0.2), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          💰 {t('common.deposit')}
+          💰 {t("common.deposit")}
         </Button>
 
         {/* Withdraw button — sm+ only */}
         <Button
-          onClick={() => router.push('/withdraw')}
+          onClick={() => router.push("/withdraw")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-5 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #3b0a0a 0%, #5f1111 40%, #dc2626 100%)',
-            color: '#fecaca',
-            border: 'none',
+              "linear-gradient(135deg, #3b0a0a 0%, #5f1111 40%, #dc2626 100%)",
+            color: "#fecaca",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(220,38,38,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(220,38,38,0.2), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          💸 {t('common.withdraw')}
+          💸 {t("common.withdraw")}
         </Button>
 
         {/* Rakeback button — sm+ only */}
         <Button
-          onClick={() => router.push('/rakeback')}
+          onClick={() => router.push("/rakeback")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #1c1a10 0%, #2d2405 40%, #a16207 100%)',
-            color: '#fef3c7',
-            border: 'none',
+              "linear-gradient(135deg, #1c1a10 0%, #2d2405 40%, #a16207 100%)",
+            color: "#fef3c7",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(234,179,8,0.15), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(234,179,8,0.15), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          🎁 {t('rakeback.navButton', 'Rakeback')}
+          🎁 {t("rakeback.navButton", "Rakeback")}
         </Button>
 
         {/* Friends button — sm+ only */}
         <Button
-          onClick={() => router.push('/friends')}
+          onClick={() => router.push("/friends")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #0c2d3d 0%, #0e3d52 40%, #38bdf8 100%)',
-            color: '#e0f2fe',
-            border: 'none',
+              "linear-gradient(135deg, #0c2d3d 0%, #0e3d52 40%, #38bdf8 100%)",
+            color: "#e0f2fe",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(56,189,248,0.15), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(56,189,248,0.15), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          👥 {t('friends.title')}
+          👥 {t("friends.title")}
         </Button>
 
         {/* Clubs button — sm+ only */}
         <Button
-          onClick={() => router.push('/club')}
+          onClick={() => router.push("/club")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #78350f 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)',
-            color: '#fff',
-            border: 'none',
+              "linear-gradient(135deg, #78350f 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
+            color: "#fff",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(217,119,6,0.15), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(217,119,6,0.15), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
-          🏠 {t('club.title', 'Clubs')}
+          🏠 {t("club.title", "Clubs")}
         </Button>
 
         {/* Tournament Schedule button — sm+ only */}
         <Button
-          onClick={() => router.push('/schedule')}
+          onClick={() => router.push("/schedule")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #1c0533 0%, #3b0764 40%, #7c3aed 100%)',
-            color: '#f3e8ff',
-            border: 'none',
+              "linear-gradient(135deg, #1c0533 0%, #3b0764 40%, #7c3aed 100%)",
+            color: "#f3e8ff",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(124,58,237,0.2), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(124,58,237,0.2), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
           🏆 Tournament
@@ -184,15 +189,15 @@ export function LobbyHeader({
 
         {/* Blast button — sm+ only */}
         <Button
-          onClick={() => router.push('/blast')}
+          onClick={() => router.push("/blast")}
           className="hidden sm:flex font-bold tracking-widest text-xs uppercase h-10 px-4 rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98]"
           style={{
             background:
-              'linear-gradient(135deg, #7c2d12 0%, #c2410c 40%, #f97316 100%)',
-            color: '#fff',
-            border: 'none',
+              "linear-gradient(135deg, #7c2d12 0%, #c2410c 40%, #f97316 100%)",
+            color: "#fff",
+            border: "none",
             boxShadow:
-              '0 0 20px rgba(249,115,22,0.3), 0 4px 10px rgba(0,0,0,0.4)',
+              "0 0 20px rgba(249,115,22,0.3), 0 4px 10px rgba(0,0,0,0.4)",
           }}
         >
           💥 BLAST

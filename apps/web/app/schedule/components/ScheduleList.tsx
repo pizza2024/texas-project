@@ -49,7 +49,10 @@ export function ScheduleList({ registeredOnly = false }: ScheduleListProps) {
       <div className="flex justify-center items-center py-20">
         <div
           className="w-10 h-10 border-2 border-t-green-500 rounded-full animate-spin"
-          style={{ borderColor: "rgba(34,197,94,0.2)", borderTopColor: "#22c55e" }}
+          style={{
+            borderColor: "rgba(34,197,94,0.2)",
+            borderTopColor: "#22c55e",
+          }}
         />
       </div>
     );

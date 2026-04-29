@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import '@/lib/i18n';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 interface PasswordDialogProps {
   roomName: string;
@@ -58,10 +58,7 @@ export function PasswordDialog({
             </h2>
           </div>
         </div>
-        <p
-          className="text-sm mb-4"
-          style={{ color: "rgba(229,231,235,0.7)" }}
-        >
+        <p className="text-sm mb-4" style={{ color: "rgba(229,231,235,0.7)" }}>
           {t("lobby.passwordDialog.hint")}
         </p>
         <div className="space-y-3">

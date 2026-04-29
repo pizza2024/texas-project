@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useTranslation } from 'react-i18next';
-import { Player, getSeatPosition } from './types';
-import { CardDisplay } from './CardDisplay';
-import { UserAvatar } from '@/components/user-avatar';
+import { useTranslation } from "react-i18next";
+import { Player, getSeatPosition } from "./types";
+import { CardDisplay } from "./CardDisplay";
+import { UserAvatar } from "@/components/user-avatar";
 
 interface PlayerSeatProps {
   player: Player;
@@ -17,7 +17,7 @@ interface PlayerSeatProps {
   winnerBestCardsMap: Map<string, Set<string>>;
   winnerHighlightPlayerIds: Set<string>;
   loserHighlightPlayerIds: Set<string>;
-  table: import('./types').TableState;
+  table: import("./types").TableState;
   getDealAnimationStyle: (slotKey: string) => React.CSSProperties | undefined;
   isAnonymous?: boolean;
 }
@@ -40,7 +40,7 @@ export function PlayerSeat({
   const { t } = useTranslation();
   const { top, left } = getSeatPosition(seatIndex);
   const isMe = player.id === myUserId;
-  const isFolded = player.status === 'FOLD';
+  const isFolded = player.status === "FOLD";
   const isWinnerHighlighted = winnerHighlightPlayerIds.has(player.id);
   const isLoserHighlighted = loserHighlightPlayerIds.has(player.id);
 
@@ -55,12 +55,12 @@ export function PlayerSeat({
         <div
           className="mb-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest uppercase"
           style={{
-            background: 'rgba(14,165,233,0.18)',
-            border: '1px solid rgba(125,211,252,0.55)',
-            color: 'rgba(186,230,253,0.95)',
+            background: "rgba(14,165,233,0.18)",
+            border: "1px solid rgba(125,211,252,0.55)",
+            color: "rgba(186,230,253,0.95)",
           }}
         >
-          {t('room.youLabel')}
+          {t("room.youLabel")}
         </div>
       )}
 
@@ -68,8 +68,14 @@ export function PlayerSeat({
       {player.cards.length > 0 && (
         <div className="flex gap-1 mb-1">
           {player.cards.map((c, ci) => (
-            <div key={ci} style={getDealAnimationStyle(`player-${seatIndex}-card-${ci}`)}>
-              <CardDisplay card={c} highlight={winnerBestCardsMap.get(player.id)?.has(c)} />
+            <div
+              key={ci}
+              style={getDealAnimationStyle(`player-${seatIndex}-card-${ci}`)}
+            >
+              <CardDisplay
+                card={c}
+                highlight={winnerBestCardsMap.get(player.id)?.has(c)}
+              />
             </div>
           ))}
         </div>
@@ -77,14 +83,14 @@ export function PlayerSeat({
 
       {/* Avatar circle */}
       <div
-        className={`relative transition-all duration-300 ${isWinnerHighlighted ? 'winner-avatar-highlight' : ''} ${isLoserHighlighted ? 'loser-avatar-dim' : ''}`}
+        className={`relative transition-all duration-300 ${isWinnerHighlighted ? "winner-avatar-highlight" : ""} ${isLoserHighlighted ? "loser-avatar-dim" : ""}`}
         style={{
           opacity: isFolded ? 0.45 : isLoserHighlighted ? 0.62 : 1,
           transform: isWinnerHighlighted
-            ? 'scale(1.08)'
+            ? "scale(1.08)"
             : isLoserHighlighted
-              ? 'translateY(8px) scale(0.97)'
-              : 'scale(1)',
+              ? "translateY(8px) scale(0.97)"
+              : "scale(1)",
         }}
       >
         {/* Inner clip container for avatar + cards only */}
@@ -95,57 +101,71 @@ export function PlayerSeat({
             size={68}
             style={{
               background: isFolded
-                ? 'rgba(0,0,0,0.5)'
+                ? "rgba(0,0,0,0.5)"
                 : isMe
-                  ? 'linear-gradient(160deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)'
-                  : 'linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)',
+                  ? "linear-gradient(160deg, rgba(20,40,28,0.95) 0%, rgba(8,20,12,0.98) 100%)"
+                  : "linear-gradient(160deg, rgba(12,22,16,0.95) 0%, rgba(6,12,9,0.98) 100%)",
               border: isActive
-                ? '2px solid rgba(250,204,21,0.9)'
+                ? "2px solid rgba(250,204,21,0.9)"
                 : isWinnerHighlighted
-                  ? '2px solid rgba(250,204,21,0.85)'
-                : isMe
-                  ? '2px solid rgba(125,211,252,0.8)'
-                  : '2px solid rgba(255,255,255,0.1)',
+                  ? "2px solid rgba(250,204,21,0.85)"
+                  : isMe
+                    ? "2px solid rgba(125,211,252,0.8)"
+                    : "2px solid rgba(255,255,255,0.1)",
               boxShadow: isActive
-                ? '0 0 16px rgba(250,204,21,0.5), 0 0 32px rgba(250,204,21,0.2)'
+                ? "0 0 16px rgba(250,204,21,0.5), 0 0 32px rgba(250,204,21,0.2)"
                 : isWinnerHighlighted
-                  ? '0 0 20px rgba(250,204,21,0.35), 0 0 36px rgba(74,222,128,0.14)'
-                : isLoserHighlighted
-                  ? '0 2px 8px rgba(0,0,0,0.45)'
-                : isMe
-                  ? '0 0 0 3px rgba(56,189,248,0.12), 0 0 18px rgba(56,189,248,0.45), 0 4px 16px rgba(0,0,0,0.5)'
-                  : '0 4px 12px rgba(0,0,0,0.5)',
+                  ? "0 0 20px rgba(250,204,21,0.35), 0 0 36px rgba(74,222,128,0.14)"
+                  : isLoserHighlighted
+                    ? "0 2px 8px rgba(0,0,0,0.45)"
+                    : isMe
+                      ? "0 0 0 3px rgba(56,189,248,0.12), 0 0 18px rgba(56,189,248,0.45), 0 4px 16px rgba(0,0,0,0.5)"
+                      : "0 4px 12px rgba(0,0,0,0.5)",
             }}
           />
           {/* Nickname overlay at bottom */}
           <div className="absolute bottom-0 left-0 right-0 rounded-b-full bg-black/55 px-0.5 py-0.5 text-center pointer-events-none">
-            <div className="text-[9px] font-bold truncate" style={{ color: isMe ? '#fcd34d' : 'rgba(255,255,255,0.9)' }}>
-              {isAnonymous ? t('room.playerNameAnonymous', { n: seatIndex + 1 }) : player.nickname}
+            <div
+              className="text-[9px] font-bold truncate"
+              style={{ color: isMe ? "#fcd34d" : "rgba(255,255,255,0.9)" }}
+            >
+              {isAnonymous
+                ? t("room.playerNameAnonymous", { n: seatIndex + 1 })
+                : player.nickname}
             </div>
           </div>
           {/* Stack chip top-right */}
-          <div className="absolute top-0.5 right-0.5 text-[8px] font-semibold leading-none" style={{ color: 'rgba(74,222,128,0.9)' }}>
+          <div
+            className="absolute top-0.5 right-0.5 text-[8px] font-semibold leading-none"
+            style={{ color: "rgba(74,222,128,0.9)" }}
+          >
             ${player.stack}
           </div>
           {isWaiting && (
-            <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 text-[7px] font-bold tracking-wider whitespace-nowrap ${player.ready ? 'text-green-400' : 'text-gray-500'}`}>
-              {player.ready ? t('room.readyTag') : t('room.standby')}
+            <div
+              className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 text-[7px] font-bold tracking-wider whitespace-nowrap ${player.ready ? "text-green-400" : "text-gray-500"}`}
+            >
+              {player.ready ? t("room.readyTag") : t("room.standby")}
             </div>
           )}
           {isActionStage && isActive && actionCountdown > 0 && (
             <div
               className={`absolute -bottom-3 left-1/2 -translate-x-1/2 px-2 h-5 rounded-full flex items-center justify-center text-[9px] font-black tracking-[0.12em] ${
-                isUrgentCountdown ? 'seat-action-countdown seat-action-countdown-urgent' : 'seat-action-countdown'
+                isUrgentCountdown
+                  ? "seat-action-countdown seat-action-countdown-urgent"
+                  : "seat-action-countdown"
               }`}
               style={{
-                background: isUrgentCountdown ? 'rgba(127,29,29,0.95)' : 'rgba(30,41,59,0.92)',
+                background: isUrgentCountdown
+                  ? "rgba(127,29,29,0.95)"
+                  : "rgba(30,41,59,0.92)",
                 border: isUrgentCountdown
-                  ? '1px solid rgba(248,113,113,0.5)'
-                  : '1px solid rgba(96,165,250,0.35)',
-                color: isUrgentCountdown ? '#fee2e2' : '#dbeafe',
+                  ? "1px solid rgba(248,113,113,0.5)"
+                  : "1px solid rgba(96,165,250,0.35)",
+                color: isUrgentCountdown ? "#fee2e2" : "#dbeafe",
                 boxShadow: isUrgentCountdown
-                  ? '0 0 16px rgba(248,113,113,0.25)'
-                  : '0 0 14px rgba(59,130,246,0.18)',
+                  ? "0 0 16px rgba(248,113,113,0.25)"
+                  : "0 0 14px rgba(59,130,246,0.18)",
               }}
             >
               {actionCountdown}s
@@ -159,9 +179,9 @@ export function PlayerSeat({
             <span
               className="text-[8px] font-black px-1.5 rounded-full leading-4"
               style={{
-                background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
-                color: '#000',
-                boxShadow: '0 0 12px rgba(250,204,21,0.25)',
+                background: "linear-gradient(135deg, #facc15 0%, #f59e0b 100%)",
+                color: "#000",
+                boxShadow: "0 0 12px rgba(250,204,21,0.25)",
               }}
             >
               WIN
@@ -170,20 +190,26 @@ export function PlayerSeat({
           {player.isButton && (
             <span
               className="text-[8px] font-black px-1.5 rounded-full leading-4"
-              style={{ background: '#fcd34d', color: '#000' }}
-            >D</span>
+              style={{ background: "#fcd34d", color: "#000" }}
+            >
+              D
+            </span>
           )}
           {player.isSmallBlind && (
             <span
               className="text-[8px] font-black px-1 rounded-full leading-4"
-              style={{ background: '#3b82f6', color: '#fff' }}
-            >SB</span>
+              style={{ background: "#3b82f6", color: "#fff" }}
+            >
+              SB
+            </span>
           )}
           {player.isBigBlind && (
             <span
               className="text-[9px] font-black px-1.5 rounded-full leading-4"
-              style={{ background: '#ef4444', color: '#fff' }}
-            >BB</span>
+              style={{ background: "#ef4444", color: "#fff" }}
+            >
+              BB
+            </span>
           )}
         </div>
       </div>
@@ -193,9 +219,9 @@ export function PlayerSeat({
         <div
           className="mt-1 text-[9px] font-black px-2 py-0.5 rounded-full"
           style={{
-            background: 'linear-gradient(135deg, #92400e, #d97706)',
-            color: '#000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+            background: "linear-gradient(135deg, #92400e, #d97706)",
+            color: "#000",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
           }}
         >
           ${player.bet}

@@ -16,12 +16,12 @@ export interface TestUSDT$Type {
   readonly immutableReferences: {};
   readonly inputSourceName: "project/contracts/TestUSDT.sol";
   readonly buildInfoId: "solc-0_8_20-107a530d04bd33994ec205de0d831766c8ce9b45";
-};
+}
 
-import "hardhat/types/artifacts";
-declare module "hardhat/types/artifacts" {
+import 'hardhat/types/artifacts';
+declare module 'hardhat/types/artifacts' {
   interface ArtifactMap {
-    ["TestUSDT"]: TestUSDT$Type;
-    ["contracts/TestUSDT.sol:TestUSDT"]: TestUSDT$Type;
+    ['TestUSDT']: TestUSDT$Type;
+    ['contracts/TestUSDT.sol:TestUSDT']: TestUSDT$Type;
   }
 }

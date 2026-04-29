@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import DOMPurify from 'dompurify';
-import { getSocket } from '@/lib/socket';
-import { getStoredToken } from '@/lib/auth';
+import { useState, useEffect, useRef, useCallback } from "react";
+import DOMPurify from "dompurify";
+import { getSocket } from "@/lib/socket";
+import { getStoredToken } from "@/lib/auth";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,9 +35,9 @@ function formatRelativeTime(timestamp: number): string {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
+export function ChatPanel({ roomId, className = "" }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -54,7 +54,7 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
     const container = messagesContainerRef.current;
     if (!container) return;
     if (force || !isUserScrolledUp.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
 
@@ -71,10 +71,10 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
       setTimeout(() => scrollToBottom(), 10);
     };
 
-    socket.on('chat-message', handleChatMessage);
+    socket.on("chat-message", handleChatMessage);
 
     return () => {
-      socket.off('chat-message', handleChatMessage);
+      socket.off("chat-message", handleChatMessage);
     };
   }, [roomId, scrollToBottom]);
 
@@ -89,8 +89,8 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
       isUserScrolledUp.current = scrollHeight - scrollTop - clientHeight > 60;
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
   // ── Send ─────────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
 
       const now = Date.now();
       if (now - lastSentRef.current < 500) {
-        setLocalError('发送太频繁，请稍后再试。');
+        setLocalError("发送太频繁，请稍后再试。");
         setTimeout(() => setLocalError(null), 2000);
         return;
       }
@@ -114,10 +114,10 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
       lastSentRef.current = now;
 
       const socket = getSocket(token);
-      socket.emit('chat-message', { roomId, content: trimmed });
+      socket.emit("chat-message", { roomId, content: trimmed });
       setIsSending(false);
 
-      setInput('');
+      setInput("");
     },
     [roomId],
   );
@@ -125,7 +125,7 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
   // ── Keyboard ─────────────────────────────────────────────────────────────
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage(input);
     }
@@ -142,25 +142,27 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
 
   // ── Styles ────────────────────────────────────────────────────────────────
 
-  const panelBg = 'bg-slate-900/80';
-  const headerBg = 'bg-slate-800/90';
-  const inputBg = 'bg-slate-800 border border-slate-700';
-  const textColor = 'text-slate-200';
-  const mutedColor = 'text-slate-400';
-  const senderColor = 'text-amber-400';
-  const errorColor = 'text-red-400 text-xs';
+  const panelBg = "bg-slate-900/80";
+  const headerBg = "bg-slate-800/90";
+  const inputBg = "bg-slate-800 border border-slate-700";
+  const textColor = "text-slate-200";
+  const mutedColor = "text-slate-400";
+  const senderColor = "text-amber-400";
+  const errorColor = "text-red-400 text-xs";
 
   return (
     <div
       className={`flex flex-col rounded-lg border border-slate-700/50 overflow-hidden ${panelBg} ${className}`}
-      style={{ height: isCollapsed ? 'auto' : '200px' }}
+      style={{ height: isCollapsed ? "auto" : "200px" }}
     >
       {/* Header */}
       <div
         className={`flex items-center justify-between px-3 py-2 cursor-pointer select-none ${headerBg}`}
         onClick={toggleCollapsed}
       >
-        <div className={`flex items-center gap-1.5 text-sm font-medium ${textColor}`}>
+        <div
+          className={`flex items-center gap-1.5 text-sm font-medium ${textColor}`}
+        >
           <span>💬</span>
           <span>房间聊天</span>
           {!isCollapsed && messages.length > 0 && (
@@ -173,9 +175,9 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
             e.stopPropagation();
             toggleCollapsed();
           }}
-          aria-label={isCollapsed ? '展开聊天' : '收起聊天'}
+          aria-label={isCollapsed ? "展开聊天" : "收起聊天"}
         >
-          {isCollapsed ? '▲' : '▼'}
+          {isCollapsed ? "▲" : "▼"}
         </button>
       </div>
 
@@ -193,10 +195,19 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
               </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`text-xs leading-relaxed ${textColor}`}>
-                <span className={`font-medium ${senderColor}`}>[{DOMPurify.sanitize(msg.username || '')}]</span>
+              <div
+                key={msg.id}
+                className={`text-xs leading-relaxed ${textColor}`}
+              >
+                <span className={`font-medium ${senderColor}`}>
+                  [{DOMPurify.sanitize(msg.username || "")}]
+                </span>
                 <span className="mx-1">:</span>
-                <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }} />
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(msg.content),
+                  }}
+                />
                 <span className={`ml-2 ${mutedColor}`}>
                   {formatRelativeTime(msg.timestamp)}
                 </span>
@@ -211,7 +222,9 @@ export function ChatPanel({ roomId, className = '' }: ChatPanelProps) {
           )}
 
           {/* Input */}
-          <div className={`flex items-center gap-2 px-3 py-2 border-t border-slate-700/40`}>
+          <div
+            className={`flex items-center gap-2 px-3 py-2 border-t border-slate-700/40`}
+          >
             <input
               ref={inputRef}
               type="text"

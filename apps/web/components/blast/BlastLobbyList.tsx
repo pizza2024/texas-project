@@ -48,7 +48,7 @@ export function BlastLobbyList({
 
   // Only show waiting lobbies
   const waitingLobbies = filteredLobbies.filter(
-    (l) => l.status === "waiting" || l.status === "starting"
+    (l) => l.status === "waiting" || l.status === "starting",
   );
 
   if (loading) {
@@ -74,10 +74,7 @@ export function BlastLobbyList({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             />
           </svg>
-          <span
-            className="text-sm"
-            style={{ color: "rgba(156,163,175,0.7)" }}
-          >
+          <span className="text-sm" style={{ color: "rgba(156,163,175,0.7)" }}>
             {t("blast.loading")}
           </span>
         </div>
@@ -95,10 +92,7 @@ export function BlastLobbyList({
         >
           {t("blast.noLobbies")}
         </p>
-        <p
-          className="text-[10px]"
-          style={{ color: "rgba(156,163,175,0.4)" }}
-        >
+        <p className="text-[10px]" style={{ color: "rgba(156,163,175,0.4)" }}>
           {t("blast.createFirst")}
         </p>
       </div>

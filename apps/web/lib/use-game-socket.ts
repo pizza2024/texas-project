@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useCallback, useState } from 'react';
-import type { Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents } from '@texas/shared';
-import type { EmojiFlight } from '@/app/room/[id]/components/EmojiOverlay';
+import { useEffect, useCallback, useState } from "react";
+import type { Socket } from "socket.io-client";
+import type { ServerToClientEvents, ClientToServerEvents } from "@texas/shared";
+import type { EmojiFlight } from "@/app/room/[id]/components/EmojiOverlay";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -24,8 +24,8 @@ export interface UseGameSocketReturn {
 }
 
 /** Allowed emoji set — must match EmojiReactionSchema */
-export const ALLOWED_EMOJIS = ['👍', '❤️', '😂', '😮', '🔥'] as const;
-export type AllowedEmoji = typeof ALLOWED_EMOJIS[number];
+export const ALLOWED_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥"] as const;
+export type AllowedEmoji = (typeof ALLOWED_EMOJIS)[number];
 
 let _flightIdCounter = 0;
 function nextFlightId() {
@@ -44,7 +44,11 @@ export function useGameSocket({
   useEffect(() => {
     if (!socket) return;
 
-    const handler = (data: { roomId: string; userId: string; emoji: string }) => {
+    const handler = (data: {
+      roomId: string;
+      userId: string;
+      emoji: string;
+    }) => {
       if (data.roomId !== roomId) return;
       if (data.userId === myUserId) return; // Don't display our own — already shown locally
 
@@ -63,16 +67,16 @@ export function useGameSocket({
       onEmojiReaction?.({ userId: data.userId, emoji: data.emoji });
     };
 
-    socket.on('emoji-reaction', handler);
+    socket.on("emoji-reaction", handler);
     return () => {
-      socket.off('emoji-reaction', handler);
+      socket.off("emoji-reaction", handler);
     };
   }, [socket, roomId, myUserId, onEmojiReaction]);
 
   const emitEmoji = useCallback(
     (emoji: string) => {
       if (!socket || !ALLOWED_EMOJIS.includes(emoji as AllowedEmoji)) return;
-      socket.emit('emoji-reaction', { roomId, emoji });
+      socket.emit("emoji-reaction", { roomId, emoji });
     },
     [socket, roomId],
   );

@@ -5,10 +5,10 @@
 
 /** Tournament type enum */
 export enum TournamentType {
-  SNG = 'SNG',
-  MTT = 'MTT',
-  BTC = 'BTC',
-  BLAST = 'BLAST',
+  SNG = "SNG",
+  MTT = "MTT",
+  BTC = "BTC",
+  BLAST = "BLAST",
 }
 
 /** SNG Buy-in levels */
@@ -81,7 +81,9 @@ export function isBtcConfig(config: TournamentConfig): config is BtcConfig {
 }
 
 /** Default blind schedule for SNG tournaments */
-export function createDefaultBlindSchedule(startingBlind: number): BlindLevel[] {
+export function createDefaultBlindSchedule(
+  startingBlind: number,
+): BlindLevel[] {
   const levels: BlindLevel[] = [];
   let sb = startingBlind;
   let bb = startingBlind * 2;
@@ -199,7 +201,9 @@ export interface BlastBlindLevel {
 }
 
 /** Create the default blind schedule for Blast tournaments */
-export function createBlastBlindSchedule(startingBlind: number): BlastBlindLevel[] {
+export function createBlastBlindSchedule(
+  startingBlind: number,
+): BlastBlindLevel[] {
   const levels: BlastBlindLevel[] = [];
   let sb = startingBlind;
   let bb = startingBlind * 2;
@@ -269,7 +273,7 @@ export interface BlastLobby {
   /** Always 3 for Blast */
   maxPlayers: typeof BLAST_MAX_PLAYERS;
   /** Current status of the lobby */
-  status: 'waiting' | 'starting' | 'active';
+  status: "waiting" | "starting" | "active";
   /** Unix timestamp (ms) when lobby was created */
   createdAt: number;
   /** userId of the player who created this lobby */
@@ -283,10 +287,10 @@ export interface BlastLobby {
 }
 
 /** Redis key for the Blast lobby waiting queue (list) */
-export const BLAST_LOBBY_QUEUE_KEY = 'blast:lobby:queue';
+export const BLAST_LOBBY_QUEUE_KEY = "blast:lobby:queue";
 
 /** Redis key prefix for individual lobby entries (hash) */
-export const BLAST_LOBBY_KEY_PREFIX = 'blast:lobby:';
+export const BLAST_LOBBY_KEY_PREFIX = "blast:lobby:";
 
 /** Prize distribution entry for API responses */
 export interface PrizePosition {

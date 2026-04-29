@@ -78,6 +78,7 @@ api.not-replaced-yet.com          A  <Lightsail 实例公网 IP>
 ```
 
 验证 DNS 解析：
+
 ```bash
 nslookup web.not-replaced-yet.com
 nslookup admin.not-replaced-yet.com
@@ -163,6 +164,7 @@ docker compose logs -f backend
 ```
 
 预期输出：
+
 ```
 texas-backend   | 📦 Running Prisma migrations...
 texas-backend   | ✅ Starting application...
@@ -203,12 +205,10 @@ curl -k https://admin.not-replaced-yet.com
    - 访问 https://web.not-replaced-yet.com
    - 登录（用已有测试账号）
    - 验证建房、入房功能
-   
 2. **WebSocket 测试**
    - 打开浏览器开发者工具 → Network → WS
    - 在游戏中进行操作（如建房）
    - 验证 WebSocket 连接建立
-   
 3. **API 测试**
    ```bash
    curl -k -X POST https://api.not-replaced-yet.com/auth/login \
@@ -261,7 +261,7 @@ docker cp texas-backend:/repo/apps/backend/uploads ./uploads-backup
 
 仓库中已提供工作流文件：
 
-` .github/workflows/deploy-lightsail.yml `
+`.github/workflows/deploy-lightsail.yml`
 
 ### 11.1 配置 GitHub Secrets
 
@@ -373,6 +373,7 @@ curl -k https://api.not-replaced-yet.com/health
 ---
 
 有任何问题，查看以下文件：
+
 - 部署文档：[DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)
 - Docker 编排：[docker-compose.yml](docker-compose.yml)
 - Nginx 配置：[docker/nginx/conf.d/staging.conf](docker/nginx/conf.d/staging.conf)

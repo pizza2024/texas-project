@@ -7,7 +7,10 @@ interface BlastBuyinSelectorProps {
   onChange: (buyin: number) => void;
 }
 
-export function BlastBuyinSelector({ value, onChange }: BlastBuyinSelectorProps) {
+export function BlastBuyinSelector({
+  value,
+  onChange,
+}: BlastBuyinSelectorProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {BLAST_BUYINS.map((buyin) => {
@@ -23,12 +26,8 @@ export function BlastBuyinSelector({ value, onChange }: BlastBuyinSelectorProps)
                 ? "linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%)"
                 : "rgba(255,255,255,0.05)",
               color: isSelected ? "#000" : "rgba(255,255,255,0.7)",
-              border: isSelected
-                ? "none"
-                : "1px solid rgba(249,115,22,0.25)",
-              boxShadow: isSelected
-                ? "0 0 20px rgba(249,115,22,0.3)"
-                : "none",
+              border: isSelected ? "none" : "1px solid rgba(249,115,22,0.25)",
+              boxShadow: isSelected ? "0 0 20px rgba(249,115,22,0.3)" : "none",
             }}
           >
             💰 {buyin.toLocaleString()}

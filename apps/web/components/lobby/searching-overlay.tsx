@@ -1,8 +1,8 @@
 "use client";
 
-import { useTranslation } from 'react-i18next';
-import '@/lib/i18n';
-import { useEffect, useState } from 'react';
+import { useTranslation } from "react-i18next";
+import "@/lib/i18n";
+import { useEffect, useState } from "react";
 
 interface SearchingOverlayProps {
   onCancel: () => void;
@@ -10,11 +10,11 @@ interface SearchingOverlayProps {
 
 export function SearchingOverlay({ onCancel }: SearchingOverlayProps) {
   const { t } = useTranslation();
-  const [dots, setDots] = useState('');
+  const [dots, setDots] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? '' : d + '.'));
+      setDots((d) => (d.length >= 3 ? "" : d + "."));
     }, 400);
     return () => clearInterval(interval);
   }, []);
@@ -37,24 +37,25 @@ export function SearchingOverlay({ onCancel }: SearchingOverlayProps) {
           {/* Outer ring */}
           <span
             className="absolute inset-0 rounded-full border border-yellow-400/20 animate-ping"
-            style={{ animationDuration: '2s' }}
+            style={{ animationDuration: "2s" }}
           />
           {/* Middle ring */}
           <span
             className="absolute inset-2 rounded-full border border-yellow-400/30 animate-ping"
-            style={{ animationDuration: '1.5s', animationDelay: '0.3s' }}
+            style={{ animationDuration: "1.5s", animationDelay: "0.3s" }}
           />
           {/* Inner ring */}
           <span
             className="absolute inset-4 rounded-full border border-yellow-400/40 animate-ping"
-            style={{ animationDuration: '1s', animationDelay: '0.6s' }}
+            style={{ animationDuration: "1s", animationDelay: "0.6s" }}
           />
           {/* Center icon */}
           <div
             className="relative w-8 h-8 rounded-full flex items-center justify-center"
             style={{
-              background: 'radial-gradient(circle, rgba(245,158,11,0.3) 0%, rgba(245,158,11,0.05) 100%)',
-              border: '1px solid rgba(245,158,11,0.4)',
+              background:
+                "radial-gradient(circle, rgba(245,158,11,0.3) 0%, rgba(245,158,11,0.05) 100%)",
+              border: "1px solid rgba(245,158,11,0.4)",
             }}
           >
             <span className="text-lg">⚡</span>
@@ -66,7 +67,8 @@ export function SearchingOverlay({ onCancel }: SearchingOverlayProps) {
             className="text-xl font-black tracking-widest uppercase"
             style={{ color: "#fcd34d" }}
           >
-            {t("lobby.searching")}{dots}
+            {t("lobby.searching")}
+            {dots}
           </p>
           <p
             className="text-xs tracking-wide"

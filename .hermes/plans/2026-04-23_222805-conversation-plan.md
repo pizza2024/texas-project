@@ -16,6 +16,7 @@
 ### 已知的开发中的功能
 
 根据 ProjectDesign.md 中的 Phase 规划：
+
 - Phase 1（基础框架）：✅ 大部分已完成（role 字段、AdminGuard、用户管理接口、admin 项目骨架）
 - Phase 2（核心功能）：部分完成（房间管理、AdminLog）
 - Phase 3（数据统计）：✅ analytics 接口 + 页面已完成
@@ -28,6 +29,7 @@
 ### Option A：功能完善（优先级高）
 
 补全缺失的管理功能和优化体验：
+
 1. **用户详情页补全**（`/users/[id]`）：操作历史（AdminLog）、牌局历史
 2. **房间详情页补全**（`/rooms/[id]`）：实时牌桌列表、踢人功能
 3. **提现审核功能**（`/withdraw`）：管理员确认/拒绝提现请求（现有页面但可能未对接 API）
@@ -56,6 +58,7 @@
 - 检查 `rooms/[id]/page.tsx` 是否有实时刷新
 
 **涉及文件**：
+
 - `apps/admin/app/withdraw/page.tsx`
 - `apps/admin/app/rooms/[id]/page.tsx`
 - `apps/backend/src/admin/admin-room.controller.ts`
@@ -67,6 +70,7 @@
 - 在 `apps/admin/app/users/[id]/page.tsx` 中增加 Tab：基本信息 / 资金流水 / 操作日志 / 牌局历史
 
 **涉及文件**：
+
 - `apps/backend/src/admin/admin-user.controller.ts`
 - `apps/admin/app/users/[id]/page.tsx`
 
@@ -76,6 +80,7 @@
 - `rooms/[id]/page.tsx` 增加实时 Table 状态卡片
 
 **涉及文件**：
+
 - `apps/backend/src/admin/admin-room.controller.ts`
 - `apps/backend/src/admin/admin.service.ts`
 - `apps/admin/app/rooms/[id]/page.tsx`
@@ -86,6 +91,7 @@
 - `withdraw/page.tsx` 支持"确认/拒绝"操作
 
 **涉及文件**：
+
 - `apps/backend/src/admin/admin-finance.controller.ts`
 - `apps/admin/app/withdraw/page.tsx`
 

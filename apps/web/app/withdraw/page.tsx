@@ -48,6 +48,7 @@ interface WithdrawBalance {
   minWithdrawChips: number;
   minWithdrawUsdt: number;
   rate: number;
+  networkFeeUsdt: number;
 }
 
 interface WithdrawRecord {
@@ -856,6 +857,50 @@ export default function WithdrawPage() {
                   )
                 )}
               </div>
+
+              {/* Net Amount & Estimated Arrival */}
+              {amountChips && balance && (
+                <div
+                  className="rounded-xl p-3 space-y-2"
+                  style={{
+                    background: "rgba(0,0,0,0.2)",
+                    border: "1px solid rgba(248,113,113,0.12)",
+                  }}
+                >
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: "rgba(255,255,255,0.4)" }}>
+                      {t("withdraw.fee")}
+                    </span>
+                    <span style={{ color: "#f87171" }}>
+                      {balance.networkFeeUsdt} USDT
+                      <span style={{ color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
+                        ({t("withdraw.feeDescription")})
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: "rgba(255,255,255,0.4)" }}>
+                      {t("withdraw.netAmount")}
+                    </span>
+                    <span style={{ color: "#4ade80" }}>
+                      {t("withdraw.netReceived", {
+                        amount: (
+                          (parseFloat(amountChips) / balance.rate) -
+                          balance.networkFeeUsdt
+                        ).toFixed(2),
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span style={{ color: "rgba(255,255,255,0.4)" }}>
+                      {t("withdraw.estimatedArrival")}
+                    </span>
+                    <span style={{ color: "rgba(255,255,255,0.5)" }}>
+                      {t("withdraw.estimatedTime")}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Submit */}
               <button

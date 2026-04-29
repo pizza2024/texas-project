@@ -5,7 +5,7 @@ export interface SoundSettings {
   volume: number;
 }
 
-export const SOUND_SETTINGS_KEY = 'texas-sound-settings';
+export const SOUND_SETTINGS_KEY = "texas-sound-settings";
 
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
   deal: true,
@@ -15,14 +15,16 @@ export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
 };
 
 export function normalizeSoundVolume(value: unknown) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     return DEFAULT_SOUND_SETTINGS.volume;
   }
 
   return Math.min(1, Math.max(0, value));
 }
 
-export function parseSoundSettings(value: string | null | undefined): SoundSettings {
+export function parseSoundSettings(
+  value: string | null | undefined,
+): SoundSettings {
   if (!value) {
     return DEFAULT_SOUND_SETTINGS;
   }
@@ -41,7 +43,7 @@ export function parseSoundSettings(value: string | null | undefined): SoundSetti
 }
 
 export function loadSoundSettings(): SoundSettings {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return DEFAULT_SOUND_SETTINGS;
   }
 
@@ -49,7 +51,7 @@ export function loadSoundSettings(): SoundSettings {
 }
 
 export function saveSoundSettings(settings: SoundSettings) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 

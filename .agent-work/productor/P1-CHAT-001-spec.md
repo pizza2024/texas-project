@@ -7,6 +7,7 @@
 ## 技术背景
 
 **后端已实现**（参考 `game.handler.ts`）：
+
 - `chat-message` 事件：客户端发送 `{ roomId, content }`，服务器广播给房间内所有玩家
 - 消息格式：`{ id, userId, username, content, timestamp }`
 - 限流：服务端已有 rate limit 保护
@@ -18,6 +19,7 @@
 **路径**：`apps/web/components/chat/ChatPanel.tsx`
 
 **布局**：
+
 ```
 ┌─────────────────────────────┐
 │ 💬 房间聊天            [x] │  ← Header (可折叠)
@@ -34,6 +36,7 @@
 ```
 
 **Props 接口**：
+
 ```typescript
 interface ChatPanelProps {
   roomId: string;
@@ -42,6 +45,7 @@ interface ChatPanelProps {
 ```
 
 **内部 State**：
+
 ```typescript
 interface ChatMessage {
   id: string;
@@ -51,7 +55,7 @@ interface ChatMessage {
   timestamp: number;
 }
 const [messages, setMessages] = useState<ChatMessage[]>([]);
-const [input, setInput] = useState('');
+const [input, setInput] = useState("");
 const [isCollapsed, setIsCollapsed] = useState(false);
 ```
 
@@ -80,6 +84,7 @@ const [isCollapsed, setIsCollapsed] = useState(false);
    - 错误提示：后端返回错误时显示 toast
 
 **UI 样式**：
+
 - 高度：200px（可折叠）
 - 宽度：跟随父容器
 - 背景：`bg-slate-900/80`
@@ -87,10 +92,12 @@ const [isCollapsed, setIsCollapsed] = useState(false);
 - 输入框：`bg-slate-800 border-slate-700`
 
 **组件集成位置**：
+
 - `apps/web/app/room/[id]/page.tsx` — 游戏桌页面
 - 放置在牌桌右侧边栏，或底部抽屉（mobile）
 
 **导出**：
+
 ```typescript
 export { ChatPanel };
 export type { ChatPanelProps };

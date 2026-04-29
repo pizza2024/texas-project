@@ -29,6 +29,7 @@
   - redis（6379）
 
 说明:
+
 - 数据服务不对公网暴露。
 - web/admin 通过环境变量访问 api 域名。
 - 使用 volume 持久化 postgres、redis、backend uploads。
@@ -65,6 +66,7 @@ npm run docker:local:down
 ```
 
 说明:
+
 - 本地命令通过 docker-compose.local.yml 显式叠加端口和本地 CORS。
 - 线上命令只使用 docker-compose.yml + docker/.env.staging。
 
@@ -73,10 +75,11 @@ npm run docker:local:down
 ## 5. 环境变量规范
 
 backend:
+
 - DOMAIN=not-replaced-yet.com
 - NODE_ENV=production
 - PORT=4000
-- DATABASE_URL=postgresql://texas:***@postgres:5432/texas_staging?schema=public
+- DATABASE_URL=postgresql://texas:\*\*\*@postgres:5432/texas_staging?schema=public
 - REDIS_URL=redis://redis:6379
 - JWT_SECRET=<强随机>
 - JWT_EXPIRES_IN=7d
@@ -84,12 +87,15 @@ backend:
 - SOCKET_CORS_ORIGIN=https://web.not-replaced-yet.com,https://admin.not-replaced-yet.com
 
 web/admin:
+
 - NEXT_PUBLIC_API_URL=https://api.not-replaced-yet.com
 
 mobile:
+
 - EXPO_PUBLIC_API_URL=https://api.not-replaced-yet.com
 
 辅助脚本:
+
 - bash docker/generate-staging-env.sh <your-domain>
 - FORCE=1 bash docker/generate-staging-env.sh <your-domain> # 覆盖已有 docker/.env.staging
 
@@ -129,6 +135,7 @@ mobile:
 ## 9. 旧文档状态
 
 以下文件仅保留历史参考，不作为当前执行依据:
+
 - RAILWAY_SETUP.md
 - RAILWAY_CHECKLIST.md
 - TEST_ENV_RELEASE_PLAN.md
@@ -138,4 +145,4 @@ mobile:
 ## 10. 备注
 
 - 如果需要恢复云托管（非 Docker）方案，请新建独立文档，不得混写到本基线。
-- 所有部署命令优先使用 package.json 中的 docker:* 脚本，避免团队成员自行拼接命令导致不一致。
+- 所有部署命令优先使用 package.json 中的 docker:\* 脚本，避免团队成员自行拼接命令导致不一致。

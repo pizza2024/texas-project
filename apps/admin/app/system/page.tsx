@@ -70,7 +70,13 @@ export default function SystemPage() {
   }
 
   function actionBadge(action: string) {
-    const map: Record<string, { variant: 'success' | 'danger' | 'warning' | 'info' | 'default'; label: string }> = {
+    const map: Record<
+      string,
+      {
+        variant: "success" | "danger" | "warning" | "info" | "default";
+        label: string;
+      }
+    > = {
       BAN_USER: { variant: "danger", label: "封禁用户" },
       UNBAN_USER: { variant: "success", label: "解封用户" },
       ADJUST_BALANCE: { variant: "warning", label: "调整余额" },
@@ -86,7 +92,9 @@ export default function SystemPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="p-4 sm:p-6 lg:p-8 text-slate-400 text-sm">加载中...</div>
+        <div className="p-4 sm:p-6 lg:p-8 text-slate-400 text-sm">
+          加载中...
+        </div>
       </AdminLayout>
     );
   }

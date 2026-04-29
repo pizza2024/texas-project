@@ -144,14 +144,22 @@ export function TournamentCard({
             {/* Type badge */}
             <span
               className="px-2 py-0.5 rounded text-xs font-bold"
-              style={{ background: tc.bg, border: `1px solid ${tc.border}`, color: tc.text }}
+              style={{
+                background: tc.bg,
+                border: `1px solid ${tc.border}`,
+                color: tc.text,
+              }}
             >
               {tc.label}
             </span>
             {/* Status badge */}
             <span
               className="px-2 py-0.5 rounded text-xs font-semibold"
-              style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}
+              style={{
+                background: sc.bg,
+                border: `1px solid ${sc.border}`,
+                color: sc.text,
+              }}
             >
               {sc.label}
             </span>
@@ -160,9 +168,9 @@ export function TournamentCard({
               <span
                 className="px-2 py-0.5 rounded text-xs font-bold"
                 style={{
-                  background: 'rgba(249, 115, 22, 0.15)',
-                  border: '1px solid rgba(249, 115, 22, 0.4)',
-                  color: '#f97316',
+                  background: "rgba(249, 115, 22, 0.15)",
+                  border: "1px solid rgba(249, 115, 22, 0.4)",
+                  color: "#f97316",
                 }}
               >
                 GTD

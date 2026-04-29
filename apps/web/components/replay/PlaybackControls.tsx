@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -24,9 +24,11 @@ export function PlaybackControls({
         disabled={disabled}
         className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-colors"
         style={{
-          background: disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
-          color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)',
-          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: disabled
+            ? "rgba(255,255,255,0.05)"
+            : "rgba(255,255,255,0.08)",
+          color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.7)",
+          cursor: disabled ? "not-allowed" : "pointer",
         }}
         title="Rewind 5 steps"
       >
@@ -40,14 +42,16 @@ export function PlaybackControls({
         disabled={disabled}
         className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-colors"
         style={{
-          background: disabled ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.2)',
-          color: disabled ? 'rgba(245,158,11,0.3)' : '#f59e0b',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          border: '1px solid rgba(245,158,11,0.3)',
+          background: disabled
+            ? "rgba(245,158,11,0.1)"
+            : "rgba(245,158,11,0.2)",
+          color: disabled ? "rgba(245,158,11,0.3)" : "#f59e0b",
+          cursor: disabled ? "not-allowed" : "pointer",
+          border: "1px solid rgba(245,158,11,0.3)",
         }}
-        title={isPlaying ? 'Pause' : 'Play'}
+        title={isPlaying ? "Pause" : "Play"}
       >
-        {isPlaying ? '⏸' : '▶'}
+        {isPlaying ? "⏸" : "▶"}
       </button>
 
       {/* Fast-forward */}
@@ -57,9 +61,11 @@ export function PlaybackControls({
         disabled={disabled}
         className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-colors"
         style={{
-          background: disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
-          color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.7)',
-          cursor: disabled ? 'not-allowed' : 'pointer',
+          background: disabled
+            ? "rgba(255,255,255,0.05)"
+            : "rgba(255,255,255,0.08)",
+          color: disabled ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.7)",
+          cursor: disabled ? "not-allowed" : "pointer",
         }}
         title="Fast-forward 5 steps"
       >

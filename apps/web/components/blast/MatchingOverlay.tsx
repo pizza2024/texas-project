@@ -1,13 +1,51 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface MatchingOverlayProps {
   isVisible: boolean;
   players?: string[]; // usernames or placeholders
+  countdownSeconds?: number; // 0 means no countdown
+  onTimeout?: () => void;
 }
 
-export function MatchingOverlay({ isVisible, players = [] }: MatchingOverlayProps) {
+export function MatchingOverlay({
+  isVisible,
+  players = [],
+  countdownSeconds = 0,
+  onTimeout,
+}: MatchingOverlayProps) {
+  const [secondsLeft, setSecondsLeft] = useState(countdownSeconds);
+
+  useEffect(() => {
+    setSecondsLeft(countdownSeconds);
+  }, [countdownSeconds]);
+
+  useEffect(() => {
+    if (!isVisible || countdownSeconds <= 0) return;
+
+    if (secondsLeft <= 0) {
+      onTimeout?.();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onTimeout?.();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isVisible, countdownSeconds, secondsLeft, onTimeout]);
+
+  const isUrgent = secondsLeft <= 10 && secondsLeft > 0;
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -24,7 +62,10 @@ export function MatchingOverlay({ isVisible, players = [] }: MatchingOverlayProp
             transition={{ duration: 2, repeat: Infinity }}
             className="text-center"
           >
-            <p className="text-sm uppercase tracking-[0.4em] mb-2" style={{ color: "rgba(249,115,22,0.6)" }}>
+            <p
+              className="text-sm uppercase tracking-[0.4em] mb-2"
+              style={{ color: "rgba(249,115,22,0.6)" }}
+            >
               Matching Players
             </p>
             <h2 className="text-4xl font-black" style={{ color: "#f97316" }}>
@@ -67,6 +108,26 @@ export function MatchingOverlay({ isVisible, players = [] }: MatchingOverlayProp
               </motion.div>
             ))}
           </div>
+
+          {/* Countdown display */}
+          {countdownSeconds > 0 && secondsLeft > 0 && (
+            <motion.div
+              className={`countdown-badge ${isUrgent ? "countdown-badge-urgent" : ""}`}
+              style={{
+                background: isUrgent
+                  ? "rgba(239, 68, 68, 0.2)"
+                  : "rgba(249, 115, 22, 0.15)",
+                borderColor: isUrgent
+                  ? "rgba(239, 68, 68, 0.5)"
+                  : "rgba(249, 115, 22, 0.3)",
+                color: isUrgent ? "#ef4444" : "#f97316",
+              }}
+              animate={isUrgent ? { scale: [1, 1.08, 1] } : {}}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              {secondsLeft}s
+            </motion.div>
+          )}
 
           <p className="text-sm" style={{ color: "rgba(156,163,175,0.5)" }}>
             Waiting for players to join...

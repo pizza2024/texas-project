@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import type { ReplayActionNode } from './ReplayModal';
+import type { ReplayActionNode } from "./ReplayModal";
 
 interface ReplayActionLogProps {
   nodes: ReplayActionNode[];
@@ -9,12 +9,20 @@ interface ReplayActionLogProps {
   onHoverNode?: (node: ReplayActionNode | null) => void;
 }
 
-export function ReplayActionLog({ nodes, currentIndex, onSelectNode, onHoverNode }: ReplayActionLogProps) {
+export function ReplayActionLog({
+  nodes,
+  currentIndex,
+  onSelectNode,
+  onHoverNode,
+}: ReplayActionLogProps) {
   return (
     <div className="flex flex-col h-full">
       <div
         className="px-3 py-2 text-xs font-bold uppercase tracking-widest"
-        style={{ color: 'rgba(245,158,11,0.7)', borderBottom: '1px solid rgba(245,158,11,0.1)' }}
+        style={{
+          color: "rgba(245,158,11,0.7)",
+          borderBottom: "1px solid rgba(245,158,11,0.1)",
+        }}
       >
         Action Log
       </div>
@@ -32,15 +40,17 @@ export function ReplayActionLog({ nodes, currentIndex, onSelectNode, onHoverNode
               onMouseLeave={() => onHoverNode?.(null)}
               className="w-full text-left px-3 py-2 transition-colors"
               style={{
-                background: isActive ? 'rgba(245,158,11,0.1)' : 'transparent',
-                borderLeft: isActive ? '2px solid #f59e0b' : '2px solid transparent',
+                background: isActive ? "rgba(245,158,11,0.1)" : "transparent",
+                borderLeft: isActive
+                  ? "2px solid #f59e0b"
+                  : "2px solid transparent",
               }}
             >
               {isStageTransition ? (
                 <div className="flex items-center gap-2">
                   <span
                     className="text-xs font-bold uppercase"
-                    style={{ color: 'rgba(245,158,11,0.6)' }}
+                    style={{ color: "rgba(245,158,11,0.6)" }}
                   >
                     — {node.stage} —
                   </span>
@@ -50,16 +60,18 @@ export function ReplayActionLog({ nodes, currentIndex, onSelectNode, onHoverNode
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className="text-xs font-medium truncate"
-                      style={{ color: isActive ? '#f59e0b' : 'rgba(255,255,255,0.75)' }}
+                      style={{
+                        color: isActive ? "#f59e0b" : "rgba(255,255,255,0.75)",
+                      }}
                     >
                       {node.playerNickname}
                     </span>
                     {node.amount > 0 && (
                       <span
                         className="text-xs font-bold tabular-nums flex-shrink-0"
-                        style={{ color: 'rgba(245,158,11,0.7)' }}
+                        style={{ color: "rgba(245,158,11,0.7)" }}
                       >
-                        {node.amount > 0 ? `+${node.amount}` : ''}
+                        {node.amount > 0 ? `+${node.amount}` : ""}
                       </span>
                     )}
                   </div>
@@ -67,17 +79,26 @@ export function ReplayActionLog({ nodes, currentIndex, onSelectNode, onHoverNode
                     <span
                       className="text-xs font-bold uppercase"
                       style={{
-                        color: node.action === 'FOLD' ? '#f87171'
-                          : node.action === 'CHECK' ? '#94a3b8'
-                          : node.action === 'CALL' ? '#60a5fa'
-                          : node.action === 'RAISE' ? '#fbbf24'
-                          : node.action === 'ALLIN' ? '#f87171'
-                          : 'rgba(255,255,255,0.5)',
+                        color:
+                          node.action === "FOLD"
+                            ? "#f87171"
+                            : node.action === "CHECK"
+                              ? "#94a3b8"
+                              : node.action === "CALL"
+                                ? "#60a5fa"
+                                : node.action === "RAISE"
+                                  ? "#fbbf24"
+                                  : node.action === "ALLIN"
+                                    ? "#f87171"
+                                    : "rgba(255,255,255,0.5)",
                       }}
                     >
                       {node.action}
                     </span>
-                    <span className="text-xs tabular-nums" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    <span
+                      className="text-xs tabular-nums"
+                      style={{ color: "rgba(255,255,255,0.3)" }}
+                    >
                       {node.potAfter.toLocaleString()} pot
                     </span>
                   </div>

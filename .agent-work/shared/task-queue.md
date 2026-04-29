@@ -382,7 +382,7 @@
 
 ---
 
-_最后更新: 2026-04-30 06:30 — Coding 第397轮 — P2-DEPOSIT-UX-003 ✅ commit 85b04f1；rakeback e2e ✅ commit e9a3128_
+_最后更新: 2026-04-30 07:00 — Coding 第398轮 — P2-WITHDRAW-UX-001 ✅ commit 0e25785_
 
 ---
 
@@ -395,7 +395,7 @@ _最后更新: 2026-04-30 06:30 — Coding 第397轮 — P2-DEPOSIT-UX-003 ✅ c
 | P2-DEPOSIT-UX-003 | 充值手续费透明化 | P2 | ✅ 已完成 | commit 85b04f1 — deposit/page.tsx 网络矿工费透明化说明 |
 | P2-DEPOSIT-UX-004 | SavedAddress schema 无 isDefault 字段 | P2 | ✅ 已修复 | commit 5e73a2f — SavedAddress.network→isDefault |
 | P2-DEPOSIT-UX-005 | handleSaveAddress/handleDeleteAddress 错误静默吞掉 | P2 | ✅ 已修复 | commit 5e73a2f — console.error + toast |
-| P2-WITHDRAW-UX-001 | 提现地址簿 | P2 | 待实施 |
+| P2-WITHDRAW-UX-001 | 提现地址簿 | P2 | ✅ 已完成 | commit 0e25785 — WithdrawAddress model + GET/POST/DELETE/PATCH /withdraw/addresses + frontend UI + i18n |
 | P2-WITHDRAW-UX-002 | 提现手续费/净额不透明 | P2 | 待实施 |
 | P2-WITHDRAW-UX-003 | 提现到账速度反馈 | P2 | 待实施 |
 | P2-WITHDRAW-UX-004 | 提现历史追踪 | P2 | 待实施 |
@@ -413,7 +413,7 @@ _最后更新: 2026-04-30 06:30 — Coding 第397轮 — P2-DEPOSIT-UX-003 ✅ c
 
 | ID             | 任务                                             | 紧迫度 | 状态   | 备注                                |
 | -------------- | ------------------------------------------------ | ------ | ------ | ----------------------------------- |
-| P2-ROOM-UX-001 | /rooms: 缺少 Ring Game / Tournament tab 切换导航 | P2     | 待实施 | GGPoker 三标签：All/Ring/Tournament |
+| P2-ROOM-UX-001 | /rooms: 缺少 Ring Game / Tournament tab 切换导航 | P2     | ✅ 已完成 | 2026-04-30 — 3-tab All/Ring/Tournament |
 | P2-ROOM-UX-002 | /rooms: 房间卡片缺少"等待中/游戏中"状态 badge    | P2     | 待实施 | 888poker 绿/蓝色 badge              |
 | P2-ROOM-UX-003 | /rooms: tier 筛选无结果时无引导 CTA              | P2     | 待实施 | GGPoker "No games — Create one"     |
 | P2-ROOM-UX-004 | /rooms: 无收藏常玩房间功能                       | P2     | 待实施 | 888poker ⭐收藏                     |

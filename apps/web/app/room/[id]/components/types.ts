@@ -1,5 +1,5 @@
 // Shared types for the Room game page
-import type { GameStage } from '@texas/shared';
+import type { GameStage } from "@texas/shared";
 
 export interface Player {
   id: string;
@@ -63,7 +63,12 @@ export interface PayoutFlight {
   active: boolean;
 }
 
-export const SUIT_SYMBOL: Record<string, string> = { s: '♠', h: '♥', d: '♦', c: '♣' };
+export const SUIT_SYMBOL: Record<string, string> = {
+  s: "♠",
+  h: "♥",
+  d: "♦",
+  c: "♣",
+};
 export const DEAL_ANIMATION_MS = 420;
 export const DEAL_STAGGER_MS = 90;
 export const CHIP_FLIGHT_MS = 680;

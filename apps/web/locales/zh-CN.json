@@ -314,6 +314,12 @@
   "withdraw.noSavedAddresses": "暂无保存的地址",
   "withdraw.useAddress": "使用",
   "withdraw.addressLabelRequired": "请输入地址标签",
+  "withdraw.netAmount": "实际到账",
+  "withdraw.fee": "手续费",
+  "withdraw.feeDescription": "网络矿工费 (USDT TRC-20)",
+  "withdraw.netReceived": "≈ {{amount}} USDT",
+  "withdraw.estimatedArrival": "预计到账时间",
+  "withdraw.estimatedTime": "约30分钟内 (1-3个区块确认)",
   "rakeback": {
     "navButton": "返利",
     "title": "返利",

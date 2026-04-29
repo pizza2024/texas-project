@@ -1,6 +1,6 @@
 // ── 好友状态枚举 ────────────────────────────────────────────────────────────
 
-export type FriendStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'BLOCKED';
+export type FriendStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "BLOCKED";
 
 // ── WebSocket 事件 ───────────────────────────────────────────────────────────
 

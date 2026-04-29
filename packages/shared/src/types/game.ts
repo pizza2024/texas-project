@@ -47,12 +47,17 @@ export interface RoomStatus {
   maxPlayers: number;
   isFull: boolean;
   /** 'waiting' when table is idle, 'playing' when a hand is in progress */
-  gameState?: 'waiting' | 'playing';
+  gameState?: "waiting" | "playing";
 }
 
 // ── 牌桌 ────────────────────────────────────────────────────────────────────
 
-export type PlayerStatus = 'ACTIVE' | 'FOLD' | 'ALLIN' | 'SITOUT' | 'DISCONNECTED';
+export type PlayerStatus =
+  | "ACTIVE"
+  | "FOLD"
+  | "ALLIN"
+  | "SITOUT"
+  | "DISCONNECTED";
 
 export interface Player {
   id: string;
@@ -85,7 +90,15 @@ export interface StraddleInfo {
   position: number;
 }
 
-export type GameStage = 'WAITING' | 'DEALING' | 'PREFLOP' | 'FLOP' | 'TURN' | 'RIVER' | 'SHOWDOWN' | 'SETTLEMENT';
+export type GameStage =
+  | "WAITING"
+  | "DEALING"
+  | "PREFLOP"
+  | "FLOP"
+  | "TURN"
+  | "RIVER"
+  | "SHOWDOWN"
+  | "SETTLEMENT";
 
 export interface TableState {
   id: string;

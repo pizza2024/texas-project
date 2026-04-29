@@ -173,6 +173,7 @@ export class WithdrawService {
     minWithdrawChips: number;
     minWithdrawUsdt: number;
     rate: number;
+    networkFeeUsdt: number;
   }> {
     const available = await this.walletService.getAvailableBalance(userId);
     return {
@@ -180,6 +181,7 @@ export class WithdrawService {
       minWithdrawChips: MIN_WITHDRAW_CHIPS,
       minWithdrawUsdt: this.chipsToUsdt(MIN_WITHDRAW_CHIPS),
       rate: USDT_TO_CHIPS_RATE,
+      networkFeeUsdt: 1,
     };
   }
 

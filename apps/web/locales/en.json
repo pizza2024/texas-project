@@ -314,6 +314,12 @@
   "withdraw.noSavedAddresses": "No saved addresses",
   "withdraw.useAddress": "Use",
   "withdraw.addressLabelRequired": "Please enter a label for this address",
+  "withdraw.netAmount": "Net Received",
+  "withdraw.fee": "Fee",
+  "withdraw.feeDescription": "Network miner fee (USDT TRC-20)",
+  "withdraw.netReceived": "≈ {{amount}} USDT",
+  "withdraw.estimatedArrival": "Est. Arrival",
+  "withdraw.estimatedTime": "~30 min (1-3 block confirmations)",
   "rakeback": {
     "navButton": "Rakeback",
     "title": "Rakeback",

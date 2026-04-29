@@ -73,9 +73,7 @@ export function BlastCard({ lobby, onJoin, isJoining }: BlastCardProps) {
             background: isFull
               ? "rgba(239,68,68,0.15)"
               : "rgba(16,185,129,0.1)",
-            color: isFull
-              ? "rgba(248,113,113,0.9)"
-              : "rgba(52,211,153,0.9)",
+            color: isFull ? "rgba(248,113,113,0.9)" : "rgba(52,211,153,0.9)",
             border: isFull
               ? "1px solid rgba(239,68,68,0.2)"
               : "1px solid rgba(16,185,129,0.2)",
@@ -91,7 +89,8 @@ export function BlastCard({ lobby, onJoin, isJoining }: BlastCardProps) {
           className="text-[10px]"
           style={{ color: "rgba(156,163,175,0.6)" }}
         >
-          💰 {t("blast.blinds", {
+          💰{" "}
+          {t("blast.blinds", {
             small: lobby.smallBlind,
             big: lobby.bigBlind,
           })}

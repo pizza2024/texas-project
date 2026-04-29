@@ -11,7 +11,7 @@ const pageBg: React.CSSProperties = {
 
 export default function SchedulePage() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "registered">(
-    "upcoming"
+    "upcoming",
   );
 
   return (

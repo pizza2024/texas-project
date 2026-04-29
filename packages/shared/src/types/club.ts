@@ -1,5 +1,5 @@
 // Club roles
-export type ClubRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type ClubRole = "OWNER" | "ADMIN" | "MEMBER";
 
 // Club info (returned by list/detail endpoints)
 export interface ClubInfo {
@@ -21,7 +21,7 @@ export interface ClubMember {
   nickname: string;
   avatar: string | null;
   role: ClubRole;
-  status: 'OFFLINE' | 'ONLINE' | 'PLAYING';
+  status: "OFFLINE" | "ONLINE" | "PLAYING";
   joinedAt: string;
 }
 

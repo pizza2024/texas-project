@@ -108,7 +108,10 @@ export default function TournamentDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={pageBg}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={pageBg}
+      >
         <div
           className="w-10 h-10 border-2 border-t-green-500 rounded-full animate-spin"
           style={{
@@ -122,7 +125,10 @@ export default function TournamentDetailPage() {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center" style={pageBg}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center"
+        style={pageBg}
+      >
         <p className="text-red-400 mb-4">{error || "Tournament not found"}</p>
         <Link
           href="/schedule"
@@ -143,8 +149,10 @@ export default function TournamentDetailPage() {
   return (
     <div className="min-h-screen" style={pageBg}>
       {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-green-900/30 backdrop-blur-md"
-        style={{ background: "rgba(6, 14, 16, 0.9)" }}>
+      <div
+        className="sticky top-0 z-10 border-b border-green-900/30 backdrop-blur-md"
+        style={{ background: "rgba(6, 14, 16, 0.9)" }}
+      >
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Link
@@ -154,7 +162,9 @@ export default function TournamentDetailPage() {
               ←
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-white">Tournament Details</h1>
+              <h1 className="text-lg font-bold text-white">
+                Tournament Details
+              </h1>
             </div>
           </div>
         </div>
@@ -187,9 +197,9 @@ export default function TournamentDetailPage() {
             <span
               className="px-3 py-1 rounded-lg text-sm font-bold"
               style={{
-                background: 'rgba(249, 115, 22, 0.15)',
-                border: '1px solid rgba(249, 115, 22, 0.4)',
-                color: '#f97316',
+                background: "rgba(249, 115, 22, 0.15)",
+                border: "1px solid rgba(249, 115, 22, 0.4)",
+                color: "#f97316",
               }}
             >
               GTD
@@ -203,24 +213,23 @@ export default function TournamentDetailPage() {
         </h2>
 
         {/* Countdown (if scheduled) */}
-        {tournament.status === "SCHEDULED" &&
-          tournament.scheduledStartTime && (
-            <div
-              className="rounded-2xl border border-yellow-900/30 p-5 mb-6 text-center"
-              style={{ background: "rgba(234, 179, 8, 0.05)" }}
-            >
-              <p className="text-gray-400 text-sm mb-2 uppercase tracking-wider">
-                Starts In
-              </p>
-              <CountdownTimer
-                targetTime={tournament.scheduledStartTime}
-                className="text-2xl"
-              />
-              <p className="text-gray-400 text-sm mt-2">
-                {formatTime(tournament.scheduledStartTime)}
-              </p>
-            </div>
-          )}
+        {tournament.status === "SCHEDULED" && tournament.scheduledStartTime && (
+          <div
+            className="rounded-2xl border border-yellow-900/30 p-5 mb-6 text-center"
+            style={{ background: "rgba(234, 179, 8, 0.05)" }}
+          >
+            <p className="text-gray-400 text-sm mb-2 uppercase tracking-wider">
+              Starts In
+            </p>
+            <CountdownTimer
+              targetTime={tournament.scheduledStartTime}
+              className="text-2xl"
+            />
+            <p className="text-gray-400 text-sm mt-2">
+              {formatTime(tournament.scheduledStartTime)}
+            </p>
+          </div>
+        )}
 
         {/* Info Cards */}
         <div
@@ -229,8 +238,15 @@ export default function TournamentDetailPage() {
         >
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: "Buy-in", value: `${formatChips(tournament.buyin)} chips`, color: "text-yellow-400" },
-              { label: "Players", value: `${tournament.registeredCount ?? 0} / ${tournament.maxPlayers}` },
+              {
+                label: "Buy-in",
+                value: `${formatChips(tournament.buyin)} chips`,
+                color: "text-yellow-400",
+              },
+              {
+                label: "Players",
+                value: `${tournament.registeredCount ?? 0} / ${tournament.maxPlayers}`,
+              },
               {
                 label: "Small Blind",
                 value: `${formatChips(tournament.smallBlind)}`,
