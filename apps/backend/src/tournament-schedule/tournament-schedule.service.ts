@@ -58,6 +58,9 @@ interface ScheduleEntry {
   registeredCount?: number;
   status: TournamentScheduleStatus;
   roomId: string | null;
+  blindSchedule?: { level: number; smallBlind: number; bigBlind: number; durationSeconds: number; }[];
+  currentBlindLevel?: number;
+  blindLevelStartedAt?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -658,6 +661,9 @@ export class TournamentScheduleService
       status: entry.status,
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
+      blindSchedule: entry.blindSchedule ?? [],
+      currentBlindLevel: entry.currentBlindLevel ?? 0,
+      blindLevelStartedAt: entry.blindLevelStartedAt ?? Date.now(),
     };
   }
 }

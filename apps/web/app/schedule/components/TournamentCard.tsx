@@ -29,6 +29,12 @@ export interface ScheduleEntry {
   status: TournamentScheduleStatus;
   createdAt: string;
   updatedAt: string;
+  /** Blind schedule for tournament */
+  blindSchedule?: readonly { level: number; smallBlind: number; bigBlind: number; durationSeconds: number; }[];
+  /** 0-indexed current blind level */
+  currentBlindLevel?: number;
+  /** Unix timestamp (ms) when the current blind level started */
+  blindLevelStartedAt?: number;
 }
 
 type Status = TournamentScheduleStatus;
