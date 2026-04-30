@@ -146,6 +146,8 @@ export default function TournamentDetailPage() {
   const prize = tournament.prizeDistribution;
   const canRegister =
     tournament.status === "SCHEDULED" || tournament.status === "RUNNING";
+  // eslint-disable-next-line react-hooks/purity -- Date.now() must be captured at render time; tournament is only set post data-load
+  const levelStartedAt = tournament.blindLevelStartedAt ?? Date.now();
 
   return (
     <div className="min-h-screen" style={pageBg}>
@@ -290,7 +292,7 @@ export default function TournamentDetailPage() {
               <BlindTimeline
                 blinds={tournament.blindSchedule as { level: number; smallBlind: number; bigBlind: number; durationSeconds: number }[]}
                 currentLevel={tournament.currentBlindLevel ?? 0}
-                levelStartedAt={tournament.blindLevelStartedAt ?? Date.now()}
+                levelStartedAt={levelStartedAt}
               />
             </div>
           )}
