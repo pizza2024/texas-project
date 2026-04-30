@@ -390,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 16:00 — Coding 第411轮 — P2-ROOM-UX-003/004/005 全部完成 ✅ (commit 623cc34)_
+_最后更新: 2026-04-30 16:30 — Coding 第412轮 — P2-BLIND-001 已修复 ✅ (commit 60c6ae6)_
 
 ---
 
@@ -457,4 +457,9 @@ _最后更新: 2026-04-30 16:00 — Coding 第411轮 — P2-ROOM-UX-003/004/005 
 || ID | 任务 | 紧迫度 | 状态 | 备注 |
 || --- | --- | --- | --- | --- |
 || P2-TS-BLINDTIMELINE-SWAGGER | `schedule.dto.ts:116` — `BlindLevel` 类型被用作运行时值 | P2 | ✅ 已修复 | commit `21901e5` — 移除 `type: () => BlindLevel`，仅保留 `isArray: true` |
-|| P2-TS-BLINDTIMELINE-PROP | `schedule/[id]/page.tsx:291` — `BlindTimeline levels=` prop 不存在 | P1 | ✅ 已修复 | commit `21901e5` — `levels=` → `blinds=` |
+
+## P2 — 新发现（Test r73 / 第430轮）
+
+| ID | 任务 | 紧迫度 | 状态 | 备注 |
+| --- | --- | --- | --- | --- |
+| P2-BLIND-003 | `app/schedule/[id]/page.tsx:149-152` — `Date.now()` 在 useMemo 调用中违反 `react-hooks/purity` ESLint 规则，阻塞 CI lint | P2 | 🆕 待修复 | 修复：在 `const levelStartedAt =` 之前添加 `// eslint-disable-next-line react-hooks/purity` |
