@@ -35,6 +35,8 @@ export class NotificationGateway implements OnGatewayConnection {
       }
       const payload = this.jwtService.verify(token);
       client.data.userId = payload.userId;
+      // Join the user's personal room so emitToUser() can reach this client
+      await client.join(`user:${payload.userId}`);
     } catch {
       client.disconnect(true);
     }
