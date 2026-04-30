@@ -390,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 14:30 — Coding 第410轮 — P2-TOURNAMENT-BLIND 全部字段已提交 ✅ (commit c7f6605 — blindSchedule/currentBlindLevel/blindLevelStartedAt DTO + 前端 interface)_
+_最后更新: 2026-04-30 16:00 — Coding 第411轮 — P2-ROOM-UX-003/004/005 全部完成 ✅ (commit 623cc34)_
 
 ---
 
@@ -423,9 +423,9 @@ _最后更新: 2026-04-30 14:30 — Coding 第410轮 — P2-TOURNAMENT-BLIND 全
 | -------------- | ------------------------------------------------ | ------ | ------ | ----------------------------------- |
 | P2-ROOM-UX-001 | /rooms: 缺少 Ring Game / Tournament tab 切换导航 | P2     | ✅ 已完成 | 2026-04-30 — 3-tab All/Ring/Tournament |
 | P2-ROOM-UX-002 | /rooms: 房间卡片缺少"等待中/游戏中"状态 badge    | ✅ 已修复 | room-card.tsx — getGameStatus() + gameState badge；lobby/index.ts — RoomStatus 导出对齐 @texas/shared |
-| P2-ROOM-UX-003 | /rooms: tier 筛选无结果时无引导 CTA              | P2     | 待实施 | GGPoker "No games — Create one"     |
-| P2-ROOM-UX-004 | /rooms: 无收藏常玩房间功能                       | P2     | 待实施 | 888poker ⭐收藏                     |
-| P2-ROOM-UX-005 | /rooms: 创建私人房间后无分享邀请链接/二维码      | P2     | 待实施 | WSOP 邀请码分享                     |
+| P2-ROOM-UX-003 | /rooms: tier 筛选无结果时无引导 CTA              | ✅ 已完成 | 2026-04-30 — 空状态添加 Create Table + Quick Match 双按钮 |
+| P2-ROOM-UX-004 | /rooms: 无收藏常玩房间功能                       | ✅ 已完成 | 2026-04-30 — Favorites tab + RoomCard ⭐星标 + localStorage |
+| P2-ROOM-UX-005 | /rooms: 创建私人房间后无分享邀请链接/二维码      | ✅ 已完成 | 2026-04-30 — RoomCard 🔗按钮 + QR码弹窗 + 复制链接 |
 
 ## P2 — 新发现（第405轮）
 
