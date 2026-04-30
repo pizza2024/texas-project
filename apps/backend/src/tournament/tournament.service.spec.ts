@@ -5,6 +5,7 @@ import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RoomService } from '../room/room.service';
 import { BroadcastService } from '../websocket/broadcast.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 import { TableManagerService } from '../table-engine/table-manager.service';
 
 // Re-export types for convenience
@@ -43,6 +44,11 @@ describe('TournamentService', () => {
     broadcastToRoom: jest.fn(),
   };
 
+  const mockWebSocketManager = {
+    getServer: jest.fn().mockReturnValue(null),
+    emitToUser: jest.fn(),
+  };
+
   const mockTableManagerService = {
     getTable: jest.fn(),
     getPersistentBalances: jest.fn(),
@@ -60,6 +66,7 @@ describe('TournamentService', () => {
         { provide: WalletService, useValue: mockWalletService },
         { provide: RoomService, useValue: mockRoomService },
         { provide: BroadcastService, useValue: mockBroadcastService },
+        { provide: WebSocketManager, useValue: mockWebSocketManager },
         { provide: TableManagerService, useValue: mockTableManagerService },
       ],
     }).compile();

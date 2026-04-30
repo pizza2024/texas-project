@@ -11,6 +11,7 @@ import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RoomService } from '../room/room.service';
 import { BroadcastService } from '../websocket/broadcast.service';
+import { WebSocketManager } from '../websocket/websocket-manager';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import {
   SngConfig,
@@ -53,6 +54,8 @@ export class TournamentService implements OnModuleDestroy {
     private readonly walletService: WalletService,
     private readonly roomService: RoomService,
     private readonly broadcastService: BroadcastService,
+    @Inject(forwardRef(() => WebSocketManager))
+    private readonly wsManager: WebSocketManager,
     @Inject(forwardRef(() => TableManagerService))
     private readonly tableManager: TableManagerService,
   ) {}
@@ -440,6 +443,13 @@ export class TournamentService implements OnModuleDestroy {
     this.logger.log(
       `Blast lobby created: ${id} by ${creatorId} (buyin=${buyin}, smallBlind=${smallBlind})`,
     );
+
+    // Start the 30-second matchmaking timeout
+    const server = this.wsManager.getServer();
+    if (server) {
+      this.startMatchmakingTimeout(id, server);
+    }
+
     return lobby;
   }
 
@@ -549,6 +559,8 @@ export class TournamentService implements OnModuleDestroy {
     // If we now have 3 players, transition to 'starting'
     if (lobby.playerIds.length === BLAST_MAX_PLAYERS) {
       lobby.status = 'starting';
+      // Cancel the matchmaking timeout since the lobby is now full
+      this.clearMatchmakingTimeout(lobbyId);
       this.logger.log(
         `Blast lobby ${lobbyId} is full — transitioning to 'starting'`,
       );
