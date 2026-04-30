@@ -360,6 +360,9 @@ export class AppGateway
         }
       }
 
+      // Join user-specific room for direct notification delivery via emitToUser
+      await client.join(`user:${payload.sub}`);
+
       // Register new socket in userSockets index
       const existing = this.connectionState.userSockets.get(payload.sub);
       if (existing) {
@@ -438,6 +441,10 @@ export class AppGateway
     roomEvents.on(ROOM_CREATED_EVENT, this.handleRoomCreated);
     roomEvents.on(ROOM_DISSOLVED_EVENT, this.handleRoomDissolved);
     roomEvents.on(ROOM_STATUS_UPDATED_EVENT, this.handleRoomStatusUpdated);
+
+    // Initialize Redis pub/sub bridge for multi-instance WebSocket broadcast
+    const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
+    this.wsManager.initRedis(redisUrl);
   }
 
   onModuleDestroy() {
@@ -523,7 +530,11 @@ export class AppGateway
                 },
               })
               .then((notif) =>
-                this.wsManager.emitToUser(friend.friendId, 'notification', notif),
+                this.wsManager.emitToUser(
+                  friend.friendId,
+                  'notification',
+                  notif,
+                ),
               ),
           ),
         );
