@@ -30,6 +30,9 @@ interface RoomCardProps {
   status: RoomStatus | null;
   currentBalance: number;
   onJoin: (roomId: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (roomId: string) => void;
+  onShare?: (room: { id: string; name: string }) => void;
 }
 
 export function RoomCard({
@@ -37,6 +40,9 @@ export function RoomCard({
   status,
   currentBalance,
   onJoin,
+  isFavorite,
+  onToggleFavorite,
+  onShare,
 }: RoomCardProps) {
   const { t } = useTranslation();
   const currentPlayers = status?.currentPlayers ?? 0;
@@ -109,19 +115,22 @@ export function RoomCard({
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            {room.isPrivate && <span className="text-sm">🔒</span>}
-            {room.isClubOnly && (
-              <span className="text-sm" title="俱乐部专属">
-                🏠
-              </span>
-            )}
-            {room.isAnonymous && (
-              <span className="text-sm" title="匿名房间">
-                🎭
-              </span>
-            )}
+        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+          {/* P2-ROOM-UX-004: Favorite star */}
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(room.id);
+              }}
+              className="shrink-0 mt-0.5 text-base transition-transform hover:scale-110 active:scale-95"
+              style={{ color: isFavorite ? "rgba(245,158,11,0.9)" : "rgba(200,200,200,0.3)" }}
+              title={isFavorite ? t("lobby.unfavorite") : t("lobby.favorite")}
+            >
+              {isFavorite ? "★" : "☆"}
+            </button>
+          )}
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
             <h3 className="font-black text-white text-base truncate tracking-wide">
               {room.name}
             </h3>
@@ -183,6 +192,20 @@ export function RoomCard({
           >
             {gameStatus.label}
           </div>
+          {/* P2-ROOM-UX-005: Share button */}
+          {onShare && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare({ id: room.id, name: room.name });
+              }}
+              className="mt-0.5 text-sm opacity-50 hover:opacity-100 transition-opacity"
+              style={{ color: "rgba(200,200,200,0.7)" }}
+              title={t("lobby.shareRoom")}
+            >
+              🔗
+            </button>
+          )}
         </div>
       </div>
 

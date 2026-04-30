@@ -2,9 +2,10 @@
 
 import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { NextRouter } from "next/router";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { disconnectSocket, getSocket } from "@/lib/socket";
@@ -59,11 +60,12 @@ const TIERS = [
   },
 ] as const;
 
-const ROOM_TABS = [
-  { id: "all" as const, label: "全部" },
-  { id: "ring" as const, label: "Ring" },
-  { id: "tournament" as const, label: "Tournament" },
-] as const;
+const ROOM_TABS: { id: string; label: string }[] = [
+  { id: "all", label: "全部" },
+  { id: "ring", label: "Ring" },
+  { id: "tournament", label: "Tournament" },
+  { id: "favorites", label: "⭐" },
+];
 
 type QuickMatchTier = (typeof TIERS)[number]["id"];
 
@@ -605,6 +607,116 @@ function CreateRoomDialog({ onClose, onCreate }: CreateRoomDialogProps) {
   );
 }
 
+/* ---------- Share Room Dialog (P2-ROOM-UX-005) ---------- */
+
+interface ShareRoomDialogProps {
+  room: { id: string; name: string };
+  onClose: () => void;
+}
+
+function ShareRoomDialog({ room, onClose }: ShareRoomDialogProps) {
+  const { t } = useTranslation();
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const roomUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/room/${room.id}`
+      : `/room/${room.id}`;
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(roomUrl);
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl p-6 space-y-5"
+        style={{
+          background: "linear-gradient(160deg, rgba(12,22,16,0.98) 0%, rgba(6,12,9,0.99) 100%)",
+          border: "1px solid rgba(234,179,8,0.2)",
+          boxShadow: "0 0 30px rgba(234,179,8,0.1)",
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-black text-white tracking-wide">
+            {t("lobby.shareRoom")}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-xl opacity-50 hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Room name */}
+        <p className="text-sm" style={{ color: "rgba(200,200,200,0.7)" }}>
+          {room.name}
+        </p>
+
+        {/* QR Code */}
+        <div className="flex justify-center py-2">
+          <div
+            className="p-3 rounded-xl"
+            style={{ background: "rgba(255,255,255,0.95)" }}
+          >
+            <QRCodeSVG
+              value={roomUrl}
+              size={160}
+              bgColor="transparent"
+              fgColor="#000"
+              level="M"
+            />
+          </div>
+        </div>
+
+        {/* Room URL */}
+        <div className="space-y-2">
+          <p
+            className="text-xs opacity-60"
+            style={{ color: "rgba(200,200,200,0.6)" }}
+          >
+            {t("lobby.roomLink")}
+          </p>
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs break-all"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "rgba(200,200,200,0.8)",
+            }}
+          >
+            {roomUrl}
+          </div>
+        </div>
+
+        {/* Copy button */}
+        <button
+          onClick={handleCopyLink}
+          className="w-full h-10 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{
+            background: "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
+            color: "#000",
+            boxShadow: "0 0 15px rgba(245,158,11,0.2)",
+          }}
+        >
+          {t("lobby.copyLink")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Prize Modal for Tournament Rooms ---------- */
 
 interface PrizeModalProps {
@@ -856,11 +968,36 @@ export default function RoomsPage() {
   const [createDialogCount, setCreateDialogCount] = useState(0);
   const [showQuickMatchDialog, setShowQuickMatchDialog] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+
+  // P2-ROOM-UX-004: Favorite rooms
+  const [favoriteRoomIds, setFavoriteRoomIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("favoriteRoomIds");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const toggleFavorite = useCallback((roomId: string) => {
+    setFavoriteRoomIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(roomId)) next.delete(roomId);
+      else next.add(roomId);
+      try {
+        localStorage.setItem("favoriteRoomIds", JSON.stringify([...next]));
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // P2-ROOM-UX-005: Share dialog state
+  const [shareRoom, setShareRoom] = useState<{ id: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [tierFilter, setTierFilter] = useState<
     "ALL" | "MICRO" | "LOW" | "MEDIUM" | "HIGH" | "PREMIUM"
   >("ALL");
-  const [roomTab, setRoomTab] = useState<"all" | "ring" | "tournament">(
+  const [roomTab, setRoomTab] = useState<"all" | "ring" | "tournament" | "favorites">(
     "all",
   );
   const [myClubIds, setMyClubIds] = useState<string[]>([]);
@@ -1179,6 +1316,7 @@ export default function RoomsPage() {
       }
       if (roomTab === "ring" && room.isTournament) return false;
       if (roomTab === "tournament" && !room.isTournament) return false;
+      if (roomTab === "favorites" && !favoriteRoomIds.has(room.id)) return false;
       return true;
     })
     .sort((a, b) => {
@@ -1375,6 +1513,14 @@ export default function RoomsPage() {
         />
       )}
 
+      {/* P2-ROOM-UX-005: Share room dialog */}
+      {shareRoom && (
+        <ShareRoomDialog
+          room={shareRoom}
+          onClose={() => setShareRoom(null)}
+        />
+      )}
+
       {/* Background decorative suit symbols */}
       <div className="fixed inset-0 pointer-events-none select-none overflow-hidden">
         <span className="absolute top-8 left-8 text-[10rem] font-serif opacity-[0.03] text-yellow-400 -rotate-12">
@@ -1557,7 +1703,7 @@ export default function RoomsPage() {
             {ROOM_TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setRoomTab(tab.id)}
+                onClick={() => setRoomTab(tab.id as "all" | "ring" | "tournament" | "favorites")}
                 className="h-8 px-4 rounded-full text-xs font-bold tracking-wide transition-all"
                 style={{
                   background:
@@ -1575,7 +1721,11 @@ export default function RoomsPage() {
                   ? t("lobby.tabAll")
                   : tab.id === "ring"
                     ? t("lobby.tabRing")
-                    : t("lobby.tabTournament")}
+                    : tab.id === "tournament"
+                      ? t("lobby.tabTournament")
+                      : tab.id === "favorites"
+                        ? t("lobby.tabFavorites")
+                        : tab.label}
               </button>
             ))}
           </div>
@@ -1642,7 +1792,7 @@ export default function RoomsPage() {
 
         {/* Room list */}
         {rooms.length === 0 ? (
-          <div className="text-center py-20 space-y-4">
+          <div className="text-center py-16 space-y-5">
             <div className="text-6xl opacity-30">🂠</div>
             <p
               className="text-base tracking-widest uppercase font-semibold"
@@ -1653,6 +1803,38 @@ export default function RoomsPage() {
             <p className="text-sm" style={{ color: "rgba(107,114,128,0.6)" }}>
               {t("lobby.noTablesHint")}
             </p>
+            {/* P2-ROOM-UX-003: CTA buttons */}
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setCreateDialogCount((c) => c + 1);
+                  setShowCreateDialog(true);
+                }}
+                className="h-10 px-6 rounded-lg text-sm font-bold tracking-wide transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: "linear-gradient(135deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%)",
+                  color: "#000",
+                  boxShadow: "0 0 15px rgba(245,158,11,0.2)",
+                }}
+              >
+                {t("lobby.createTable")}
+              </button>
+              <button
+                onClick={() => {
+                  setRoomTab("all");
+                  setSearchQuery("");
+                  setTierFilter("ALL");
+                }}
+                className="h-10 px-6 rounded-lg text-sm font-bold tracking-wide transition-all hover:opacity-80 active:scale-95"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  color: "rgba(200,200,200,0.8)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                {t("lobby.quickMatch")}
+              </button>
+            </div>
           </div>
         ) : filteredRooms.length === 0 ? (
           <div className="text-center py-16 space-y-3">
@@ -1663,6 +1845,21 @@ export default function RoomsPage() {
             >
               {t("lobby.noMatch")}
             </p>
+            {/* P2-ROOM-UX-003: Clear filters CTA */}
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setTierFilter("ALL");
+              }}
+              className="h-9 px-5 rounded-lg text-xs font-bold tracking-wide transition-all hover:opacity-80 active:scale-95"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                color: "rgba(200,200,200,0.8)",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              {t("lobby.clearFilters")}
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
@@ -1673,6 +1870,9 @@ export default function RoomsPage() {
                 status={roomStatusMap[room.id] ?? null}
                 currentBalance={currentBalance}
                 onJoin={handleJoinRoom}
+                isFavorite={favoriteRoomIds.has(room.id)}
+                onToggleFavorite={toggleFavorite}
+                onShare={setShareRoom}
               />
             ))}
           </div>
