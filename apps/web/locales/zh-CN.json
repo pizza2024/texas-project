@@ -367,5 +367,23 @@
     "removed": "已删除好友",
     "loadError": "加载好友列表失败",
     "requestLoadError": "加载请求列表失败"
+  },
+  "notification": {
+    "bellAria": "通知",
+    "dropdown": {
+      "title": "通知中心",
+      "markAllRead": "全部标为已读",
+      "empty": "暂无通知",
+      "close": "关闭"
+    },
+    "type": {
+      "friendOnline": "{{name}} 已上线",
+      "friendOffline": "{{name}} 已离线",
+      "friendRequest": "{{name}} 向你发送了好友请求",
+      "deposit": "充值已到账",
+      "withdraw": "提现已处理",
+      "tournament": "赛事更新",
+      "system": "系统通知"
+    }
   }
 }

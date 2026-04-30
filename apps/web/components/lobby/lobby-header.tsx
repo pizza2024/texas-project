@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { UserDropdown } from "./user-dropdown";
+import { NotificationBell } from "@/components/notification/notification-bell";
 
 interface LobbyHeaderProps {
   nickname: string;
@@ -204,6 +205,7 @@ export function LobbyHeader({
         </Button>
 
         {/* User dropdown */}
+        <NotificationBell userId={userId} />
         <UserDropdown
           nickname={nickname}
           userId={userId}

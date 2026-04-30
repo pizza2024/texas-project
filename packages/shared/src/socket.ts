@@ -18,6 +18,28 @@ export type {
   DepositConfirmedPayload,
 };
 
+// ── Notification types (mirrors backend Prisma model) ─────────────────────────
+
+export type NotificationType =
+  | "friend_online"
+  | "friend_offline"
+  | "friend_request"
+  | "deposit"
+  | "withdraw"
+  | "tournament"
+  | "system";
+
+export interface NotificationPayload {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  metadata?: Record<string, unknown>;
+  read: boolean;
+  createdAt: string;
+}
+
 // ── 事件类型映射（供 TypeScript 严格校验） ───────────────────────────────────
 
 export interface ServerToClientEvents {
@@ -58,6 +80,8 @@ export interface ServerToClientEvents {
   friend_status_update: (data: FriendStatusUpdatePayload) => void;
   /** 收到好友请求 */
   friend_request_received: (data: FriendRequestReceivedPayload) => void;
+  /** 新通知到达（Phase 2: real-time notification push） */
+  notification: (data: NotificationPayload) => void;
   /** 收到聊天消息 */
   "chat-message": (data: {
     id: string;
@@ -119,6 +143,7 @@ let depositConfirmedHandler: Handler<DepositConfirmedPayload> | null = null;
 let friendStatusUpdateHandler: Handler<FriendStatusUpdatePayload> | null = null;
 let friendRequestReceivedHandler: Handler<FriendRequestReceivedPayload> | null =
   null;
+let notificationHandler: Handler<NotificationPayload> | null = null;
 let visibilityChangeHandler: (() => void) | null = null;
 
 export function setForceLogoutHandler(h: (data: ForceLogoutPayload) => void) {
@@ -149,6 +174,10 @@ export function setFriendRequestReceivedHandler(
   friendRequestReceivedHandler = h;
 }
 
+export function setNotificationHandler(h: (data: NotificationPayload) => void) {
+  notificationHandler = h;
+}
+
 export function getSocket(
   serverUrl: string,
   token: string,
@@ -176,6 +205,7 @@ export function getSocket(
     socket.on("friend_request_received", (data) =>
       friendRequestReceivedHandler?.(data),
     );
+    socket.on("notification", (data) => notificationHandler?.(data));
   } else if (socket && !socket.connected) {
     // Zombie socket: token unchanged but socket disconnected (e.g. mobile OS closed WS).
     // Force immediate reconnect without waiting for socket.io backoff.

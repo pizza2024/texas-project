@@ -373,5 +373,23 @@
     "youveBeenInvited": "You've Been Invited!",
     "joinThisClub": "Join Club & Start Playing",
     "browseClubs": "Browse all clubs"
+  },
+  "notification": {
+    "bellAria": "Notifications",
+    "dropdown": {
+      "title": "Notifications",
+      "markAllRead": "Mark all read",
+      "empty": "No notifications yet",
+      "close": "Close"
+    },
+    "type": {
+      "friendOnline": "{{name}} is online",
+      "friendOffline": "{{name}} went offline",
+      "friendRequest": "{{name}} sent you a friend request",
+      "deposit": "Deposit confirmed",
+      "withdraw": "Withdrawal processed",
+      "tournament": "Tournament update",
+      "system": "System notification"
+    }
   }
 }
