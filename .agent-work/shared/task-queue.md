@@ -390,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 12:30 — Coding 第407轮 — P2-TOURNAMENT-BLIND BlindTimeline 组件完成 ✅_
+_最后更新: 2026-04-30 12:50 — Coding 第408轮 — P2-TOURNAMENT-BLIND 完成 ✅ (blindSchedule DTO/Service + BlindTimeline 页面集成)_
 
 ---
 
@@ -445,10 +445,16 @@ _最后更新: 2026-04-30 12:30 — Coding 第407轮 — P2-TOURNAMENT-BLIND Bli
 | --- | --- | --- | --- |
 | P0-E2E-FIX-001 | `rakeback.e2e.spec.ts` 模块初始化失败 | ✅ 已修复 | 重构为 `createTestingModule` + mock PrismaService，解决循环依赖 + `$transaction` mock bug + `mockResolvedValue` 闭包问题，6/6 测试通过 |
 
-## P2 — 新发现（Test r62 / Coding 第406轮）
+## P2 — 新发现（Test r66 / Coding 第407轮后）
 
-| ID | 任务 | 紧迫度 | 状态 | 备注 |
-| --- | --- | --- | --- | --- |
-| P2-NOTIFY-PUSH-WIRE | `pushEnabled` 前端关闭后 WebSocket push 仍送达 | P2 | ✅ 已修复 | commit `34cd909` — `isPushAllowed()` 增加 `!settings.pushEnabled` 检查 |
-| P2-NOTIFY-EMAIL-WIRE | `emailEnabled` 存储但未连线至邮件发送服务 | P2 | ⚠️ 暂不实施 | 等 Resend 邮件服务接入后连线；当前为预埋字段 |
+|| ID | 任务 | 紧迫度 | 状态 | 备注 |
+|| --- | --- | --- | --- | --- |
+|| P2-NOTIFY-PUSH-WIRE | `pushEnabled` 前端关闭后 WebSocket push 仍送达 | P2 | ✅ 已修复 | commit `34cd909` — `isPushAllowed()` 增加 `!settings.pushEnabled` 检查 |
+|| P2-NOTIFY-EMAIL-WIRE | `emailEnabled` 存储但未连线至邮件发送服务 | P2 | ⚠️ 暂不实施 | 等 Resend 邮件服务接入后连线；当前为预埋字段 |
 
+## P2 — 新发现（Test r66 / Coding 第409轮）
+
+|| ID | 任务 | 紧迫度 | 状态 | 备注 |
+|| --- | --- | --- | --- | --- |
+|| P2-TS-BLINDTIMELINE-SWAGGER | `schedule.dto.ts:116` — `BlindLevel` 类型被用作运行时值 | P2 | ✅ 已修复 | commit `21901e5` — 移除 `type: () => BlindLevel`，仅保留 `isArray: true` |
+|| P2-TS-BLINDTIMELINE-PROP | `schedule/[id]/page.tsx:291` — `BlindTimeline levels=` prop 不存在 | P1 | ✅ 已修复 | commit `21901e5` — `levels=` → `blinds=` |
