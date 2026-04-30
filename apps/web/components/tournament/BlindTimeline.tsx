@@ -203,7 +203,7 @@ export function BlindTimeline({
 
           return (
             <button
-              key={blind.level}
+              key={index}
               onClick={() => onLevelChange?.(index)}
               className="relative shrink-0 flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all hover:opacity-100"
               style={{
