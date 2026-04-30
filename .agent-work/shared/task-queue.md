@@ -78,6 +78,8 @@
 | P1-WALLET-002    | `setBalances` Phase 2 失败静默吞掉               | ✅ 已修复 | commit a8442a0 — Promise.allSettled + rethrow non-bot errors             |
 | P1-WITHDRAW-007  | `executeChainWithdraw` 链确认后 DB 更新无重试    | ✅ 已修复 | commit a8442a0 — 3× retry + exponential backoff                          |
 | P1-PRIZE-DISPLAY | TournamentCard 缺 totalPrize/GTD/registeredCount | ✅ 已修复 | commit f071ae3 — DTO + service + TournamentCard + detail page            |
+| P2-NOTIFY-001-001 | NotificationGateway 缺少 `client.join('user:${userId}')` | ✅ 已修复 | commit 4994a23 — handleConnection 中 await client.join(`user:${userId}`) |
+| P2-NOTIFY-001-002 | app.gateway.spec.ts 缺少 notificationService mock | ✅ 已修复 | commit 4994a23 — 补全 markRead/markAllRead/getNotifications mock |
 
 ## P1 — 新发现（第231轮）
 
@@ -121,6 +123,12 @@
 | P1-WEB-002     | AllInConfirmModal 重复组件                 | ✅ 已修复 | commit b8f73d0 |
 | P1-WEB-003     | SocketSessionProvider 重复注册 handler     | ✅ 已修复 | commit b8f73d0 |
 | P1-BACKEND-002 | 3次超时后无视觉反馈                        | ✅ 已修复 | commit b8f73d0 |
+
+## P1 — 新发现（第48轮）
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-BLAST-TIMEOUT | `startMatchmakingTimeout`/`clearMatchmakingTimeout` 已实现但从未调用 | ✅ 已修复 | commit 957ef3b — wsManager注入 + createBlastLobby启动30s倒计时 + joinBlastLobby满人时清除 |
 
 ## P1 — 新发现（第331轮）
 
@@ -254,7 +262,7 @@
 |                  | P2-CHAT-STUB                      | `handleClaim` 无实际 API 调用                          | ⚠️ 建议关闭                                                                                            | 架构决策，backend auto-claim                                                              |
 |                  | P2-WS-RATE-UNIT                   | 时间单位注释混淆                                       | ✅ 已修复                                                                                              | connection-state.service.ts:37-39 — 注释已更正为"TTL = RATE_LIMIT_WINDOW_MS/1000 seconds" |
 |                  | P2-PROFILE-001                    | 玩家资料页丰富化                                       | 📋 规格已就绪                                                                                          | 头像框/成就徽章                                                                           |
-| P2-NOTIFY-001    | 站内通知中心                      | 📋 规格已起草，待实施                                  | `apps/docs/content/notification-center.mdx` — 6种通知类型 + Prisma model + WS事件 + 前端UI + 3阶段计划 |
+| P2-NOTIFY-001    | 站内通知中心                      | ✅ Phase 1+2 完成 | commit 3386592 — Notification model + NotificationService + Controller + Gateway + app.gateway.ts 集成；Phase 2: Bell Icon + Dropdown Panel 前端 UI |
 |                  | P2-ROOM-PASSWORD                  | 房间密码明文存 sessionStorage                          | ✅ 已修复                                                                                              | room/[id]/page.tsx — join后 removeItem                                                    |
 |                  | P2-JWT-LOCALSTORAGE               | JWT 存 localStorage — XSS 目标                         | ✅ 后端完成                                                                                            | httpOnly cookie 后端完成；Web 前端 socket.io cookie auth 留 P2                            |
 |                  | P2-MOBILE-RECONNECT               | Mobile reconnect handler                               | ✅ 已修复                                                                                              | commit 7d5bbaf                                                                            |
@@ -382,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 07:15 — Coding 第399轮 — P2-WITHDRAW-UX-002/003 ✅ commit 6248eee_
+_最后更新: 2026-04-30 09:00 — Coding 第404轮 — P2-NOTIFY-001 Phase 2 完成 ✅ commit 3386592（09:05执行）_
 
 ---
 
@@ -418,6 +426,12 @@ _最后更新: 2026-04-30 07:15 — Coding 第399轮 — P2-WITHDRAW-UX-002/003 
 | P2-ROOM-UX-003 | /rooms: tier 筛选无结果时无引导 CTA              | P2     | 待实施 | GGPoker "No games — Create one"     |
 | P2-ROOM-UX-004 | /rooms: 无收藏常玩房间功能                       | P2     | 待实施 | 888poker ⭐收藏                     |
 | P2-ROOM-UX-005 | /rooms: 创建私人房间后无分享邀请链接/二维码      | P2     | 待实施 | WSOP 邀请码分享                     |
+
+## P2 — 新发现（第405轮）
+
+|| ID | 任务 | 紧迫度 | 状态 | 备注 |
+|| --- | --- | --- | --- | --- |
+|| P2-NOTIFY-WS-BRIDGE | WebSocket 多实例广播 — `emitToUser` 仅送达当前实例 | P2 | ✅ 已修复 | commit `bbf2d67` — Redis pub/sub bridge；localSockets Map O(1) 查找；initRedis() 在 AppGateway.onModuleInit() 调用 |
 
 ---
 

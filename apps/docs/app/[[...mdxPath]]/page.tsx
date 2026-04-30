@@ -16,7 +16,7 @@ export async function generateMetadata(props: Props) {
 
 function MDXWrapper({ toc, metadata, sourceCode, children, params }: any) {
   const { wrapper } = useMDXComponents();
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const Content = wrapper;
   return (
     <Content toc={toc} metadata={metadata} sourceCode={sourceCode}>

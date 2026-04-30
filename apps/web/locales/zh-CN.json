@@ -384,6 +384,17 @@
       "withdraw": "提现已处理",
       "tournament": "赛事更新",
       "system": "系统通知"
+    },
+    "settings": {
+      "title": "通知设置",
+      "doNotDisturb": "勿扰模式",
+      "quietHours": "安静时段",
+      "quietHoursDesc": "在设定时段内静音通知",
+      "startTime": "开始时间",
+      "endTime": "结束时间",
+      "pushEnabled": "推送通知",
+      "emailEnabled": "邮件通知",
+      "save": "保存设置"
     }
   }
 }

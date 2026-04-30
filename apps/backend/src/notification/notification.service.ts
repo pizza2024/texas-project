@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 import axios from 'axios';
 
 @Injectable()
@@ -188,5 +189,52 @@ export class NotificationService {
     }
 
     return { deleted };
+  }
+
+  // ── User Notification Settings ─────────────────────────────────────────────
+
+  async getSettings(userId: string) {
+    return this.prisma.userNotificationSettings.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+  }
+
+  async updateSettings(userId: string, dto: UpdateSettingsDto) {
+    return this.prisma.userNotificationSettings.upsert({
+      where: { userId },
+      create: { userId, ...dto },
+      update: dto,
+    });
+  }
+
+  async isPushAllowed(userId: string): Promise<boolean> {
+    const settings = await this.getSettings(userId);
+    if (!settings.doNotDisturb) return true;
+
+    if (settings.dndStart == null || settings.dndEnd == null) {
+      return false;
+    }
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (settings.dndStart > settings.dndEnd) {
+      if (
+        currentMinutes >= settings.dndStart ||
+        currentMinutes < settings.dndEnd
+      ) {
+        return false;
+      }
+    } else {
+      if (
+        currentMinutes >= settings.dndStart &&
+        currentMinutes < settings.dndEnd
+      ) {
+        return false;
+      }
+    }
+    return true;
   }
 }

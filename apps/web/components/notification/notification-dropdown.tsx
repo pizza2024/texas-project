@@ -3,12 +3,18 @@
 import { useTranslation } from "react-i18next";
 import "@/lib/i18n";
 import type { NotificationItem } from "@/hooks/use-notifications";
+import type { UserNotificationSettings } from "@/lib/api/notifications";
+import { NotificationSettingsPanel } from "./notification-settings-panel";
 
 interface NotificationDropdownProps {
   notifications: NotificationItem[];
   onClose: () => void;
   onMarkRead: (ids: string[]) => void;
   onMarkAllRead: () => void;
+  settingsOpen: boolean;
+  onSettingsToggle: () => void;
+  settings: UserNotificationSettings | null | undefined;
+  onUpdateSettings: (data: Partial<UserNotificationSettings>) => Promise<void>;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -44,9 +50,39 @@ export function NotificationDropdown({
   onClose,
   onMarkRead,
   onMarkAllRead,
+  settingsOpen,
+  onSettingsToggle,
+  settings,
+  onUpdateSettings,
 }: NotificationDropdownProps) {
   const { t } = useTranslation("notification");
   const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+
+  // Show settings panel if toggled
+  if (settingsOpen) {
+    return (
+      <div
+        className="absolute right-0 top-full mt-2 w-80 rounded-2xl overflow-hidden z-50"
+        style={{
+          background: "rgba(6,12,9,0.98)",
+          border: "1px solid rgba(234,179,8,0.2)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+        }}
+      >
+        {settings ? (
+          <NotificationSettingsPanel
+            settings={settings}
+            onUpdate={onUpdateSettings}
+            onClose={onSettingsToggle}
+          />
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <span className="text-gray-500 text-sm">...</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -65,16 +101,25 @@ export function NotificationDropdown({
         <p className="text-sm font-bold text-white">
           {t("dropdown.title", "Notifications")}
         </p>
-        {unreadIds.length > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              onMarkAllRead();
-            }}
-            className="text-xs text-amber-400/70 hover:text-amber-400 transition-colors"
+            onClick={onSettingsToggle}
+            className="text-gray-500 hover:text-gray-300 transition-colors p-1"
+            title={t("settings.title", "Settings")}
           >
-            {t("dropdown.markAllRead", "Mark all read")}
+            ⚙️
           </button>
-        )}
+          {unreadIds.length > 0 && (
+            <button
+              onClick={() => {
+                onMarkAllRead();
+              }}
+              className="text-xs text-amber-400/70 hover:text-amber-400 transition-colors"
+            >
+              {t("dropdown.markAllRead", "Mark all read")}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}

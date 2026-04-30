@@ -74,8 +74,14 @@ export class NotificationGateway implements OnGatewayConnection {
   /**
    * Server → Client: push a notification to a specific user.
    * Called by NotificationService after creating a notification.
+   * Respects DND settings — skips emit if push is not allowed.
    */
-  emitToUser(userId: string, notification: unknown) {
+  async emitToUser(userId: string, notification: unknown) {
+    const isAllowed = await this.notificationService.isPushAllowed(userId);
+    if (!isAllowed) {
+      this.logger.debug(`Push suppressed for user ${userId} (DND active)`);
+      return;
+    }
     this.server.to(`user:${userId}`).emit('notification', notification);
   }
 }

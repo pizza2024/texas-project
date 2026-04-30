@@ -434,6 +434,7 @@ describe('AppGateway', () => {
         markRead: jest.fn(),
         markAllRead: jest.fn(),
         getNotifications: jest.fn().mockResolvedValue([]),
+        getUnreadCount: jest.fn().mockResolvedValue(0),
       } as any,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden

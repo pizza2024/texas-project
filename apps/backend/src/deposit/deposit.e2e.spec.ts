@@ -354,7 +354,12 @@ describe('DepositService E2E', () => {
 
       expect(address).toBe('0xderivedaddress1');
       expect(mockPrisma.depositAddress.create).toHaveBeenCalledWith({
-        data: { userId: 'user-1', address: '0xderivedaddress1', index: 1, isDefault: true },
+        data: {
+          userId: 'user-1',
+          address: '0xderivedaddress1',
+          index: 1,
+          isDefault: true,
+        },
       });
     });
 
@@ -384,7 +389,12 @@ describe('DepositService E2E', () => {
 
       // Owner wallet is at index 0; next available is 11
       expect(mockPrisma.depositAddress.create).toHaveBeenCalledWith({
-        data: { userId: 'user-1', address: expect.any(String), index: 11, isDefault: true },
+        data: {
+          userId: 'user-1',
+          address: expect.any(String),
+          index: 11,
+          isDefault: true,
+        },
       });
     });
 

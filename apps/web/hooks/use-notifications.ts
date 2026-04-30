@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { setNotificationHandler } from "@/lib/socket";
 import api from "@/lib/api";
 import type { NotificationPayload } from "@texas/shared";
+import type { UserNotificationSettings } from "@/lib/api/notifications";
+import { getNotificationSettings, updateNotificationSettings } from "@/lib/api/notifications";
 
 export type NotificationItem = NotificationPayload;
 
@@ -16,6 +18,8 @@ export interface UseNotificationsReturn {
   markRead: (ids: string[]) => Promise<void>;
   markAllRead: () => Promise<void>;
   refresh: () => Promise<void>;
+  settings: UserNotificationSettings | null;
+  updateSettings: (data: Partial<UserNotificationSettings>) => Promise<void>;
 }
 
 const PAGE_SIZE = 20;
@@ -27,6 +31,7 @@ export function useNotifications(
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [settings, setSettings] = useState<UserNotificationSettings | null>(null);
   const userIdRef = useRef(userId);
 
   // Keep userIdRef in sync so the socket handler always uses the latest
@@ -103,6 +108,33 @@ export function useNotifications(
     }
   }, []);
 
+  const fetchSettings = useCallback(async () => {
+    if (!userIdRef.current) return;
+    try {
+      const res = await getNotificationSettings();
+      setSettings(res.data);
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
+  const updateSettings = useCallback(
+    async (data: Partial<UserNotificationSettings>) => {
+      try {
+        const res = await updateNotificationSettings(data);
+        setSettings(res.data);
+      } catch {
+        // Non-blocking
+      }
+    },
+    [],
+  );
+
+  // Load settings
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
   return {
     notifications,
     unreadCount,
@@ -110,5 +142,7 @@ export function useNotifications(
     markRead,
     markAllRead,
     refresh: fetchNotifications,
+    settings,
+    updateSettings,
   };
 }

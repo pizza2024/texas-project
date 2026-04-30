@@ -41,7 +41,8 @@ async function createApp(state: UserState) {
         rakebackBalance: state.rakebackBalance,
       })),
       update: jest.fn().mockImplementation(async ({ data }: { data: any }) => {
-        if (data?.rakebackBalance !== undefined) state.rakebackBalance = data.rakebackBalance;
+        if (data?.rakebackBalance !== undefined)
+          state.rakebackBalance = data.rakebackBalance;
         if (data?.totalRake !== undefined) state.totalRake = data.totalRake;
         return {
           id: TEST_USER_ID,
@@ -52,14 +53,19 @@ async function createApp(state: UserState) {
       }),
     },
     wallet: {
-      findUnique: jest.fn().mockResolvedValue({ userId: TEST_USER_ID, chips: state.chips }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ userId: TEST_USER_ID, chips: state.chips }),
       update: jest.fn().mockImplementation(async ({ data }: { data: any }) => {
         if (data?.chips?.increment) state.chips += data.chips.increment;
         return { userId: TEST_USER_ID, chips: state.chips };
       }),
       upsert: jest.fn(),
     },
-    transaction: { create: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    transaction: {
+      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
   };
 
   const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -68,14 +74,24 @@ async function createApp(state: UserState) {
       RakebackService,
       { provide: WalletService, useValue: { addChips: jest.fn() } },
       { provide: PrismaService, useValue: mockPrisma },
-      { provide: JwtService, useValue: { sign: jest.fn().mockReturnValue('mock-token'), verify: jest.fn() } },
+      {
+        provide: JwtService,
+        useValue: {
+          sign: jest.fn().mockReturnValue('mock-token'),
+          verify: jest.fn(),
+        },
+      },
     ],
   })
     .overrideGuard(AuthGuard('jwt'))
     .useValue({
       canActivate: (context: ExecutionContext) => {
         const request = context.switchToHttp().getRequest();
-        request.user = { userId: TEST_USER_ID, username: 'rakeback-test-user', role: 'PLAYER' };
+        request.user = {
+          userId: TEST_USER_ID,
+          username: 'rakeback-test-user',
+          role: 'PLAYER',
+        };
         return true;
       },
     })
@@ -89,12 +105,15 @@ async function createApp(state: UserState) {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('RakebackController (e2e)', () => {
-
   // ── GET /user/rakeback ─────────────────────────────────────────────────────
 
   describe('GET /user/rakeback', () => {
     it('should return GOLD tier for user with 6000 totalRake', async () => {
-      const { app } = await createApp({ rakebackBalance: 1500, totalRake: 6000, chips: 1000 });
+      const { app } = await createApp({
+        rakebackBalance: 1500,
+        totalRake: 6000,
+        chips: 1000,
+      });
       try {
         await request(app.getHttpServer())
           .get('/user/rakeback')
@@ -116,7 +135,11 @@ describe('RakebackController (e2e)', () => {
     });
 
     it('should return BRONZE tier for user with 100 totalRake', async () => {
-      const { app } = await createApp({ rakebackBalance: 10, totalRake: 100, chips: 1000 });
+      const { app } = await createApp({
+        rakebackBalance: 10,
+        totalRake: 100,
+        chips: 1000,
+      });
       try {
         await request(app.getHttpServer())
           .get('/user/rakeback')
@@ -139,7 +162,11 @@ describe('RakebackController (e2e)', () => {
 
     it('should return GOLD tier for user with 3000 totalRake', async () => {
       // 3000 totalRake >= GOLD.minRake (2000), so this is GOLD tier (not SILVER)
-      const { app } = await createApp({ rakebackBalance: 300, totalRake: 3000, chips: 1000 });
+      const { app } = await createApp({
+        rakebackBalance: 300,
+        totalRake: 3000,
+        chips: 1000,
+      });
       try {
         await request(app.getHttpServer())
           .get('/user/rakeback')
@@ -165,7 +192,11 @@ describe('RakebackController (e2e)', () => {
 
   describe('POST /user/rakeback/claim', () => {
     it('should return 400 when rakeback balance is 0', async () => {
-      const { app } = await createApp({ rakebackBalance: 0, totalRake: 100, chips: 1000 });
+      const { app } = await createApp({
+        rakebackBalance: 0,
+        totalRake: 100,
+        chips: 1000,
+      });
       try {
         await request(app.getHttpServer())
           .post('/user/rakeback/claim')

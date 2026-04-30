@@ -390,6 +390,17 @@
       "withdraw": "Withdrawal processed",
       "tournament": "Tournament update",
       "system": "System notification"
+    },
+    "settings": {
+      "title": "Notification Settings",
+      "doNotDisturb": "Do Not Disturb",
+      "quietHours": "Quiet Hours",
+      "quietHoursDesc": "Mute notifications during set hours",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "pushEnabled": "Push Notifications",
+      "emailEnabled": "Email Notifications",
+      "save": "Save Settings"
     }
   }
 }

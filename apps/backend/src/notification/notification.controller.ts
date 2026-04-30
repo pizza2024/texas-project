@@ -11,6 +11,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { NotificationService } from './notification.service';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 import { MarkReadDto } from './dto/mark-read.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Controller('notifications')
 export class NotificationController {
@@ -20,8 +21,14 @@ export class NotificationController {
   @Get()
   async findAll(@Req() req: any, @Query() query: QueryNotificationDto) {
     const { page = 1, limit = 20 } = query;
-    const result = await this.notificationService.findAll(req.user.userId, page, limit);
-    const unreadCount = await this.notificationService.getUnreadCount(req.user.userId);
+    const result = await this.notificationService.findAll(
+      req.user.userId,
+      page,
+      limit,
+    );
+    const unreadCount = await this.notificationService.getUnreadCount(
+      req.user.userId,
+    );
     return { ...result, unreadCount };
   }
 
@@ -42,7 +49,21 @@ export class NotificationController {
   @UseGuards(AuthGuard('jwt'))
   @Get('unread-count')
   async getUnreadCount(@Req() req: any) {
-    const count = await this.notificationService.getUnreadCount(req.user.userId);
+    const count = await this.notificationService.getUnreadCount(
+      req.user.userId,
+    );
     return { count };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('settings')
+  async getSettings(@Req() req: any) {
+    return this.notificationService.getSettings(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('settings')
+  async updateSettings(@Req() req: any, @Body() dto: UpdateSettingsDto) {
+    return this.notificationService.updateSettings(req.user.userId, dto);
   }
 }

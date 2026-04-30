@@ -1,55 +1,20 @@
-# Test Latest — r46
+# Test Latest — r56
 
-**时间:** 2026-04-30 07:15
-**HEAD:** `0e25785`
+**时间:** 2026-04-30 10:15
+**HEAD:** `bbf2d67`
 
----
+## 状态
 
-## 系统状态
+- ✅ 451 单元测试通过
+- ✅ P0/P1 均清零
+- 本轮无新 commit；所有修改为纯 prettier 格式化
 
-| 维度 | 状态 |
-|------|------|
-| P0 | ✅ 清零 |
-| P1 | ✅ 清零 |
-| Backend 单元测试 | ✅ 32 suites / 451 tests / 0 failures |
-| TypeScript Build | ✅ prisma generate + nest build 通过 |
-| 代码清洁度 | ✅ 无 TODO/FIXME/debugger |
+## 待办（优先级）
 
----
+1. P2-WITHDRAW-UX-004 — 提现历史追踪
+2. P2-TOURNAMENT-BLIND — 盲注结构可视化
+3. P2-NOTIFY-001 Phase 3 — 通知免打扰设置
+4. P2-ROOM-UX-003/004 — 收藏常玩房间 + 空状态 CTA
+5. P2-ROOM-UX-005 — 私人房间分享邀请链接/二维码
 
-## 新代码审查
-
-### P2-WITHDRAW-UX-001 — 提现地址簿 ✅
-
-**Backend:**
-- `WithdrawAddress` Prisma model ✅ (Cascade delete, unique constraint)
-- 4个 REST 端点 (GET/POST/DELETE/PATCH) ✅ JWT 鉴权完整
-- `setDefaultAddress` 使用 `$transaction` 防止 race condition ✅
-- `deleteAddress` 默认地址升格逻辑正确 ⚠️ 非原子（低风险）
-
-**Frontend:**
-- 地址簿面板 UI 完整（新增/删除/默认/选择）✅
-- i18n 完整（en + zh-CN）✅
-- 无调试代码 ✅
-
-**⚠️ 发布前:** 需执行 `prisma migrate deploy`
-
----
-
-## 遗留问题
-
-| ID | 任务 | 状态 |
-|----|------|------|
-| WIP-001 | BLAST matchmaking timeout 调用方连接 | ⚠️ 待确认 |
-| WIP-002 | BLAST drawBlastMultiplier() | ⚠️ 待确认 |
-
----
-
-## 下轮优先
-
-1. **P2-WITHDRAW-UX-002** — 提现手续费透明化
-2. BLAST matchmaking WS 事件验证
-
----
-
-_Test r46 — 2026-04-30 07:15_
+_Test r56 — 2026-04-30-1015_

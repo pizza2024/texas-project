@@ -423,3 +423,21 @@ model Notification {
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, read, createdAt(sort: Desc)])
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UserNotificationSettings
+// ═══════════════════════════════════════════════════════════════════════════
+
+model UserNotificationSettings {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  doNotDisturb Boolean  @default(false)
+  dndStart     Int?     // minutes from midnight (0-1439)
+  dndEnd       Int?     // minutes from midnight (0-1439)
+  pushEnabled  Boolean  @default(true)
+  emailEnabled Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}

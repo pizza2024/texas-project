@@ -13,9 +13,10 @@ interface NotificationBellProps {
 export function NotificationBell({ userId }: NotificationBellProps) {
   const { t } = useTranslation("notification");
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { notifications, unreadCount, markRead, markAllRead } =
+  const { notifications, unreadCount, markRead, markAllRead, settings, updateSettings } =
     useNotifications({ userId });
 
   // Close on outside click
@@ -85,6 +86,10 @@ export function NotificationBell({ userId }: NotificationBellProps) {
           onClose={() => setOpen(false)}
           onMarkRead={markRead}
           onMarkAllRead={markAllRead}
+          settingsOpen={settingsOpen}
+          onSettingsToggle={() => setSettingsOpen((v) => !v)}
+          settings={settings}
+          onUpdateSettings={updateSettings}
         />
       )}
     </div>

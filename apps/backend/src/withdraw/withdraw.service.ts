@@ -209,7 +209,9 @@ export class WithdrawService {
       return existing;
     }
 
-    const count = await this.prisma.withdrawAddress.count({ where: { userId } });
+    const count = await this.prisma.withdrawAddress.count({
+      where: { userId },
+    });
     const isDefault = count === 0;
 
     return this.prisma.withdrawAddress.create({
