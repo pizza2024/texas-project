@@ -211,6 +211,7 @@ export class NotificationService {
 
   async isPushAllowed(userId: string): Promise<boolean> {
     const settings = await this.getSettings(userId);
+    if (!settings.pushEnabled) return false;
     if (!settings.doNotDisturb) return true;
 
     if (settings.dndStart == null || settings.dndEnd == null) {
