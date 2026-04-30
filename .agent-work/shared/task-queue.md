@@ -390,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 12:50 — Coding 第408轮 — P2-TOURNAMENT-BLIND 完成 ✅ (blindSchedule DTO/Service + BlindTimeline 页面集成)_
+_最后更新: 2026-04-30 14:30 — Coding 第410轮 — P2-TOURNAMENT-BLIND 全部字段已提交 ✅ (commit c7f6605 — blindSchedule/currentBlindLevel/blindLevelStartedAt DTO + 前端 interface)_
 
 ---
 
