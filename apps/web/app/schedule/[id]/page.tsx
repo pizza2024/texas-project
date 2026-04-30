@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import { CountdownTimer } from "../components/CountdownTimer";
+import { BlindTimeline } from "@/components/tournament";
 import type { ScheduleEntry } from "../components/TournamentCard";
 
 const pageBg: React.CSSProperties = {
@@ -280,6 +281,19 @@ export default function TournamentDetailPage() {
             ))}
           </div>
         </div>
+
+        {/* Blind Timeline (if running) */}
+        {tournament.status === "RUNNING" &&
+          tournament.blindSchedule &&
+          tournament.blindSchedule.length > 0 && (
+            <div className="mb-6">
+              <BlindTimeline
+                blinds={tournament.blindSchedule as { level: number; smallBlind: number; bigBlind: number; durationSeconds: number }[]}
+                currentLevel={tournament.currentBlindLevel ?? 0}
+                levelStartedAt={tournament.blindLevelStartedAt ?? Date.now()}
+              />
+            </div>
+          )}
 
         {/* Prize Distribution */}
         <div

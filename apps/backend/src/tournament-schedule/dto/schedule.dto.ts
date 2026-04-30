@@ -7,7 +7,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { TournamentType } from '@texas/shared/types/tournament';
+import { TournamentType, BlindLevel } from '@texas/shared/types/tournament';
 
 /** Request DTO for creating a BTC tournament schedule entry */
 export class CreateScheduleDto {
@@ -111,6 +111,18 @@ export class ScheduleEntryResponseDto {
 
   @ApiProperty()
   updatedAt: string;
+
+  /** Blind schedule (levels with small/big blind amounts and duration) */
+  @ApiPropertyOptional({ isArray: true })
+  blindSchedule?: BlindLevel[];
+
+  /** 0-indexed current blind level */
+  @ApiPropertyOptional()
+  currentBlindLevel?: number;
+
+  /** Unix timestamp (ms) when the current blind level started */
+  @ApiPropertyOptional()
+  blindLevelStartedAt?: number;
 }
 
 /** Status of a schedule entry */
