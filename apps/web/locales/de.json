@@ -281,5 +281,11 @@
   },
   "friends": {
     "title": "Freunde"
+  },
+  "tournament": {
+    "level": "Level {{level}}",
+    "ofLevels": "{{current}} / {{total}}",
+    "sbBb": "{{sb}} / {{bb}}",
+    "nextLevel": "Nächstes Level"
   }
 }

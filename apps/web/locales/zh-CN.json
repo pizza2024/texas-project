@@ -396,5 +396,11 @@
       "emailEnabled": "邮件通知",
       "save": "保存设置"
     }
+  },
+  "tournament": {
+    "level": "第 {{level}} 级",
+    "ofLevels": "{{current}} / {{total}}",
+    "sbBb": "{{sb}} / {{bb}}",
+    "nextLevel": "下一级"
   }
 }

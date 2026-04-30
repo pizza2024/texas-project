@@ -402,5 +402,11 @@
       "emailEnabled": "Email Notifications",
       "save": "Save Settings"
     }
+  },
+  "tournament": {
+    "level": "Level {{level}}",
+    "ofLevels": "{{current}} / {{total}}",
+    "sbBb": "{{sb}} / {{bb}}",
+    "nextLevel": "Next Level"
   }
 }

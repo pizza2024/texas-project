@@ -300,5 +300,11 @@
   },
   "friends": {
     "title": "好友"
+  },
+  "tournament": {
+    "level": "第 {{level}} 級",
+    "ofLevels": "{{current}} / {{total}}",
+    "sbBb": "{{sb}} / {{bb}}",
+    "nextLevel": "下一級"
   }
 }
