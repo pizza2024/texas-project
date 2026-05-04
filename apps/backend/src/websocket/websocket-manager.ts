@@ -50,13 +50,15 @@ export class WebSocketManager {
         this.logger.warn(`Redis pub error: ${err.message}`);
       });
 
-      // Subscribe to the broadcast channel
-      this.redisSub.subscribe(WS_REDIS_CHANNEL, (err) => {
-        if (err) {
-          this.logger.warn(`Redis subscribe error: ${err.message}`);
-        } else {
-          this.logger.log(`Redis subscribed to ${WS_REDIS_CHANNEL}`);
-        }
+      // Wait for Redis 'ready' before subscribing (P0-WS-002)
+      this.redisSub.on('ready', () => {
+        this.redisSub!.subscribe(WS_REDIS_CHANNEL, (err) => {
+          if (err) {
+            this.logger.warn(`Redis subscribe error: ${err.message}`);
+          } else {
+            this.logger.log(`Redis subscribed to ${WS_REDIS_CHANNEL}`);
+          }
+        });
       });
 
       // Deliver incoming cross-instance messages to local sockets
@@ -126,6 +128,8 @@ export class WebSocketManager {
       this.redisPub.publish(WS_REDIS_CHANNEL, message).catch(() => {
         // non-fatal — local delivery already done
       });
+    } else {
+      this.logger.warn(`Redis not ready, skipping cross-instance broadcast for ${userId}`);
     }
   }
 
