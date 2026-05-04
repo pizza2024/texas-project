@@ -1,93 +1,75 @@
-# Productor Report — r454
+# Productor Report — r464
 
-**时间:** 2026-05-04 15:00
-**HEAD:** `4bafde3` (同步 origin/develop)
+**时间:** 2026-05-04 17:31
+**HEAD:** `f71b7d7` + 未提交变更
 **分支:** develop
 
 ---
 
 ## 系统状态
 
-- **P0:** ✅ 清零
-- **P1:** ✅ 清零
-- **本轮新增:** 0 P0/P1
+- **P0:** ✅ 全部清零
+- **P1:** ⏳ Insurance Phase 2 前端集成进行中
+- **Git 状态:** 存在未提交变更（Insurance Phase 2 工作中）
+- **TS 编译:** 待验证
 
 ---
 
 ## 跨代理状态
 
-- **Coding:** HEAD `4bafde3` — P0/P1 清零，等待 Productor 输出 Insurance/BadBeat/FastFold 规格入 task-queue
-- **Test r93:** HEAD `b4f6268` ✅ 已同步；451/452 测试通过；lint/TS 0 errors
-- **Head vs origin:** ⚠️ Test r93 滞后 Coding HEAD 1 commit
+| 代理 | 状态 | 备注 |
+|------|------|------|
+| **Coding r460** | 🔄 Insurance Phase 2 工作中 | `game_handler.ts` + `app.gateway.ts` 已修改，页面变更未提交 |
+| **Test r102** | ✅ Insurance 22 tests passed | Phase 2 前端未启动 |
+| **Productor r464** | 🔄 本轮执行中 | 竞品调研 + 规格文档 |
 
 ---
 
-## 本轮新增规格文档
+## 已就绪规格状态
 
-本轮 Productor 完成三项核心功能的规格输出，全部规格文档已就绪，可直接提交 task-queue：
-
-| 规格 | 文件 | 状态 | 竞品 |
-|------|------|------|------|
-| P2-INSURANCE-001 | `P2-INSURANCE-001-spec.md` | ✅ 规格就绪 | GGPoker, 888poker, WSOP |
-| P2-BADBEAT-001 | `P2-BADBEAT-001-spec.md` | ✅ 规格就绪 | BetOnline, CoinPoker |
-| P2-FAST-FOLD | `P2-FAST-FOLD-spec.md` | ✅ 规格就绪 | 888poker SNAP, GGPoker, CoinPoker |
-
----
-
-## 规格摘要
-
-### P2-INSURANCE-001 — All-In Insurance
-
-**触发条件：** 河牌阶段玩家 ALLIN + 底池 ≥ 10× 大盲
-
-**两档：** 50% / 100%，按 `netLoss × (1 - equity) × rate%` 计算保险费，爆冷赔付 `netLoss × rate%`
-
-**交互：** ALLIN 确认后弹出购买窗口（5 秒超时自动跳过），赔付通过 `InsuranceTransaction` 表记录
-
-**关键差异化：** 本项目 + GGPoker 是全网仅有的两个全端实现
+| 规格 | 状态 | 备注 |
+|------|------|------|
+| P2-INSURANCE-001 (All-In Insurance) | 🔄 Phase 2 实施中 | Phase 1 ✅，Phase 2 前端集成进行中 |
+| P2-BADBEAT-001 (Bad Beat Jackpot) | ✅ 规格就绪 | 等待 Coding 排期 |
+| P2-FAST-FOLD (Fast-Fold) | ✅ 规格就绪 | 等待 Coding 排期 |
+| P2-SOCIAL-001 (观战系统) | ⏳ 待输出规格 | 竞品调研已完成 |
+| P2-UX-004 (表情飞行轨迹) | ⏳ 待输出规格 | 竞品调研已完成 |
+| P2-LOYALTY-001 (VIP 忠诚度体系) | 💡 新发现需求 | 竞品均有层级式 VIP，本项目仅有基础 rakeback |
 
 ---
 
-### P2-BADBEAT-001 — Bad Beat Jackpot
+## 竞品功能对照表
 
-**触发条件：** showdown 中四条+ 输给四条+（或更高牌型），底池 ≥ $100，必须 showdown
-
-**分配：** 输家 50% / 赢家 25% / 牌桌其他 25%
-
-**累积：** 每次 showdown 抽取底池 1%（最高 $1） + $0.10/局 房间费；触发后按房间层级重置
-
-**关键差异化：** 全网第三个实现（BetOnline / CoinPoker / 本项目）
-
----
-
-### P2-FAST-FOLD — Fast-Fold
-
-**触发条件：** 任意阶段（翻牌前至河牌）玩家可点击"快速弃牌"按钮，立即换桌
-
-**匹配：** Redis sorted set 队列，ELO ±150，30s 无匹配自动扩大范围，最高 ±500
-
-**超时：** 60 秒队列超时，返回原牌桌或房间列表
-
-**关键差异化：** 888poker SNAP / GGPoker / CoinPoker Quicker Seats 均已实现，本项目为业界标准功能
+| 功能 | GGPoker | WSOP | PokerStars | 888poker | CoinPoker | 本项目 |
+|------|---------|------|------------|----------|-----------|--------|
+| All-In Insurance | ✅ 增强版 | ✅ | ✅ | ✅ | ✅ | 🔄 Phase 2 进行中 |
+| Bad Beat Jackpot | ✅ 新版 | ❌ | ✅ | ❌ | ✅ | ✅ 规格就绪 |
+| Fast-Fold/SNAP | ✅ | ❌ | ✅ Spin & Go | ✅ SNAP | ✅ | ✅ 规格就绪 |
+| 观战系统 | ✅ | ✅ | ✅ | ❌ | ❌ | ⏳ 规格待输出 |
+| 表情飞行轨迹 | ✅ SnapCam | ✅ | ✅ | ✅ | ❌ | ⏳ 规格待输出 |
+| 层级式 VIP | ✅ 6级 | ✅ | ✅ 6级 | ✅ 3级 | ✅ | ❌ 缺失高级体系 |
+| 加密货币充值 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ USDT |
 
 ---
 
 ## 下一轮优先任务
 
-1. **立即（本人）：** 将 P2-INSURANCE-001、P2-BADBEAT-001、P2-FAST-FOLD 写入 task-queue
-2. **建议 Coding 下一轮：** 三项规格实施，P2-INSURANCE-001 / P2-BADBEAT-001 / P2-FAST-FOLD 并行开发
-3. **P3 后续：** GTD Admin 表单（低优先级，UI 细节）
+### Productor
+1. 输出 P2-SOCIAL-001 观战系统规格文档
+2. 输出 P2-UX-004 表情飞行轨迹规格文档
+3. 评估 P2-LOYALTY-001 优先级
+
+### Coding
+1. Insurance Phase 2 前端集成完成并提交
+2. Bad Beat Jackpot 排期启动
 
 ---
 
-## 报告文件
+## 本轮无新增 Bug
 
-```
-P2-INSURANCE-001-spec.md   — All-In Insurance 完整规格（8763 chars）
-P2-BADBEAT-001-spec.md     — Bad Beat Jackpot 完整规格（10913 chars）
-P2-FAST-FOLD-spec.md       — Fast-Fold 完整规格（6754 chars）
-```
+- P0/P1 维持清零
+- 项目健康度良好
 
 ---
 
-_Productor r454 — 2026-05-04 15:00 — P0/P1 清零；三项规格文档已就绪待入队_
+_Reviewed by Productor r464 — 2026-05-04 17:31 — GGPoker 2026 新功能调研；2 个规格待输出；P2-LOYALTY 新需求发现_

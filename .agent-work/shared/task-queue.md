@@ -14,6 +14,10 @@
 ||||----|------|------|------|
 ||||| P0-TS-001 | `ACTIVE_BETTING_STAGES.includes(table.currentStage)` TS2345 编译错误 | ✅ 已验证修复 | commit `1bffbae` — `components/types.ts` 导入 `GameStage` from `@texas/shared`；`page.tsx` 导入 `GameStage` ✅ TS 编译 0 errors |
 
+| | | | | | P0-INSURANCE-01 | `hasPurchasedInsurance` 缺失于 `table-player-ops.ts` player 映射 | ✅ 已修复 | table-player-ops.ts — 添加 `hasPurchasedInsurance: false,` |
+| | | | | | P0-INSURANCE-02 | `InsuranceService` 未注入 `AppGateway` 构造函数 | ✅ 已修复 | app.gateway.ts — 添加 `InsuranceService` import + `readonly insuranceService` 构造函数参数 |
+| | | | | | P0-INSURANCE-03 | `app.gateway.spec.ts` 缺少 `insuranceService` mock（16参数变15） | ✅ 已修复 | app.gateway.spec.ts — 添加 `let insuranceService: any;` + `insuranceService as any,` 参数 |
+
 ## P0 — 新发现（第3轮）
 
 ||||| ID | 任务 | 状态 | 备注 |
@@ -167,6 +171,13 @@
 | P1-BLAST-001 Phase 4B    | Blast SpinWheel 3D 动画              | ✅ 已完成           | commit de4156b — SpinWheel.tsx (Framer Motion, 2x/5x/10x segments) + MatchingOverlay.tsx                                           |
 | P1-BLAST-001 Phase 4C    | Blast WS 事件集成                    | ✅ 已完成           | commit de4156b — hooks/useBlastSocket.ts (blast_game_started/ended/forfeited)                                                      |
 | P1-BLAST-001 Phase 1+2+3 | Blast 后端 + WS                      | ✅ Phase 1+2+3 完成 | commit 88e245a (Phase 3)                                                                                                           |
+
+## P1 — 新发现（Test r100）
+
+|     |     |     | ID | 任务 | 状态 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | P1-INS-FRONTEND | Insurance Phase 2: `InsuranceOfferModal` 集成到 `room/[id]/page.tsx` | 📋 待认领 | Phase 1 后端已完成；前端 Modal 存在但未使用 |
+|     |     |     | P1-INS-GAMEWIRING | Insurance Phase 2: `handlePlayerAction(ALLIN)` 在 RIVER 触发 `offerInsurance()` | 📋 待认领 | 核心集成：WS 事件 `insurance_offered` 未 emit |
 
 ## P1 — 遗留缺陷（待 Coding 修复）
 
@@ -489,7 +500,7 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 
 || ID | 任务 | 紧迫度 | 状态 | 规格来源 |
 ||----|------|--------|------|----------|
-| P2-INSURANCE-001 | All-In Insurance 实施 | P2 | 📋 待实施 | `P2-INSURANCE-001-spec.md` — 河牌ALLIN触发，50%/100%两档，netLoss×equity计算 |
+| P2-INSURANCE-001 | All-In Insurance 实施 | P2 | ⚠️ Phase 1 ✅，Phase 2 未开始 | `P2-INSURANCE-001-spec.md` — 河牌ALLIN触发，50%/100%两档，netLoss×equity计算 |
 | P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 📋 待实施 | `P2-BADBEAT-001-spec.md` — 四条+输给四条+，底池≥$100，输家50%/赢家25%/牌桌25% |
 | P2-FAST-FOLD | Fast-Fold 实施 | P2 | 📋 待实施 | `P2-FAST-FOLD-spec.md` — 快速弃牌换桌，Redis sorted set ELO匹配队列 |
 

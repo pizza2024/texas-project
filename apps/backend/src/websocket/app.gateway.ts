@@ -690,4 +690,17 @@ export class AppGateway
   ) {
     return handleEmojiReaction(this, client, data);
   }
+
+  @SubscribeMessage('buy_insurance')
+  async handleBuyInsurance(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { handId: string; rate: number },
+  ) {
+    return handleBuyInsurance(this, client, data);
+  }
+
+  @SubscribeMessage('skip_insurance')
+  async handleSkipInsurance(@ConnectedSocket() client: Socket) {
+    return handleSkipInsurance(this, client);
+  }
 }

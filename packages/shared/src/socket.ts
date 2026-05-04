@@ -96,6 +96,24 @@ export interface ServerToClientEvents {
     userId: string;
     emoji: string;
   }) => void;
+  /** All-In Insurance: offer presented to player at RIVER stage */
+  insurance_offered: (data: {
+    handId: string;
+    pot: number;
+    playerBet: number;
+    playerEquity: number;
+    fee50: number;
+    payout50: number;
+    fee100: number;
+    payout100: number;
+    timeoutMs: number;
+    holeCards: string[];
+    timestamp: number;
+  }) => void;
+  /** All-In Insurance: purchase confirmed by server */
+  insurance_purchased: () => void;
+  /** All-In Insurance: error from server */
+  insurance_error: (data: { message: string }) => void;
   error: (message: string) => void;
 }
 
@@ -128,6 +146,10 @@ export interface ClientToServerEvents {
   "join-blast-lobby": (data: { lobbyId: string; userId: string }) => void;
   /** 离开 Blast 匹配大厅 */
   "leave-blast-lobby": (data: { lobbyId: string; userId: string }) => void;
+  /** All-In Insurance: buy coverage (rate = 50 or 100) */
+  buy_insurance: (data: { handId: string; rate: 50 | 100 }) => void;
+  /** All-In Insurance: decline coverage */
+  skip_insurance: () => void;
 }
 
 // ── 连接管理 ─────────────────────────────────────────────────────────────────

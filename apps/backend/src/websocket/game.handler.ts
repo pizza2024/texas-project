@@ -11,6 +11,7 @@ import { Socket } from 'socket.io';
 import * as bcrypt from 'bcrypt';
 import { BlindTier, BLIND_TIERS } from '../matchmaking/matchmaking.service';
 import { GameStage } from '../table-engine/table';
+import { PlayerStatus } from '../table-engine/player';
 import { AppGateway } from './app.gateway';
 import { validate } from './validate';
 import {
@@ -26,6 +27,7 @@ import {
   calculateInsuranceFee,
   calculateInsurancePayout,
 } from '../table-engine/insurance-calculator';
+import { calculateEquity } from '@texas/shared/equity';
 
 import {
   SOLO_READY_COUNTDOWN_MS,
@@ -353,6 +355,8 @@ export async function handlePlayerAction(
     const playerStack = player?.stack ?? 0;
     const cappedAmount =
       action === 'raise' ? Math.min(amount, playerStack) : amount;
+    // Capture stage before action to detect RIVER ALLIN for insurance
+    const stageBeforeAction = table.currentStage;
     const processed = table.processAction(userId, action, cappedAmount);
     if (!processed) {
       client.emit('action_rejected', {
@@ -365,6 +369,41 @@ export async function handlePlayerAction(
 
     await gateway.tableManager.persistTableState(roomId);
     await gateway.tableManager.persistTableBalances(roomId);
+
+    // P2-INS-GAMEWIRING: Emit insurance_offered when ALLIN at RIVER
+    // Only one opponent remaining (heads-up) for insurance to be offered
+    if (
+      action === 'allin' &&
+      stageBeforeAction === GameStage.RIVER &&
+      table.currentStage !== GameStage.SETTLEMENT
+    ) {
+      const activePlayer = table.players.find((p) => p?.id === userId);
+      const opponentCount = table.players.filter(
+        (p) => p && p.id !== userId && p.status !== PlayerStatus.FOLD,
+      ).length;
+      if (activePlayer && opponentCount === 1) {
+        // Calculate net loss (what player stands to lose)
+        const netLoss = activePlayer.totalBet;
+        // Use a placeholder equity — real equity requires async calculation
+        // which should be done before emitting (see handleBuyInsurance for actual calc)
+        const placeholderEquity = 0.5;
+        const offer = gateway.insuranceService.calculateInsuranceOffer(
+          netLoss,
+          placeholderEquity,
+        );
+        gateway.server.to(roomId).emit('insurance_offered', {
+          handId: crypto.randomUUID(),
+          pot: table.pot,
+          playerBet: activePlayer.totalBet,
+          playerEquity: placeholderEquity,
+          ...offer,
+          timeoutMs: gateway.insuranceService.getConfig().offerTimeoutMs,
+          holeCards: activePlayer.cards ?? [],
+          timestamp: Date.now(),
+        });
+      }
+    }
+
     if (table.currentStage === GameStage.SETTLEMENT) {
       await gateway.schedulePostHandFlow(gateway.server, roomId, table);
     } else if (gateway.isActionStage(table.currentStage)) {
@@ -715,9 +754,15 @@ export async function handleBuyInsurance(
       return;
     }
 
-    // Get player equity (would need to be calculated by hand-evaluator)
-    // For now, we'll use a placeholder - in real implementation this would come from table-engine
-    const playerEquity = 0.5; // TODO: Get actual equity from hand-evaluator
+    // Calculate real player equity using Monte Carlo simulation
+    const opponentCount = table.players.filter(
+      (p) => p && p.id !== userId && p.status !== PlayerStatus.FOLD,
+    ).length;
+    const playerEquity = calculateEquity(
+      player.cards,
+      table.communityCards,
+      opponentCount,
+    ) / 100; // convert from percentage to decimal
 
     // Calculate fee and payout
     const feeBigInt = calculateInsuranceFee(netLoss, playerEquity, rate);

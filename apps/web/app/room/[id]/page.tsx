@@ -36,6 +36,10 @@ import { AllInConfirmModal } from "./components/AllInConfirmModal";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { EmojiOverlay, EmojiOverlayStyles } from "./components/EmojiOverlay";
 import { MatchingOverlay } from "@/components/blast/MatchingOverlay";
+import {
+  InsuranceOfferModal,
+  InsuranceOfferData,
+} from "@/components/insurance/InsuranceOfferModal";
 
 import { calculateEquity, GameStage } from "@texas/shared";
 
@@ -94,6 +98,9 @@ export default function RoomPage() {
   const [foldWinChoiceMade, setFoldWinChoiceMade] = useState(false);
   const [showAllInConfirm, setShowAllInConfirm] = useState(false);
   const [allInConfirmAmount, setAllInConfirmAmount] = useState(0);
+  const [insuranceOffer, setInsuranceOffer] = useState<InsuranceOfferData | null>(
+    null,
+  );
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [emojiFlights, setEmojiFlights] = useState<
     Array<{ id: string; emoji: string; seatIndex: number; delay?: number }>
@@ -561,8 +568,33 @@ export default function RoomPage() {
     };
     socket.on("rejoin_available", rejoinAvailableHandler);
 
+    // P1-INS-FRONTEND: insurance_offered — triggers when ALLIN at RIVER with 1 opponent
+    socket.on(
+      "insurance_offered",
+      (data: InsuranceOfferData) => {
+        setInsuranceOffer(data);
+      },
+    );
+
+    // P1-INS-FRONTEND: insurance_error — show error and close modal
+    socket.on("insurance_error", (data: { message: string }) => {
+      setInsuranceOffer(null);
+      void showSystemMessage({
+        title: t("room.insuranceError", "Insurance Error"),
+        message: data.message,
+      });
+    });
+
+    // P1-INS-FRONTEND: insurance_purchased — confirm and close modal
+    socket.on("insurance_purchased", () => {
+      setInsuranceOffer(null);
+    });
+
     return () => {
       socket.off("rejoin_available", rejoinAvailableHandler);
+      socket.off("insurance_offered");
+      socket.off("insurance_error");
+      socket.off("insurance_purchased");
       disconnectSocket();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -790,6 +822,24 @@ export default function RoomPage() {
     ? Math.max(0, Math.ceil((table.actionEndsAt - countdownNow) / 1000))
     : 0;
   const isSettlement = table?.currentStage === "SETTLEMENT";
+
+  // P1-INS-FRONTEND: buy insurance — emit to server with selected rate
+  const handleBuyInsurance = (rate: 50 | 100) => {
+    const socket = getAuthorizedSocket();
+    if (!socket || !insuranceOffer) return;
+    socket.emit("buy_insurance", {
+      handId: insuranceOffer.handId,
+      rate,
+    });
+  };
+
+  // P1-INS-FRONTEND: skip insurance — emit to server and close modal
+  const handleSkipInsurance = () => {
+    const socket = getAuthorizedSocket();
+    if (!socket) return;
+    socket.emit("skip_insurance");
+    setInsuranceOffer(null);
+  };
   const isAutoReadyCountdown =
     table?.currentStage === "WAITING" && readyCountdown > 0;
   const isActionStage = table
@@ -1091,6 +1141,14 @@ export default function RoomPage() {
           setShowAllInConfirm(false);
         }}
         onCancel={() => setShowAllInConfirm(false)}
+      />
+
+      {/* P1-INS-FRONTEND: Insurance Phase 2 — All-In Insurance offer modal */}
+      <InsuranceOfferModal
+        open={insuranceOffer !== null}
+        offer={insuranceOffer}
+        onBuy={handleBuyInsurance}
+        onSkip={handleSkipInsurance}
       />
 
       {/* Emoji Overlay */}
