@@ -340,6 +340,15 @@ export class AppGateway
         }
       }
 
+      // Register new socket in userSockets index BEFORE evict loop
+      // This ensures the new socket is tracked before we evict any old ones
+      const existing = this.connectionState.userSockets.get(payload.sub);
+      if (existing) {
+        existing.add(client.id);
+      } else {
+        this.connectionState.userSockets.set(payload.sub, new Set([client.id]));
+      }
+
       // Disconnect any other sockets belonging to the same user (single-device enforcement)
       const allSockets = await this.server.fetchSockets();
       for (const other of allSockets) {
@@ -362,14 +371,6 @@ export class AppGateway
 
       // Join user-specific room for direct notification delivery via emitToUser
       await client.join(`user:${payload.sub}`);
-
-      // Register new socket in userSockets index
-      const existing = this.connectionState.userSockets.get(payload.sub);
-      if (existing) {
-        existing.add(client.id);
-      } else {
-        this.userSockets.set(payload.sub, new Set([client.id]));
-      }
 
       this.logger.log(
         `Client connected: ${client.id} User: ${payload.username}`,
