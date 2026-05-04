@@ -46,6 +46,8 @@ import {
   handleShowCards,
   handleChatMessage,
   handleEmojiReaction,
+  handleBuyInsurance,
+  handleSkipInsurance,
 } from './game.handler';
 import { ConnectionStateService } from './connection-state.service';
 import { BroadcastService } from './broadcast.service';
@@ -53,6 +55,7 @@ import { TimerService } from './timer.service';
 import { TournamentService } from '../tournament/tournament.service';
 import { MissionService } from '../mission/mission.service';
 import { NotificationService } from '../notification/notification.service';
+import { InsuranceService } from '../insurance/insurance.service';
 
 @WebSocketGateway({
   namespace: '/ws',
@@ -116,6 +119,7 @@ export class AppGateway
     readonly roomService: RoomService,
     @Inject(forwardRef(() => NotificationService))
     private readonly notificationService: NotificationService,
+    readonly insuranceService: InsuranceService,
   ) {}
 
   // ── Delegating getters for ConnectionStateService ───────────────────────
@@ -509,12 +513,16 @@ export class AppGateway
         friends.map((friend) =>
           (async () => {
             try {
-              this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
-                friendUserId: userId,
-                friendNickname: friend.nickname,
-                friendAvatar: friend.avatar,
-                online,
-              });
+              this.wsManager.emitToUser(
+                friend.friendId,
+                'friend_status_update',
+                {
+                  friendUserId: userId,
+                  friendNickname: friend.nickname,
+                  friendAvatar: friend.avatar,
+                  online,
+                },
+              );
             } catch (err) {
               this.logger.warn(
                 `notifyFriendsOfStatusChange: failed to emit to friend ${friend.friendId}: ${err}`,

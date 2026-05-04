@@ -43,6 +43,7 @@ describe('AppGateway', () => {
   let timerMockTable: any;
   // The server injected into timer mocks for broadcast calls.
   let timerMockServer: any;
+  let insuranceService: any;
 
   beforeEach(() => {
     connectionState = {
@@ -436,6 +437,7 @@ describe('AppGateway', () => {
         getNotifications: jest.fn().mockResolvedValue([]),
         getUnreadCount: jest.fn().mockResolvedValue(0),
       } as any,
+      insuranceService as any,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden
     // per-test without losing the adapter.rooms reference.

@@ -16,6 +16,7 @@ import { ClubModule } from '../club/club.module';
 import { RoomModule } from '../room/room.module';
 import { MissionModule } from '../mission/mission.module';
 import { NotificationModule } from '../notification/notification.module';
+import { InsuranceModule } from '../insurance/insurance.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
@@ -30,6 +31,7 @@ import { getJwtSecret } from '../config/jwt.config';
     RoomModule,
     MissionModule,
     forwardRef(() => NotificationModule),
+    InsuranceModule,
     JwtModule.register({
       secret: getJwtSecret(),
     }),

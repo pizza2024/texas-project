@@ -425,6 +425,27 @@ model Notification {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Insurance
+// ═══════════════════════════════════════════════════════════════════════════
+
+model InsuranceTransaction {
+  id           String   @id @default(uuid())
+  handId       String
+  userId       String
+  roomId       String
+  tableId      String
+  rate         Int      // 50 或 100
+  fee          BigInt   // 保险费（chips）
+  payout       BigInt   // 赔付额（chips，0 if win）
+  playerEquity Float    // 购买时计算的 equity
+  result       String   // 'WIN' | 'LOSE' | 'REFUND'
+  createdAt    DateTime @default(now())
+
+  @@index([handId])
+  @@index([userId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // UserNotificationSettings
 // ═══════════════════════════════════════════════════════════════════════════
 

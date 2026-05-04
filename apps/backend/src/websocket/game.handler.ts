@@ -21,6 +21,11 @@ import {
   EmojiReactionSchema,
 } from '@texas/shared/validation';
 import { MissionService } from '../mission/mission.service';
+import { InsuranceService } from '../insurance/insurance.service';
+import {
+  calculateInsuranceFee,
+  calculateInsurancePayout,
+} from '../table-engine/insurance-calculator';
 
 import {
   SOLO_READY_COUNTDOWN_MS,
@@ -475,7 +480,8 @@ export async function handleQuickMatch(
   try {
     return gateway.withUserLock(userId, async () => {
       // Re-check room status inside lock to prevent TOCTOU race
-      const currentRoomId2 = await gateway.tableManager.getUserCurrentRoomId(userId);
+      const currentRoomId2 =
+        await gateway.tableManager.getUserCurrentRoomId(userId);
       if (currentRoomId2) {
         client.emit('match_error', {
           message: 'already_in_room',
@@ -484,12 +490,13 @@ export async function handleQuickMatch(
         return;
       }
 
-      const roomId = await gateway.matchmakingService.findOrCreateMatchmakingRoom(
-        userId,
-        tier,
-        playerElo,
-        ipHash,
-      );
+      const roomId =
+        await gateway.matchmakingService.findOrCreateMatchmakingRoom(
+          userId,
+          tier,
+          playerElo,
+          ipHash,
+        );
 
       gateway.matchmakingService.recordPlayerJoined(
         roomId,
@@ -648,5 +655,155 @@ export async function handleEmojiReaction(
     emoji: validated.emoji,
     roomId,
     timestamp: Date.now(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Handler: buy_insurance
+// ---------------------------------------------------------------------------
+
+export async function handleBuyInsurance(
+  gateway: AppGateway,
+  client: Socket,
+  data: { handId: string; rate: number },
+) {
+  const userId = client.data.user?.sub as string;
+  if (!userId) {
+    return { event: 'error', data: 'Unauthorized' };
+  }
+
+  const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+  if (!roomId) {
+    return { event: 'error', data: 'Not in any room' };
+  }
+
+  const { handId, rate } = data ?? {};
+
+  if (!handId || typeof rate !== 'number' || ![50, 100].includes(rate)) {
+    client.emit('insurance_error', {
+      message: 'Invalid insurance purchase parameters',
+    });
+    return;
+  }
+
+  return gateway.withRoomLock(roomId, async () => {
+    const table = await gateway.tableManager.getTable(roomId);
+    if (!table) {
+      client.emit('insurance_error', { message: 'Table not found' });
+      return;
+    }
+
+    // Find the player
+    const player = table.players.find((p) => p?.id === userId);
+    if (!player) {
+      client.emit('insurance_error', { message: 'Player not found' });
+      return;
+    }
+
+    // Check if player already purchased insurance this hand
+    if (player.hasPurchasedInsurance) {
+      client.emit('insurance_error', {
+        message: 'Insurance already purchased for this hand',
+      });
+      return;
+    }
+
+    // Calculate netLoss (player's total bet this hand)
+    const netLoss = player.totalBet;
+    if (netLoss <= 0) {
+      client.emit('insurance_error', { message: 'No bet to insure' });
+      return;
+    }
+
+    // Get player equity (would need to be calculated by hand-evaluator)
+    // For now, we'll use a placeholder - in real implementation this would come from table-engine
+    const playerEquity = 0.5; // TODO: Get actual equity from hand-evaluator
+
+    // Calculate fee and payout
+    const feeBigInt = calculateInsuranceFee(netLoss, playerEquity, rate);
+    const payoutBigInt = calculateInsurancePayout(netLoss, rate);
+
+    // Deduct fee from player's stack
+    const fee = Number(feeBigInt);
+    if (player.stack < fee) {
+      client.emit('insurance_error', {
+        message: 'Insufficient chips for insurance fee',
+      });
+      return;
+    }
+
+    player.stack -= fee;
+    player.hasPurchasedInsurance = true;
+    player.insuranceRate = rate;
+    player.insuranceFee = feeBigInt;
+
+    // Record insurance transaction in DB
+    try {
+      await gateway.insuranceService.recordInsurancePurchase({
+        handId,
+        userId,
+        roomId,
+        tableId: table.id,
+        rate,
+        fee: feeBigInt,
+        payout: payoutBigInt,
+        playerEquity,
+        result: 'PENDING', // Will be updated at settlement
+      });
+    } catch (err) {
+      gateway.logger.error('Failed to record insurance purchase', err);
+    }
+
+    // Emit success to the buying player
+    client.emit('insurance_purchased', {
+      handId,
+      rate,
+      fee,
+      payout: Number(payoutBigInt),
+    });
+
+    // Broadcast updated table state
+    await gateway.tableManager.persistTableState(roomId);
+    await gateway.broadcastTableState(roomId, table);
+
+    gateway.logger.log(
+      `Insurance purchased: user=${userId} hand=${handId} rate=${rate} fee=${fee}`,
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Handler: skip_insurance
+// ---------------------------------------------------------------------------
+
+export async function handleSkipInsurance(gateway: AppGateway, client: Socket) {
+  const userId = client.data.user?.sub as string;
+  if (!userId) {
+    return { event: 'error', data: 'Unauthorized' };
+  }
+
+  const roomId = await gateway.tableManager.getUserCurrentRoomId(userId);
+  if (!roomId) {
+    return { event: 'error', data: 'Not in any room' };
+  }
+
+  return gateway.withRoomLock(roomId, async () => {
+    const table = await gateway.tableManager.getTable(roomId);
+    if (!table) {
+      return;
+    }
+
+    // Find the player
+    const player = table.players.find((p) => p?.id === userId);
+    if (!player) {
+      return;
+    }
+
+    // Mark as declined (no purchase)
+    // Player can only skip once per hand
+    gateway.logger.log(`Insurance skipped: user=${userId}`);
+
+    // Emit confirmation
+    client.emit('insurance_skipped', {});
   });
 }

@@ -129,7 +129,9 @@ export class WebSocketManager {
         // non-fatal — local delivery already done
       });
     } else {
-      this.logger.warn(`Redis not ready, skipping cross-instance broadcast for ${userId}`);
+      this.logger.warn(
+        `Redis not ready, skipping cross-instance broadcast for ${userId}`,
+      );
     }
   }
 

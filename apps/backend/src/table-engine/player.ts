@@ -23,4 +23,10 @@ export interface Player {
   ready: boolean; // Whether player is ready to start the game
   /** Consecutive action timeouts in the current sit-out session (Option C). */
   consecutiveTimeouts: number;
+  /** Whether player has purchased insurance this hand. */
+  hasPurchasedInsurance: boolean;
+  /** Insurance rate (50 or 100) if purchased. */
+  insuranceRate?: number;
+  /** Insurance fee paid if purchased. */
+  insuranceFee?: bigint;
 }

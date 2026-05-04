@@ -23,6 +23,7 @@ import { RakebackModule } from './rakeback/rakeback.module';
 import { TournamentModule } from './tournament/tournament.module';
 import { TournamentScheduleModule } from './tournament-schedule/tournament-schedule.module';
 import { NotificationModule } from './notification/notification.module';
+import { InsuranceModule } from './insurance/insurance.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationModule } from './notification/notification.module';
     TournamentModule,
     TournamentScheduleModule,
     NotificationModule,
+    InsuranceModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

@@ -50,6 +50,7 @@ export class TablePlayerOps {
       // Preserve ready=true for bots (auto-ready), default to false for humans
       ready: player.ready ?? false,
       consecutiveTimeouts: 0,
+      hasPurchasedInsurance: false,
     };
 
     this.table.players[seatIndex] = newPlayer;
