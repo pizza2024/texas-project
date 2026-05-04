@@ -146,9 +146,16 @@ export class WebSocketManager {
     if (!sockets) return;
 
     for (const socketId of Array.from(sockets)) {
-      const socket = this.server.sockets.sockets.get(socketId);
-      if (socket) {
-        socket.emit(event, data);
+      try {
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket) {
+          socket.emit(event, data);
+        }
+      } catch (err) {
+        // Socket may have been disconnected but not yet removed from localSockets
+        this.logger.warn(
+          `deliverToLocalUser: failed to emit "${event}" to socket ${socketId} for user ${userId}: ${err}`,
+        );
       }
     }
   }

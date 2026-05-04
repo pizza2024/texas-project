@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Room, Prisma } from '@prisma/client';
 import { ROOM_CREATED_EVENT, roomEvents } from '../websocket/room-events';
@@ -10,6 +10,7 @@ export interface PaginatedRooms {
 
 @Injectable()
 export class RoomService {
+  private readonly logger = new Logger(RoomService.name);
   constructor(private prisma: PrismaService) {}
 
   async createRoom(
@@ -19,16 +20,20 @@ export class RoomService {
       data,
     });
 
-    roomEvents.emit(ROOM_CREATED_EVENT, {
-      id: room.id,
-      name: room.name,
-      blindSmall: room.blindSmall,
-      blindBig: room.blindBig,
-      maxPlayers: room.maxPlayers,
-      minBuyIn: room.minBuyIn > 0 ? room.minBuyIn : room.blindBig,
-      isPrivate: !!room.password,
-      isAnonymous: room.isAnonymous,
-    });
+    try {
+      roomEvents.emit(ROOM_CREATED_EVENT, {
+        id: room.id,
+        name: room.name,
+        blindSmall: room.blindSmall,
+        blindBig: room.blindBig,
+        maxPlayers: room.maxPlayers,
+        minBuyIn: room.minBuyIn > 0 ? room.minBuyIn : room.blindBig,
+        isPrivate: !!room.password,
+        isAnonymous: room.isAnonymous,
+      });
+    } catch (err) {
+      this.logger.error('Failed to emit room_created event', err);
+    }
 
     const { password: _omitted, ...safeRoom } = room;
     return safeRoom;

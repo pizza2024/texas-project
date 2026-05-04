@@ -321,8 +321,6 @@ export class AppGateway
         }
       }
 
-      this.clearPendingDisconnect(payload.sub);
-
       // Notify new client if they have an active game to rejoin
       const currentRoomId = await this.tableManager.getUserCurrentRoomId(
         payload.sub,
@@ -378,6 +376,10 @@ export class AppGateway
 
       // Push friend_status_update (online=true) to all accepted friends
       void this.notifyFriendsOfStatusChange(payload.sub, true);
+
+      // P1-WS-001 fix: clear pending disconnect AFTER evict loop to avoid
+      // race between old socket cleanup and new connection setup
+      this.clearPendingDisconnect(payload.sub);
     } catch (e) {
       this.logger.warn(
         `Connection rejected: invalid token from ${client.handshake.address}: ${(e as Error).message}`,
@@ -505,12 +507,20 @@ export class AppGateway
 
       await Promise.all(
         friends.map((friend) =>
-          this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
-            friendUserId: userId,
-            friendNickname: friend.nickname,
-            friendAvatar: friend.avatar,
-            online,
-          }),
+          (async () => {
+            try {
+              this.wsManager.emitToUser(friend.friendId, 'friend_status_update', {
+                friendUserId: userId,
+                friendNickname: friend.nickname,
+                friendAvatar: friend.avatar,
+                online,
+              });
+            } catch (err) {
+              this.logger.warn(
+                `notifyFriendsOfStatusChange: failed to emit to friend ${friend.friendId}: ${err}`,
+              );
+            }
+          })(),
         ),
       );
 

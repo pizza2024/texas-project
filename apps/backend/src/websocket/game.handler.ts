@@ -473,21 +473,33 @@ export async function handleQuickMatch(
   const ipHash = gateway.matchmakingService.hashIp(rawIp);
 
   try {
-    const roomId = await gateway.matchmakingService.findOrCreateMatchmakingRoom(
-      userId,
-      tier,
-      playerElo,
-      ipHash,
-    );
+    return gateway.withUserLock(userId, async () => {
+      // Re-check room status inside lock to prevent TOCTOU race
+      const currentRoomId2 = await gateway.tableManager.getUserCurrentRoomId(userId);
+      if (currentRoomId2) {
+        client.emit('match_error', {
+          message: 'already_in_room',
+          roomId: currentRoomId2,
+        });
+        return;
+      }
 
-    gateway.matchmakingService.recordPlayerJoined(
-      roomId,
-      userId,
-      playerElo,
-      ipHash,
-    );
+      const roomId = await gateway.matchmakingService.findOrCreateMatchmakingRoom(
+        userId,
+        tier,
+        playerElo,
+        ipHash,
+      );
 
-    client.emit('match_found', { roomId, tier });
+      gateway.matchmakingService.recordPlayerJoined(
+        roomId,
+        userId,
+        playerElo,
+        ipHash,
+      );
+
+      client.emit('match_found', { roomId, tier });
+    });
   } catch (err) {
     gateway.logger.error('quick_match error', err);
     client.emit('match_error', { message: 'server_error' });
