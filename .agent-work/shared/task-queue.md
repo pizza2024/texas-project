@@ -390,7 +390,7 @@
 
 ---
 
-_最后更新: 2026-04-30 16:30 — Coding 第412轮 — P2-BLIND-001 已修复 ✅ (commit 60c6ae6)_
+_最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交；lint 4/4 通过；TS 编译 0 errors_
 
 ---
 
@@ -406,7 +406,7 @@ _最后更新: 2026-04-30 16:30 — Coding 第412轮 — P2-BLIND-001 已修复 
 | P2-WITHDRAW-UX-001 | 提现地址簿 | P2 | ✅ 已完成 | commit 0e25785 — WithdrawAddress model + GET/POST/DELETE/PATCH /withdraw/addresses + frontend UI + i18n |
 | P2-WITHDRAW-UX-002 | 提现手续费/净额不透明 | P2 | ✅ 已完成 | commit 6248eee — networkFeeUsdt 后端返回 + 前端净额/手续费展示 + i18n |
 | P2-WITHDRAW-UX-003 | 提现到账速度反馈 | P2 | ✅ 已完成 | commit 6248eee — 前端显示 "~30 min (1-3 block confirmations)" 预计时间 |
-| P2-WITHDRAW-UX-004 | 提现历史追踪 | P2 | 待实施 |
+| P2-WITHDRAW-UX-004 | 提现历史追踪 UI | ✅ 已完成 | commit 3c26eef — paginated Prev/Next controls + historyLimit=10 + zh-CN/en i18n |
 
 ## P2 — 新发现（第383轮）
 
@@ -462,4 +462,17 @@ _最后更新: 2026-04-30 16:30 — Coding 第412轮 — P2-BLIND-001 已修复 
 
 | ID | 任务 | 紧迫度 | 状态 | 备注 |
 | --- | --- | --- | --- | --- |
-| P2-BLIND-003 | `app/schedule/[id]/page.tsx:149-152` — `Date.now()` 在 useMemo 调用中违反 `react-hooks/purity` ESLint 规则，阻塞 CI lint | P2 | 🆕 待修复 | 修复：在 `const levelStartedAt =` 之前添加 `// eslint-disable-next-line react-hooks/purity` |
+| P2-BLIND-003 | `app/schedule/[id]/page.tsx:149-152` — `Date.now()` 在 useMemo 调用中违反 `react-hooks/purity` ESLint 规则，阻塞 CI lint | P2 | ✅ 已修复 | commit `9a6262f` — 添加 eslint-disable-next-line |
+
+## P2 — 新发现（Test r76 / 第431轮）
+
+|| ID | 任务 | 紧迫度 | 状态 | 备注 |
+|| --- | --- | --- | --- | --- |
+| P2-SCHEDULE-001 | `TournamentScheduleController` 全部端点无 AdminGuard — 赛事启动/取消/完成/提醒均可被任何认证用户操控 | ✅ 已关闭 | commit `bc0f38a` — `@UseGuards(AdminGuard)` on 4 endpoints + TournamentScheduleModule |
+| P2-SCHEDULE-002 | `mission.controller.ts` admin reset 端点无 AdminGuard — `resetDaily`/`resetWeekly` 注释标注应加 Guard 但未实现 | ✅ 已关闭 | commit `bc0f38a` — `@UseGuards(AdminGuard)` + JwtModule.register + AdminGuard provider |
+
+## P2 — 新发现（Test r77 / 第432轮）
+
+||| ID | 任务 | 紧迫度 | 状态 | 备注 |
+||| --- | --- | --- | --- | --- |
+||| P2-JEST-WORKER-LEAK | Jest worker handle leak — `A worker process has failed to exit gracefully` | P3 | 🔍 可选 | 不影响 CI 功能，timer/handle 未 unref() |
