@@ -477,17 +477,26 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 ||| --- | --- | --- | --- | --- |
 ||| P2-JEST-WORKER-LEAK | Jest worker handle leak — `A worker process has failed to exit gracefully` | P3 | 🔍 可选 | 不影响 CI 功能，timer/handle 未 unref() |
 
-## P2 — 新发现（Productor r447）
+## P2 — 新发现（Productor r454）
 
-|||| ID | 任务 | 紧迫度 | 状态 | 备注 |
-|||| --- | --- | --- | --- | --- |
-|||| P2-TOURNAMENT-GTD | GTD 保底奖池完整规格 | P2 | 📋 待实施 | 后端 `isGuarantee` 字段已就绪（commit f071ae3）；需确认：Admin 表单 UI、玩家端 GTD 标签、赛程页特殊排序 |
-|||| P2-SOCIAL-001 | 观战系统 | P2 | 📋 待实施 | 玩家可"观战"模式进入牌桌（不参与游戏）；房主可开启/关闭观战权限；牌桌内显示观战者列表 |
-|||| P2-SOCIAL-002 | 私人俱乐部扩展（Club 2.0） | P2 | 📋 待实施 | Club 主页（LOGO/ELO排行榜/简介）；Club 皮肤自定义；Club 私有赛事；邀请制；数据基础：ClubMember.elo 已就绪 |
+|| ID | 任务 | 紧迫度 | 状态 | 备注 |
+||----|------|--------|------|------|
+| P2-TOURNAMENT-GTD | GTD 保底奖池完整规格 | P2 | 📋 待实施 | 后端 `isGuarantee` 字段已就绪（commit f071ae3）；需确认：Admin 表单 UI、玩家端 GTD 标签、赛程页特殊排序 |
+| P2-SOCIAL-001 | 观战系统 | P2 | 📋 待实施 | 玩家可"观战"模式进入牌桌（不参与游戏）；房主可开启/关闭观战权限；牌桌内显示观战者列表 |
+| P2-SOCIAL-002 | 私人俱乐部扩展（Club 2.0） | P2 | 📋 待实施 | Club 主页（LOGO/ELO排行榜/简介）；Club 皮肤自定义；Club 私有赛事；邀请制；数据基础：ClubMember.elo 已就绪 |
+
+## P2 — 新任务（Productor r454 / 本轮入队）
+
+|| ID | 任务 | 紧迫度 | 状态 | 规格来源 |
+||----|------|--------|------|----------|
+| P2-INSURANCE-001 | All-In Insurance 实施 | P2 | 📋 待实施 | `P2-INSURANCE-001-spec.md` — 河牌ALLIN触发，50%/100%两档，netLoss×equity计算 |
+| P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 📋 待实施 | `P2-BADBEAT-001-spec.md` — 四条+输给四条+，底池≥$100，输家50%/赢家25%/牌桌25% |
+| P2-FAST-FOLD | Fast-Fold 实施 | P2 | 📋 待实施 | `P2-FAST-FOLD-spec.md` — 快速弃牌换桌，Redis sorted set ELO匹配队列 |
 
 ## P2 — 新发现（Productor r448）
 
 |||| ID | 任务 | 紧迫度 | 状态 | 备注 |
 |||| --- | --- | --- | --- | --- |
-|||| P2-INSURANCE-001 | All-In Insurance | P2 | 📋 规格待输出 | 玩家 all-in 后弹出购买窗口（50%/100% 两档）；赔付 = 底池 × (1 - playerEquity)；竞品 GGPoker/888poker/WSOP/CoinPoker 均已验证 |
-|||| P2-BADBEAT-001 | Bad Beat Jackpot | P2 | 📋 规格待输出 | 底池 $100+ 触发；77+ 输给 AA/KK/QQ；分配：输家 50%，赢家 25%，牌桌其他 25% |
+|||| P2-INSURANCE-001 | All-In Insurance | P2 | ✅ 规格就绪 | `P2-INSURANCE-001-spec.md`；河牌 ALLIN 触发，50%/100% 两档，保险费 = netLoss×(1-equity)×rate%，赔付 = netLoss×rate%；竞品 GGPoker/888poker/WSOP |
+|||| P2-BADBEAT-001 | Bad Beat Jackpot | P2 | ✅ 规格就绪 | `P2-BADBEAT-001-spec.md`；四条+ 输给四条+，底池≥$100 showdown 触发，输家50%/赢家25%/牌桌25%分配；竞品 BetOnline/CoinPoker |
+|||| P2-FAST-FOLD | Fast-Fold（快速弃牌） | P2 | ✅ 规格就绪 | `P2-FAST-FOLD-spec.md`；任意阶段快速弃牌换桌，Redis sorted set ELO 匹配队列，±150 ELO/30s扩大/60s超时；竞品 888poker SNAP/GGPoker |

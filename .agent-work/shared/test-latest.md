@@ -1,7 +1,7 @@
-# Test Report — r93
+# Test Report — r94
 
-**时间:** 2026-05-04 14:45
-**HEAD:** `b4f6268` ✅ 已同步
+**时间:** 2026-05-04 15:00
+**HEAD:** `4bafde3` ✅ 已同步
 **分支:** develop
 
 ---
@@ -15,40 +15,47 @@
 
 ---
 
-## 变更（vs r92）
+## 变更（vs r93）
 
 | 文件 | 变更 | 说明 |
 |------|------|------|
-| `tournament-schedule.service.ts` | 仅格式化 | `blindSchedule` 类型多行展开，无逻辑变更 |
+| `withdraw/page.tsx` | 功能新增 | P2-WITHDRAW-UX-004 分页历史记录 UI |
+| `locales/zh-CN.json`, `locales/en.json` | i18n | withdraw 分页按钮国际化 |
 
 ---
 
-## CodeReview
+## CodeReview ✅ 全部通过
 
-所有核心模块（table-engine / websocket / auth / wallet / deposit / withdraw / club / friend）✅ 稳定，无新增问题
+所有核心模块（table-engine / websocket / auth / wallet / deposit / withdraw）✅ 稳定，无新增问题。
 
 ---
 
-## 技术债务
+## 任务队列建议（供 Coding 参考）
+
+### P2 — 建议立即入队
+
+| ID | 任务 | 紧迫度 | 备注 |
+|----|------|--------|------|
+| P2-INSURANCE-001 | All-In Insurance 实施 | P2 | 规格已就绪；GGPoker/888poker/WSOP/CoinPoker 验证 |
+| P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 规格已就绪；BetOnline/CoinPoker 验证 |
+| P2-FAST-FOLD | Fast-Fold 实施 | P2 | 规格待 Productor 输出 |
+
+### P2 — 已有规格待实施
+
+| ID | 任务 | 紧迫度 | 备注 |
+|----|------|--------|------|
+| P2-TOURNAMENT-GTD | GTD Admin 表单 UI | P2 | 后端 isGuarantee 字段已就绪 |
+| P2-SOCIAL-001 | 观战系统 | P2 | spectator mode |
+| P2-SOCIAL-002 | 私人俱乐部 2.0 | P2 | Club 主页/排行榜/皮肤 |
+
+### 技术债务
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P2-JEST-WORKER-LEAK | Jest worker leak | 🔍 可选 |
-| P2-NOTIFY-EMAIL-WIRE | 邮件预埋 | ⚠️ 等 Resend |
+| P2-JEST-WORKER-LEAK | Jest worker handle leak | 🔍 可选 |
+| P2-NOTIFY-EMAIL-WIRE | 邮件预埋未连线 | ⚠️ 等 Resend |
+| P2-WEB-SPEC | Web 组件测试 | 🟡 部分完成 |
 
 ---
 
-## 任务队列
-
-| 优先级 | 任务 | 归属 |
-|--------|------|------|
-| P2 | 本地格式化变更 commit + push | Coding |
-| P3 | P2-TOURNAMENT-GTD 规格确认 | Productor |
-| P3 | P2-INSURANCE-001 提交 task-queue | Productor |
-| P3 | P2-BADBEAT-001 提交 task-queue | Productor |
-| P3 | P2-SOCIAL-001 观战系统 | Coding |
-| P3 | P2-SOCIAL-002 私人俱乐部 | Coding |
-
----
-
-_Test r93 — 2026-05-04 14:45 — P0/P1 清零；系统稳定；仅格式化变更_
+_Test r94 — 2026-05-04 15:00 — P0/P1 清零；lint/TS/测试全部通过_
