@@ -58,7 +58,12 @@ interface ScheduleEntry {
   registeredCount?: number;
   status: TournamentScheduleStatus;
   roomId: string | null;
-  blindSchedule?: { level: number; smallBlind: number; bigBlind: number; durationSeconds: number; }[];
+  blindSchedule?: {
+    level: number;
+    smallBlind: number;
+    bigBlind: number;
+    durationSeconds: number;
+  }[];
   currentBlindLevel?: number;
   blindLevelStartedAt?: number;
   createdAt: string;
