@@ -307,6 +307,8 @@
   "withdraw.submitError": "Withdraw failed. Please try again.",
   "withdraw.history": "Withdraw History",
   "withdraw.noHistory": "No withdraw records yet",
+  "withdraw.prev": "Prev",
+  "withdraw.next": "Next",
   "withdraw.statusPending": "Pending",
   "withdraw.statusProcessing": "Processing",
   "withdraw.statusConfirmed": "Confirmed",

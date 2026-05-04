@@ -307,6 +307,8 @@
   "withdraw.submitError": "提现失败，请稍后重试",
   "withdraw.history": "提现记录",
   "withdraw.noHistory": "暂无提现记录",
+  "withdraw.prev": "上一页",
+  "withdraw.next": "下一页",
   "withdraw.statusPending": "待处理",
   "withdraw.statusProcessing": "处理中",
   "withdraw.statusConfirmed": "已确认",

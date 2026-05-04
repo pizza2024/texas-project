@@ -94,6 +94,9 @@ export default function WithdrawPage() {
   // Balance & form state
   const [balance, setBalance] = useState<WithdrawBalance | null>(null);
   const [history, setHistory] = useState<WithdrawRecord[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,13 +144,14 @@ export default function WithdrawPage() {
       try {
         const [balRes, histRes, coolRes, addrBookRes] = await Promise.all([
           api.get<WithdrawBalance>("/withdraw/balance"),
-          api.get<WithdrawHistory>("/withdraw/history"),
+          api.get<WithdrawHistory>(`/withdraw/history?page=${historyPage}&limit=${historyLimit}`),
           api.get<CooldownInfo>("/withdraw/cooldown"),
           api.get<SavedAddress[]>("/withdraw/addresses"),
         ]);
         if (!cancelled) {
           setBalance(balRes.data);
           setHistory(histRes.data.data ?? []);
+          setHistoryTotal(histRes.data.total ?? 0);
           setCooldown(coolRes.data);
           setSavedAddresses(addrBookRes.data);
           setLoading(false);
@@ -178,7 +182,7 @@ export default function WithdrawPage() {
       cancelled = true;
       clearInterval(cooldownInterval);
     };
-  }, [router, t]);
+  }, [router, t, historyPage, historyLimit]);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -256,10 +260,11 @@ export default function WithdrawPage() {
 
       // Refresh history and cooldown
       const [histRes, coolRes] = await Promise.all([
-        api.get<WithdrawHistory>("/withdraw/history"),
+        api.get<WithdrawHistory>(`/withdraw/history?page=${historyPage}&limit=${historyLimit}`),
         api.get<CooldownInfo>("/withdraw/cooldown"),
       ]);
       setHistory(histRes.data.data ?? []);
+      setHistoryTotal(histRes.data.total ?? 0);
       setCooldown(coolRes.data);
 
       if (balance) {
@@ -1031,6 +1036,51 @@ export default function WithdrawPage() {
                       )}
                     </div>
                   ))}
+
+                  {/* Pagination */}
+                  {historyTotal > historyLimit && (
+                    <div
+                      className="flex items-center justify-between px-4 py-2"
+                      style={{ background: "rgba(0,0,0,0.1)" }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                        disabled={historyPage <= 1}
+                        className="text-xs px-3 py-1 rounded disabled:opacity-30"
+                        style={{
+                          background: "rgba(248,113,113,0.15)",
+                          color: "#f87171",
+                          cursor: historyPage <= 1 ? "not-allowed" : "pointer",
+                        }}
+                      >
+                      {t("withdraw.prev")}
+                      </button>
+                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        {historyPage} / {Math.ceil(historyTotal / historyLimit)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHistoryPage((p) =>
+                            Math.min(Math.ceil(historyTotal / historyLimit), p + 1),
+                          )
+                        }
+                        disabled={historyPage >= Math.ceil(historyTotal / historyLimit)}
+                        className="text-xs px-3 py-1 rounded disabled:opacity-30"
+                        style={{
+                          background: "rgba(248,113,113,0.15)",
+                          color: "#f87171",
+                          cursor:
+                            historyPage >= Math.ceil(historyTotal / historyLimit)
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
+                      >
+                      {t("withdraw.next")}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
