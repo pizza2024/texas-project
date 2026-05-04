@@ -21,6 +21,7 @@ import { FriendModule } from './friend/friend.module';
 import { ClubModule } from './club/club.module';
 import { RakebackModule } from './rakeback/rakeback.module';
 import { TournamentModule } from './tournament/tournament.module';
+import { TournamentScheduleModule } from './tournament-schedule/tournament-schedule.module';
 import { NotificationModule } from './notification/notification.module';
 
 @Module({
@@ -44,6 +45,7 @@ import { NotificationModule } from './notification/notification.module';
     ClubModule,
     RakebackModule,
     TournamentModule,
+    TournamentScheduleModule,
     NotificationModule,
   ],
   controllers: [AppController, HealthController],

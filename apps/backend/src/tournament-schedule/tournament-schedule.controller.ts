@@ -10,6 +10,7 @@ import {
   HttpStatus,
   ParseIntPipe,
   DefaultValuePipe,
+  UseGuards,
 } from '@nestjs/common';
 import { TournamentScheduleService } from './tournament-schedule.service';
 import {
@@ -23,6 +24,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Server } from 'socket.io';
 import { AppGateway } from '../websocket/app.gateway';
+import { AdminGuard } from '../admin/guards/admin.guard';
 
 @Controller('tournament-schedule')
 @ApiTags('Tournament Schedule')
@@ -77,6 +79,7 @@ export class TournamentScheduleController {
 
   @Post(':id/start')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Start a scheduled tournament' })
   async startTournament(
     @Param('id') id: string,
@@ -86,6 +89,7 @@ export class TournamentScheduleController {
 
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Mark a tournament as completed' })
   async completeTournament(
     @Param('id') id: string,
@@ -95,6 +99,7 @@ export class TournamentScheduleController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Cancel a scheduled tournament' })
   async cancelSchedule(
     @Param('id') id: string,
@@ -104,6 +109,7 @@ export class TournamentScheduleController {
 
   @Post(':id/reminder')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Emit a reminder for a scheduled tournament' })
   async emitReminder(@Param('id') id: string): Promise<{ success: boolean }> {
     await this.scheduleService.emitReminder(id);
