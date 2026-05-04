@@ -493,10 +493,28 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 | P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 📋 待实施 | `P2-BADBEAT-001-spec.md` — 四条+输给四条+，底池≥$100，输家50%/赢家25%/牌桌25% |
 | P2-FAST-FOLD | Fast-Fold 实施 | P2 | 📋 待实施 | `P2-FAST-FOLD-spec.md` — 快速弃牌换桌，Redis sorted set ELO匹配队列 |
 
+## P1 — 新发现（Test r95）
+
+|     |     |     | ID | 任务 | 状态 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | P1-WS-001 | `handleConnection` 中 `clearPendingDisconnect` 在重连检查之前调用 | ✅ 已修复 | `app.gateway.ts` — 移至重连检查块之后 |
+|     |     |     | P1-ROOM-001 | `roomEvents.emit(ROOM_CREATED_EVENT)` 无 try-catch | ✅ 已修复 | `room.service.ts` — 包裹 try-catch，Logger 已补充 |
+|     |     |     | P1-MATCH-001 | `handleQuickMatch` 无 `withUserLock` 保护 | ✅ 已修复 | `game.handler.ts:442` — 包裹 `withUserLock`，内含 TOCTOU 复查 |
+|     |     |     | P1-WS-002 | `deliverToLocalUser` socket.emit 无 try-catch | ✅ 已修复 | `websocket-manager.ts` — 添加 try-catch + logger.warn |
+|     |     |     | P1-REDIS-001 | `notifyFriendsOfStatusChange` emitToUser 无防护 | ✅ 已修复 | `app.gateway.ts` — 异步 IIFE + try-catch |
+
+## P0 — 新发现（Test r95）
+
+|     |     |     | ID | 任务 | 状态 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | P0-WS-001 | `handleConnection` socket 注册顺序问题 | ✅ 已验证修复 | commit `6364ff3` — socket 注册在 evict 循环之前 |
+|     |     |     | P0-WS-002 | `subscribe()` channel 前缀错误 | ✅ 已验证修复 | commit `a27d0e8` — Redis ready 后才 subscribe |
+|     |     |     | P0-WS-003 | `emitToUser` publish 失败无告警 | ✅ 已验证修复 | commit `a27d0e8` — publish 失败时 warn 日志 |
+
 ## P2 — 新发现（Productor r448）
 
-|||| ID | 任务 | 紧迫度 | 状态 | 备注 |
-|||| --- | --- | --- | --- | --- |
-|||| P2-INSURANCE-001 | All-In Insurance | P2 | ✅ 规格就绪 | `P2-INSURANCE-001-spec.md`；河牌 ALLIN 触发，50%/100% 两档，保险费 = netLoss×(1-equity)×rate%，赔付 = netLoss×rate%；竞品 GGPoker/888poker/WSOP |
-|||| P2-BADBEAT-001 | Bad Beat Jackpot | P2 | ✅ 规格就绪 | `P2-BADBEAT-001-spec.md`；四条+ 输给四条+，底池≥$100 showdown 触发，输家50%/赢家25%/牌桌25%分配；竞品 BetOnline/CoinPoker |
-|||| P2-FAST-FOLD | Fast-Fold（快速弃牌） | P2 | ✅ 规格就绪 | `P2-FAST-FOLD-spec.md`；任意阶段快速弃牌换桌，Redis sorted set ELO 匹配队列，±150 ELO/30s扩大/60s超时；竞品 888poker SNAP/GGPoker |
+|     |     |     | ID | 任务 | 紧迫度 | 状态 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+|     |     |     | P2-INSURANCE-001 | All-In Insurance | P2 | ✅ 规格就绪 | `P2-INSURANCE-001-spec.md`；河牌 ALLIN 触发，50%/100% 两档，保险费 = netLoss×(1-equity)×rate%，赔付 = netLoss×rate%；竞品 GGPoker/888poker/WSOP |
+|     |     |     | P2-BADBEAT-001 | Bad Beat Jackpot | P2 | ✅ 规格就绪 | `P2-BADBEAT-001-spec.md`；四条+ 输给四条+，底池≥$100 showdown 触发，输家50%/赢家25%/牌桌25%分配；竞品 BetOnline/CoinPoker |
+|     |     |     | P2-FAST-FOLD | Fast-Fold（快速弃牌） | P2 | ✅ 规格就绪 | `P2-FAST-FOLD-spec.md`；任意阶段快速弃牌换桌，Redis sorted set ELO 匹配队列，±150 ELO/30s扩大/60s超时；竞品 888poker SNAP/GGPoker |
