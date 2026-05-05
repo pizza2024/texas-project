@@ -5,6 +5,7 @@ import { MatchmakingService } from '../matchmaking/matchmaking.service';
 import { BroadcastService } from './broadcast.service';
 import { GameStage } from '../table-engine/table';
 import { MissionService } from '../mission/mission.service';
+import { BadBeatJackpotService } from '../table-engine/badbeat.service';
 /**
  * TimerService extracts round-timer management from AppGateway.
  * Manages three timer types: action timeouts, settlement delays, and auto-start countdowns.
@@ -26,6 +27,7 @@ export class TimerService implements OnModuleDestroy {
     private readonly tableManager: TableManagerService,
     private readonly matchmakingService: MatchmakingService,
     private readonly broadcastService: BroadcastService,
+    private readonly badBeatService: BadBeatJackpotService,
   ) {}
 
   onModuleDestroy() {
@@ -256,6 +258,94 @@ export class TimerService implements OnModuleDestroy {
     const handResult = currentTable.lastHandResult
       ? [...currentTable.lastHandResult]
       : [];
+
+    // ── Bad Beat Jackpot: check and distribute before normal settlement persists ──
+    const showdownEligiblePlayers = currentTable.players
+      .filter(
+        (p): p is import('../table-engine/player').Player =>
+          p !== null && p.status !== 'FOLD',
+      )
+      .map((p) => ({
+        playerId: p.id,
+        nickname: p.nickname,
+        cards: p.cards ?? [],
+        status: p.status,
+        totalBet: p.totalBet,
+      }));
+
+    if (showdownEligiblePlayers.length >= 2) {
+      const allInPlayerIds = currentTable.players
+        .filter(
+          (p): p is import('../table-engine/player').Player =>
+            p !== null && p.status === 'ALLIN',
+        )
+        .map((p) => p.id);
+
+      const showdownHandId = `hand-${roomId}-${Date.now()}`;
+      const showdownResult = {
+        handId: showdownHandId,
+        tableId: roomId,
+        roomId,
+        pot: currentTable.pot + currentTable.rakeAmount,
+        communityCards: currentTable.communityCards,
+        players: showdownEligiblePlayers,
+        allInPlayerIds,
+        winnerId:
+          handResult.length > 0
+            ? handResult.reduce((a, b) => (b.winAmount > a.winAmount ? b : a))
+                .playerId
+            : (showdownEligiblePlayers[0]?.playerId ?? ''),
+      };
+
+      const badBeatResult =
+        await this.badBeatService.recordAndDistribute(showdownResult);
+      if (badBeatResult?.triggered && badBeatResult.eligible) {
+        const bbJackpot = await this.tableManager[
+          'prisma'
+        ].badBeatJackpot.findFirst({
+          where: { handId: showdownHandId },
+          select: { jackpotAmount: true },
+        });
+        const jackpotBigInt = bbJackpot?.jackpotAmount ?? 0n;
+        const jackpotAmount = Number(jackpotBigInt);
+        const loserPayout = (jackpotBigInt * 50n) / 100n;
+        const winnerPayout = (jackpotBigInt * 25n) / 100n;
+
+        server.to(roomId).emit('bad_beat_jackpot', {
+          handId: showdownHandId,
+          jackpotAmount,
+          pot: showdownResult.pot,
+          loser: {
+            userId: badBeatResult.eligible.loserId,
+            nickname:
+              showdownEligiblePlayers.find(
+                (p) => p.playerId === badBeatResult.eligible!.loserId,
+              )?.nickname ?? '',
+            hand: badBeatResult.eligible.loserHand,
+            netLoss: badBeatResult.eligible.netLoss,
+            payout: Number(loserPayout),
+          },
+          winner: {
+            userId: badBeatResult.eligible.winnerId,
+            nickname:
+              showdownEligiblePlayers.find(
+                (p) => p.playerId === badBeatResult.eligible!.winnerId,
+              )?.nickname ?? '',
+            hand: badBeatResult.eligible.winnerHand,
+            payout: Number(winnerPayout),
+          },
+          tablePlayers: currentTable.players
+            .filter(
+              (p): p is import('../table-engine/player').Player =>
+                p !== null &&
+                p.id !== badBeatResult.eligible!.loserId &&
+                p.id !== badBeatResult.eligible!.winnerId,
+            )
+            .map((p) => ({ userId: p.id, nickname: p.nickname, payout: 0 })),
+          animationDurationMs: 5000,
+        });
+      }
+    }
 
     await this.tableManager.persistSettlementRecords(roomId);
 

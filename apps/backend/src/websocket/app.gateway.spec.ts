@@ -437,7 +437,7 @@ describe('AppGateway', () => {
         getNotifications: jest.fn().mockResolvedValue([]),
         getUnreadCount: jest.fn().mockResolvedValue(0),
       } as any,
-      insuranceService as any,
+      insuranceService,
     );
     // Stable shared Maps so that in().fetchSockets() mock can be overridden
     // per-test without losing the adapter.rooms reference.

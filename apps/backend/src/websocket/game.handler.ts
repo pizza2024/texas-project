@@ -758,11 +758,8 @@ export async function handleBuyInsurance(
     const opponentCount = table.players.filter(
       (p) => p && p.id !== userId && p.status !== PlayerStatus.FOLD,
     ).length;
-    const playerEquity = calculateEquity(
-      player.cards,
-      table.communityCards,
-      opponentCount,
-    ) / 100; // convert from percentage to decimal
+    const playerEquity =
+      calculateEquity(player.cards, table.communityCards, opponentCount) / 100; // convert from percentage to decimal
 
     // Calculate fee and payout
     const feeBigInt = calculateInsuranceFee(netLoss, playerEquity, rate);
