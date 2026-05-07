@@ -57,8 +57,13 @@ git pull origin "$BRANCH"
 log_info "安装依赖..."
 pnpm install --frozen-lockfile || pnpm install
 
-log_info "生成 Prisma Client..."
-pnpm --filter backend run db:generate
+log_info "安装依赖..."
+pnpm install --frozen-lockfile || pnpm install
+
+log_info "检查/生成 Prisma Client..."
+if [ ! -d "apps/backend/node_modules/.prisma/client" ]; then
+    pnpm --filter backend run db:generate
+fi
 
 if [ "$RUN_MIGRATION" = "true" ]; then
     log_info "执行数据库迁移..."
