@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TableManagerService } from './table-manager.service';
 import { HandHistoryService } from './hand-history.service';
+import { BadBeatJackpotService } from './badbeat.service';
 import { RoomModule } from '../room/room.module';
 import {
   TableEngineController,
@@ -21,8 +22,8 @@ import { DepositModule } from '../deposit/deposit.module';
     MissionModule,
     DepositModule,
   ],
-  providers: [TableManagerService, HandHistoryService],
+  providers: [TableManagerService, HandHistoryService, BadBeatJackpotService],
   controllers: [TableEngineController, HandController],
-  exports: [TableManagerService, HandHistoryService],
+  exports: [TableManagerService, HandHistoryService, BadBeatJackpotService],
 })
 export class TableEngineModule {}

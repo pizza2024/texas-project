@@ -10,6 +10,8 @@ import { AdminRoomController } from './admin-room.controller';
 import { AdminFinanceController } from './admin-finance.controller';
 import { AdminAnalyticsController } from './admin-analytics.controller';
 import { AdminSystemController } from './admin-system.controller';
+import { AdminBadBeatController } from './admin-badbeat.controller';
+import { BadBeatJackpotService } from '../table-engine/badbeat.service';
 import { WebsocketModule } from '../websocket/websocket.module';
 import { NotificationModule } from '../notification/notification.module';
 import { getJwtSecret } from '../config/jwt.config';
@@ -29,12 +31,14 @@ import { getJwtSecret } from '../config/jwt.config';
     AdminFinanceController,
     AdminAnalyticsController,
     AdminSystemController,
+    AdminBadBeatController,
   ],
   providers: [
     AdminGuard,
     AdminService,
     BroadcastService,
     SystemStateService,
+    BadBeatJackpotService,
     PrismaService,
   ],
   exports: [AdminService, BroadcastService],

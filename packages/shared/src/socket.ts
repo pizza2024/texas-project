@@ -114,6 +114,31 @@ export interface ServerToClientEvents {
   insurance_purchased: () => void;
   /** All-In Insurance: error from server */
   insurance_error: (data: { message: string }) => void;
+  /** Bad Beat Jackpot: triggered on showdown when quads+ lose to quads+ */
+  bad_beat_jackpot: (data: {
+    handId: string;
+    jackpotAmount: number;
+    pot: number;
+    loser: {
+      userId: string;
+      nickname: string;
+      hand: string;
+      netLoss: number;
+      payout: number;
+    };
+    winner: {
+      userId: string;
+      nickname: string;
+      hand: string;
+      payout: number;
+    };
+    tablePlayers: Array<{
+      userId: string;
+      nickname: string;
+      payout: number;
+    }>;
+    animationDurationMs: number;
+  }) => void;
   error: (message: string) => void;
 }
 

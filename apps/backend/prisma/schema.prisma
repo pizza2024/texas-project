@@ -82,23 +82,25 @@ model Wallet {
 }
 
 model Room {
-  id               String   @id @default(uuid())
-  name             String
-  blindSmall       Float
-  blindBig         Float
-  maxPlayers       Int
-  minBuyIn         Float    @default(0)
-  password         String?
-  status           String   @default("ACTIVE") // ACTIVE, MAINTENANCE
-  isMatchmaking    Boolean  @default(false)    // true = auto-created for quick-match
-  isClubOnly       Boolean  @default(false)    // true = only accessible to club members
-  isAnonymous      Boolean  @default(false)    // true = player identities are hidden
-  tier             String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
-  isTournament     Boolean  @default(false)    // true = SNG/MTT/Blast tournament room
-  tournamentConfig Json?                       // TournamentConfig JSON (SNG/MTT settings)
-  isBlast          Boolean  @default(false)    // true = Blast instant tournament
-  blastConfig      Json?                       // BlastConfig JSON
-  createdAt        DateTime @default(now())
+  id                   String   @id @default(uuid())
+  name                 String
+  blindSmall           Float
+  blindBig             Float
+  maxPlayers           Int
+  minBuyIn             Float    @default(0)
+  password             String?
+  status               String   @default("ACTIVE") // ACTIVE, MAINTENANCE
+  isMatchmaking        Boolean  @default(false)    // true = auto-created for quick-match
+  isClubOnly           Boolean  @default(false)    // true = only accessible to club members
+  isAnonymous          Boolean  @default(false)    // true = player identities are hidden
+  tier                 String?  // MICRO | LOW | MEDIUM | HIGH | PREMIUM
+  isTournament        Boolean  @default(false)    // true = SNG/MTT/Blast tournament room
+  tournamentConfig    Json?                       // TournamentConfig JSON (SNG/MTT settings)
+  isBlast              Boolean  @default(false)    // true = Blast instant tournament
+  blastConfig          Json?                       // BlastConfig JSON
+  badBeatJackpotEnabled Boolean @default(true)    // Bad Beat Jackpot toggle
+  currentJackpotAmount BigInt   @default(0)       // Accumulated jackpot (in cents)
+  createdAt            DateTime @default(now())
 
   tables      Table[]
   clubId      String?
@@ -443,6 +445,46 @@ model InsuranceTransaction {
 
   @@index([handId])
   @@index([userId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bad Beat Jackpot
+// ═══════════════════════════════════════════════════════════════════════════
+
+model BadBeatJackpot {
+  id            String   @id @default(uuid())
+  handId        String   @unique
+  tableId       String
+  roomId        String
+  jackpotAmount BigInt   // Jackpot total at time of trigger (cents)
+  loserId       String   // Bad beat loser
+  loserHand     String   // Loser hand description
+  winnerId      String   // Bad beat winner
+  winnerHand    String   // Winner hand description
+  netLoss       BigInt   // Loser's net loss (cents) for payout calculation
+  createdAt     DateTime @default(now())
+
+  payouts BadBeatPayout[]
+
+  @@index([handId])
+  @@index([tableId])
+  @@index([roomId])
+  @@map("bad_beat_jackpots")
+}
+
+model BadBeatPayout {
+  id        String   @id @default(uuid())
+  jackpotId String
+  userId    String
+  type      String   // 'LOSER' | 'WINNER' | 'TABLE_PLAYER'
+  amount    BigInt   // Payout amount (cents)
+  createdAt DateTime @default(now())
+
+  jackpot BadBeatJackpot @relation(fields: [jackpotId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([jackpotId])
+  @@map("bad_beat_payouts")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
