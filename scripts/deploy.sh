@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 APP_DIR="${APP_DIR:-$PROJECT_ROOT}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-develop}"
 RUN_MIGRATION="${RUN_MIGRATION:-false}"
 
 RED='\033[0;31m'
