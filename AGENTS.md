@@ -192,27 +192,52 @@ import type { GameState } from "@texas/shared/types";
 | postgres | 5432  | PostgreSQL 16             |
 | redis    | 6379  | Redis 7                   |
 
+**环境变量配置**：
+
+| 文件 | 用途 |
+|------|------|
+| `.env.example` | 统一环境变量模板 |
+| `docker/.env.infra.example` | Docker 基础设施配置 |
+| `apps/backend/.env.example` | 后端配置 |
+| `apps/web/.env.example` | Web 前端配置 |
+| `apps/admin/.env.example` | Admin 配置 |
+
 **部署流程**：
 
 ```bash
-# 1. 启动基础设施
-cp docker/.env.infra.example .env
+# 1. 配置环境变量
+cp .env.example .env                    # 根目录
+cp apps/backend/.env.example apps/backend/.env
+cp apps/web/.env.example apps/web/.env.local
+cp apps/admin/.env.example apps/admin/.env.local
+
+# 2. 编辑 .env 文件填写实际值
+# 必须修改: JWT_SECRET (生成: openssl rand -base64 32)
+
+# 3. 启动基础设施 (Docker)
 docker compose up -d
 
-# 2. 配置应用环境变量
-cp apps/backend/.env.example apps/backend/.env
-# 编辑 apps/backend/.env 配置 DATABASE_URL 等
-
-# 3. 部署应用
+# 4. 部署应用
 ./scripts/deploy.sh
+
 # 或手动：
-#   pnpm install
-#   pnpm --filter backend run db:generate
-#   pnpm --filter backend run db:migrate:prod
-#   pm2 start --cwd . -n backend -- pnpm start:prod --workspace=backend
-#   pm2 start --cwd . -n web -- pnpm start --workspace=web
-#   pm2 start --cwd . -n admin -- pnpm start --workspace=admin
+pnpm install
+pnpm --filter backend run db:generate
+pnpm --filter backend run db:migrate:deploy
+pm2 start --cwd . -n backend -- pnpm start:prod --workspace=backend
+pm2 start --cwd . -n web -- pnpm start --workspace=web
+pm2 start --cwd . -n admin -- pnpm start --workspace=admin
 ```
+
+**服务端口**：
+
+| 服务 | 端口 | 访问地址 |
+|------|------|----------|
+| Backend | 4000 | http://localhost:4000 |
+| WebSocket | 4000/ws | ws://localhost:4000/ws |
+| Web | 3001 | http://localhost:3001 |
+| Admin | 3003 | http://localhost:3003 |
+| Docs | 4002 | http://localhost:4002 |
 
 **PM2 管理**：
 

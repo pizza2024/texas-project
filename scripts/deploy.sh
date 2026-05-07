@@ -39,6 +39,16 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
+# 检查环境变量
+if [ ! -f "$APP_DIR/apps/backend/.env" ]; then
+    log_warn "未找到 apps/backend/.env，正在创建..."
+    if [ -f "$APP_DIR/apps/backend/.env.example" ]; then
+        cp "$APP_DIR/apps/backend/.env.example" "$APP_DIR/apps/backend/.env"
+        log_info "已复制 apps/backend/.env.example 到 apps/backend/.env"
+        log_warn "请编辑 apps/backend/.env 填写实际配置值"
+    fi
+fi
+
 log_info "拉取最新代码..."
 git fetch origin
 git checkout "$BRANCH"
@@ -69,6 +79,9 @@ pm2 delete texas-docs 2>/dev/null || true
 
 cd "$APP_DIR"
 
+# 读取环境变量
+source "$APP_DIR/apps/backend/.env" 2>/dev/null || true
+
 pm2 start pnpm --name "texas-backend" -- start:prod --workspace=backend
 pm2 start pnpm --name "texas-web" -- start --workspace=web
 pm2 start pnpm --name "texas-admin" -- start --workspace=admin
@@ -86,3 +99,9 @@ echo "常用命令:"
 echo "  pm2 logs texas-backend    # 查看后端日志"
 echo "  pm2 restart all           # 重启所有服务"
 echo "  pm2 monit                 # 监控面板"
+echo ""
+echo "WebSocket: ws://localhost:4000/ws"
+echo "API:      http://localhost:4000"
+echo "Web:      http://localhost:3001"
+echo "Admin:    http://localhost:3003"
+echo "Docs:     http://localhost:4002"
