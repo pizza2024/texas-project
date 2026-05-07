@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RoomService } from '../room/room.service';
-import { BroadcastService } from '../websocket/broadcast.service';
+import { BroadcastService } from '../broadcast/broadcast.service';
 import { WebSocketManager } from '../websocket/websocket-manager';
 import { TableManagerService } from '../table-engine/table-manager.service';
 

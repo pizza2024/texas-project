@@ -6,8 +6,9 @@ import { RoomModule } from '../room/room.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { RedisModule } from '../redis/redis.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { WebsocketModule } from '../websocket/websocket.module';
 import { TableEngineModule } from '../table-engine/table-engine.module';
+import { BroadcastModule } from '../broadcast/broadcast.module';
+import { SharedWsModule } from '../websocket/shared-ws.module';
 
 @Module({
   imports: [
@@ -15,8 +16,9 @@ import { TableEngineModule } from '../table-engine/table-engine.module';
     WalletModule,
     RedisModule,
     PrismaModule,
-    WebsocketModule,
     TableEngineModule,
+    BroadcastModule,
+    SharedWsModule,
   ],
   providers: [TournamentService, BlastService],
   controllers: [TournamentController],

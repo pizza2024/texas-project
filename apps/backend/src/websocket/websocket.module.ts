@@ -1,8 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AppGateway } from './app.gateway';
-import { WebSocketManager } from './websocket-manager';
 import { ConnectionStateService } from './connection-state.service';
-import { BroadcastService } from './broadcast.service';
 import { TimerService } from './timer.service';
 import { TableEngineModule } from '../table-engine/table-engine.module';
 import { AuthModule } from '../auth/auth.module';
@@ -17,38 +15,42 @@ import { RoomModule } from '../room/room.module';
 import { MissionModule } from '../mission/mission.module';
 import { NotificationModule } from '../notification/notification.module';
 import { InsuranceModule } from '../insurance/insurance.module';
+import { RakebackModule } from '../rakeback/rakeback.module';
+import { WalletModule } from '../wallet/wallet.module';
+import { SharedWsModule } from './shared-ws.module';
 import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
-    TableEngineModule,
-    AuthModule,
-    UserModule,
-    MatchmakingModule,
-    BotModule,
+    SharedWsModule,
+    forwardRef(() => TableEngineModule),
+    forwardRef(() => AuthModule),
+    forwardRef(() => UserModule),
     forwardRef(() => FriendModule),
     forwardRef(() => ClubModule),
-    RoomModule,
-    MissionModule,
     forwardRef(() => NotificationModule),
-    InsuranceModule,
+    forwardRef(() => InsuranceModule),
+    forwardRef(() => RakebackModule),
+    forwardRef(() => RoomModule),
+    MatchmakingModule,
+    BotModule,
+    MissionModule,
+    RedisModule,
+    WalletModule,
     JwtModule.register({
       secret: getJwtSecret(),
     }),
   ],
   providers: [
     AppGateway,
-    WebSocketManager,
     ConnectionStateService,
-    BroadcastService,
     TimerService,
   ],
   exports: [
     AppGateway,
-    WebSocketManager,
     ConnectionStateService,
-    BroadcastService,
     TimerService,
+    SharedWsModule,
   ],
 })
 export class WebsocketModule {}

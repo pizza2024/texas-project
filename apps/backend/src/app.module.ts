@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,35 +20,35 @@ import { BotModule } from './bot/bot.module';
 import { FriendModule } from './friend/friend.module';
 import { ClubModule } from './club/club.module';
 import { RakebackModule } from './rakeback/rakeback.module';
-import { TournamentModule } from './tournament/tournament.module';
-import { TournamentScheduleModule } from './tournament-schedule/tournament-schedule.module';
 import { NotificationModule } from './notification/notification.module';
 import { InsuranceModule } from './insurance/insurance.module';
+import { BroadcastModule } from './broadcast/broadcast.module';
+import { SharedWsModule } from './websocket/shared-ws.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     RedisModule,
     PrismaModule,
-    AuthModule,
-    UserModule,
+    forwardRef(() => AuthModule),
+    forwardRef(() => UserModule),
     WalletModule,
     RoomModule,
-    TableEngineModule,
-    WebsocketModule,
+    forwardRef(() => TableEngineModule),
+    forwardRef(() => DepositModule),
+    forwardRef(() => WebsocketModule),
     AdminModule,
     MatchmakingModule,
-    DepositModule,
     MissionModule,
     WithdrawModule,
     BotModule,
-    FriendModule,
-    ClubModule,
+    forwardRef(() => FriendModule),
+    forwardRef(() => ClubModule),
     RakebackModule,
-    TournamentModule,
-    TournamentScheduleModule,
-    NotificationModule,
+    forwardRef(() => NotificationModule),
     InsuranceModule,
+    BroadcastModule,
+    SharedWsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

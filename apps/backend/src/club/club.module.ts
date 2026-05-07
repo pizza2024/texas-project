@@ -4,9 +4,15 @@ import { ClubService } from './club.service';
 import { ClubController } from './club.controller';
 import { ClubGateway } from './gateway/club.gateway';
 import { WebsocketModule } from '../websocket/websocket.module';
+import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
-  imports: [forwardRef(() => WebsocketModule), JwtModule.register({})],
+  imports: [
+    forwardRef(() => WebsocketModule),
+    JwtModule.register({
+      secret: getJwtSecret(),
+    }),
+  ],
   providers: [ClubService, ClubGateway],
   controllers: [ClubController],
   exports: [ClubService],

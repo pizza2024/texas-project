@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { GameStage, Table, TableSnapshot } from './table';
 import { RoomService } from '../room/room.service';
 import type { RoomStatus } from '@texas/shared';
@@ -35,6 +35,7 @@ export class TableManagerService implements OnModuleInit {
     private redis: RedisService,
     private rakebackService: RakebackService,
     private missionService: MissionService,
+    @Inject(forwardRef(() => DepositService))
     private depositService: DepositService,
   ) {}
 

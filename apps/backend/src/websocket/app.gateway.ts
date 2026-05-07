@@ -50,9 +50,8 @@ import {
   handleSkipInsurance,
 } from './game.handler';
 import { ConnectionStateService } from './connection-state.service';
-import { BroadcastService } from './broadcast.service';
+import { BroadcastService } from '../broadcast/broadcast.service';
 import { TimerService } from './timer.service';
-import { TournamentService } from '../tournament/tournament.service';
 import { MissionService } from '../mission/mission.service';
 import { NotificationService } from '../notification/notification.service';
 import { InsuranceService } from '../insurance/insurance.service';
@@ -113,8 +112,6 @@ export class AppGateway
     private connectionState: ConnectionStateService,
     private readonly broadcastService: BroadcastService,
     private readonly timerService: TimerService,
-    @Inject(forwardRef(() => TournamentService))
-    private readonly tournamentService: TournamentService,
     readonly clubService: ClubService,
     readonly roomService: RoomService,
     @Inject(forwardRef(() => NotificationService))
@@ -253,14 +250,15 @@ export class AppGateway
   }
 
   async scheduleTournamentStart(roomId: string) {
-    if (!this.tournamentService) return;
-    try {
-      await this.tournamentService.startBlindTimer(roomId, this.server);
-    } catch (err) {
-      this.logger.error(
-        `scheduleTournamentStart failed for room ${roomId}: ${(err as Error).message}`,
-      );
-    }
+    // TournamentService temporarily disabled due to circular dependency
+    // if (!this.tournamentService) return;
+    // try {
+    //   await this.tournamentService.startBlindTimer(roomId, this.server);
+    // } catch (err) {
+    //   this.logger.error(
+    //     `scheduleTournamentStart failed for room ${roomId}: ${(err as Error).message}`,
+    //   );
+    // }
   }
 
   async ensureRecoveredRoundFlow(

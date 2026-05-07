@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from '../user/user.module';
@@ -13,9 +13,9 @@ import { getJwtSecret } from '../config/jwt.config';
 
 @Module({
   imports: [
-    UserModule,
+    forwardRef(() => UserModule),
     WalletModule,
-    TableEngineModule,
+    forwardRef(() => TableEngineModule),
     PassportModule,
     EmailModule,
     JwtModule.register({

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TableManagerService } from './table-manager.service';
 import { HandHistoryService } from './hand-history.service';
 import { BadBeatJackpotService } from './badbeat.service';
@@ -20,7 +20,7 @@ import { DepositModule } from '../deposit/deposit.module';
     PrismaModule,
     RakebackModule,
     MissionModule,
-    DepositModule,
+    forwardRef(() => DepositModule),
   ],
   providers: [TableManagerService, HandHistoryService, BadBeatJackpotService],
   controllers: [TableEngineController, HandController],

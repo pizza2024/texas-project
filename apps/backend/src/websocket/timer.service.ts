@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { TableManagerService } from '../table-engine/table-manager.service';
 import { MatchmakingService } from '../matchmaking/matchmaking.service';
-import { BroadcastService } from './broadcast.service';
+import { BroadcastService } from '../broadcast/broadcast.service';
 import { GameStage } from '../table-engine/table';
 import { MissionService } from '../mission/mission.service';
 import { BadBeatJackpotService } from '../table-engine/badbeat.service';
