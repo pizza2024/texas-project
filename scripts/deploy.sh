@@ -67,7 +67,7 @@ fi
 
 if [ "$RUN_MIGRATION" = "true" ]; then
     log_info "执行数据库迁移..."
-    pnpm --filter backend run db:migrate:deploy
+    pnpm --filter backend run db:migrate:prod
 fi
 
 log_info "启动服务 (使用 PM2)..."

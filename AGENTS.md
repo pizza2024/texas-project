@@ -223,7 +223,7 @@ docker compose up -d
 # 或手动：
 pnpm install
 pnpm --filter backend run db:generate
-pnpm --filter backend run db:migrate:deploy
+pnpm --filter backend run db:migrate:prod
 pm2 start --cwd . -n backend -- pnpm start:prod --workspace=backend
 pm2 start --cwd . -n web -- pnpm start --workspace=web
 pm2 start --cwd . -n admin -- pnpm start --workspace=admin
