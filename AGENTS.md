@@ -44,12 +44,10 @@ npm run build            # 全量构建
 npm run lint             # 全量 lint
 npm run format           # Prettier 格式化
 
-# Docker
-npm run docker:local:up     # 本地 Docker（postgres + redis + backend + web + nginx）
-npm run docker:local:down
-npm run docker:staging:up    # Staging/Lightsail 环境
-npm run docker:staging:down
-npm run docker:staging:env   # 生成 .env.staging
+# Docker 基础设施
+docker compose up -d         # 启动 postgres + redis + nginx
+docker compose down          # 停止基础设施
+docker compose logs -f       # 查看日志
 
 # 后端（apps/backend）
 npm run dev               # ts-node 开发模式
@@ -186,28 +184,57 @@ import type { GameState } from "@texas/shared/types";
 
 ## Docker 基础设施
 
-| 容器     | IP          | 说明                     |
-| -------- | ----------- | ------------------------ |
-| nginx    | 172.28.0.2  | 反向代理（80/443）       |
-| web      | 172.28.0.10 | Next.js 生产构建         |
-| backend  | 172.28.0.11 | NestJS + Prisma + BullMQ |
-| admin    | 172.28.0.12 | Next.js 管理后台         |
-| postgres | 172.28.0.13 | PostgreSQL 16            |
-| redis    | 172.28.0.14 | Redis 7                  |
+**架构说明**：源码直跑模式，Docker 只负责基础设施（数据库、缓存、反向代理），应用直接在宿主机运行。
 
-Compose 文件分层：
+| 容器     | 端口  | 说明                     |
+| -------- | ----- | ------------------------ |
+| nginx    | 80/443 | 反向代理（指向宿主机）   |
+| postgres | 5432  | PostgreSQL 16             |
+| redis    | 6379  | Redis 7                   |
 
-- `docker-compose.yml` — 主文件（所有服务）
-- `docker-compose.local.yml` — 本地开发覆盖
-- `docker-compose.remote.yml` — 远程生产镜像覆盖
+**部署流程**：
+
+```bash
+# 1. 启动基础设施
+cp docker/.env.infra.example .env
+docker compose up -d
+
+# 2. 配置应用环境变量
+cp apps/backend/.env.example apps/backend/.env
+# 编辑 apps/backend/.env 配置 DATABASE_URL 等
+
+# 3. 部署应用
+./scripts/deploy.sh
+# 或手动：
+#   pnpm install
+#   pnpm --filter backend run db:generate
+#   pnpm --filter backend run db:migrate:prod
+#   pm2 start --cwd . -n backend -- pnpm start:prod --workspace=backend
+#   pm2 start --cwd . -n web -- pnpm start --workspace=web
+#   pm2 start --cwd . -n admin -- pnpm start --workspace=admin
+```
+
+**PM2 管理**：
+
+```bash
+pm2 list                    # 查看状态
+pm2 logs texas-backend      # 查看后端日志
+pm2 restart all            # 重启所有服务
+pm2 monit                   # 监控面板
+```
+
+**Compose 文件**：
+
+- `docker-compose.yml` — 基础设施（postgres + redis + nginx）
 
 ## 开发注意事项
 
-1. **后端要求** Node >= 20.0.0，npm >= 10.0.0
+1. **后端要求** Node >= 20.0.0，pnpm >= 10.0.0
 2. **WebSocket** 路径 `/ws`，CORS 在 Gateway 层配置
 3. **管理接口** 前缀 `/admin/*`，由 `AdminGuard` 双重校验 JWT + DB role
 4. **充值扫块** 后台定时任务扫描 ETH 区块，依赖 `ScanCursor` 避免遗漏
 5. **游戏状态** 存放在 Table.stateSnapshot（JSON），HandAction 是操作流水
 6. **ELO 匹配** 由 `matchmaking.service.ts` 处理，快速房间 `Room.isMatchmaking=true`
 7. **测试** jest 在 `apps/backend/src` root 运行，Playwright E2E 在 `apps/backend`
-8. **Prisma** 生产迁移：`npm run db:migrate:prod`（Docker 启动时自动执行）
+8. **Prisma** 生产迁移：`pnpm --filter backend run db:migrate:deploy`
+9. **生产部署** 参考上方"Docker 基础设施"章节的部署流程
