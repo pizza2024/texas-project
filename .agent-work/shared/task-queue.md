@@ -172,12 +172,12 @@
 | P1-BLAST-001 Phase 4C    | Blast WS 事件集成                    | ✅ 已完成           | commit de4156b — hooks/useBlastSocket.ts (blast_game_started/ended/forfeited)                                                      |
 | P1-BLAST-001 Phase 1+2+3 | Blast 后端 + WS                      | ✅ Phase 1+2+3 完成 | commit 88e245a (Phase 3)                                                                                                           |
 
-## P1 — 新发现（Test r100）
+## P1 — 新发现（Test r102）
 
-|     |     |     | ID | 任务 | 状态 | 备注 |
-| --- | --- | --- | --- | --- | --- | --- |
-|     |     |     | P1-INS-FRONTEND | Insurance Phase 2: `InsuranceOfferModal` 集成到 `room/[id]/page.tsx` | 📋 待认领 | Phase 1 后端已完成；前端 Modal 存在但未使用 |
-|     |     |     | P1-INS-GAMEWIRING | Insurance Phase 2: `handlePlayerAction(ALLIN)` 在 RIVER 触发 `offerInsurance()` | 📋 待认领 | 核心集成：WS 事件 `insurance_offered` 未 emit |
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-INS-FRONTEND | Insurance Phase 2 前端完整集成 | ✅ 已完成 | commit `a84a12f` — socket.on('insurance_offered') + handleBuyInsurance/handleSkipInsurance + `<InsuranceOfferModal>` + shared socket types |
+| P1-INS-GAMEWIRING | Insurance Phase 2: `handlePlayerAction(ALLIN)` 在 RIVER 触发 `offerInsurance()` | ✅ 已完成 | commit `f71b7d7` — backend emit `insurance_offered` |
 
 ## P1 — 遗留缺陷（待 Coding 修复）
 
@@ -492,7 +492,7 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 
 || ID | 任务 | 紧迫度 | 状态 | 备注 |
 ||----|------|--------|------|------|
-| P2-TOURNAMENT-GTD | GTD 保底奖池完整规格 | P2 | 📋 待实施 | 后端 `isGuarantee` 字段已就绪（commit f071ae3）；需确认：Admin 表单 UI、玩家端 GTD 标签、赛程页特殊排序 |
+| P2-TOURNAMENT-GTD | GTD 保底奖池完整规格 | P1 | ✅ 规格就绪 | `spec-P2-TOURNAMENT-GTD.md` 已输出（r467）；后端 `isGuarantee` 字段已就绪；待 Coding 实施：P2-GTD-SCHEMA → P2-GTD-BACKEND → P2-GTD-WEBSOCKET → P2-GTD-FRONTEND |
 | P2-SOCIAL-001 | 观战系统 | P2 | 📋 待实施 | 玩家可"观战"模式进入牌桌（不参与游戏）；房主可开启/关闭观战权限；牌桌内显示观战者列表 |
 | P2-SOCIAL-002 | 私人俱乐部扩展（Club 2.0） | P2 | 📋 待实施 | Club 主页（LOGO/ELO排行榜/简介）；Club 皮肤自定义；Club 私有赛事；邀请制；数据基础：ClubMember.elo 已就绪 |
 
@@ -501,7 +501,7 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 || ID | 任务 | 紧迫度 | 状态 | 规格来源 |
 ||----|------|--------|------|----------|
 | P2-INSURANCE-001 | All-In Insurance 实施 | P2 | ⚠️ Phase 1 ✅，Phase 2 未开始 | `P2-INSURANCE-001-spec.md` — 河牌ALLIN触发，50%/100%两档，netLoss×equity计算 |
-| P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 📋 待实施 | `P2-BADBEAT-001-spec.md` — 四条+输给四条+，底池≥$100，输家50%/赢家25%/牌桌25% |
+| P2-BADBEAT-001 | Bad Beat Jackpot 实施 | P2 | 🔄 后端完成，待前端 | `P2-BADBEAT-001-spec.md` — 四条+输给四条+，底池≥$100，输家50%/赢家25%/牌桌25% |
 | P2-FAST-FOLD | Fast-Fold 实施 | P2 | 📋 待实施 | `P2-FAST-FOLD-spec.md` — 快速弃牌换桌，Redis sorted set ELO匹配队列 |
 
 ## P1 — 新发现（Test r95）

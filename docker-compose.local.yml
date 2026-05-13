@@ -1,39 +1,14 @@
-# Local-only compose layer.
-# Use explicitly: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+# Local development override - uses HTTP only (no SSL)
+# This file should be used with: docker compose -f docker-compose.yml -f docker-compose.local.yml up
 
 services:
-  backend:
-    ports:
-      - '4000:4000'
-    expose: []
-    environment:
-      CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
-      SOCKET_CORS_ORIGIN: "http://localhost:3000,http://localhost:3001"
-
-  web:
-    ports:
-      - '3001:3001'
-    expose: []
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:4000"
-
-  admin:
-    ports:
-      - '3003:3003'
-    expose: []
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:4000"
-
-  postgres:
-    ports:
-      - '5432:5432'
-    expose: []
-
-  redis:
-    ports:
-      - '6379:6379'
-    expose: []
-
-  # Local mode uses direct app ports; no need for nginx proxy.
   nginx:
-    profiles: ["disabled"]
+    environment:
+      DOMAIN: localhost
+      SSL_CERT_FILE: /etc/nginx/certs/localhost.crt
+      SSL_CERT_KEY: /etc/nginx/certs/localhost.key
+    command: >
+      /bin/sh -c "envsubst '$${DOMAIN} $${SSL_CERT_FILE} $${SSL_CERT_KEY}' < /etc/nginx/templates/dev.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    volumes:
+      - ./docker/nginx/conf.d/dev.conf:/etc/nginx/templates/dev.conf.template:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro

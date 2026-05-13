@@ -21,3 +21,40 @@ apps/backend/uploads/
 apps/web/public/sw.js
 apps/web/public/workbox-*.js
 apps/web/public/fallback-*.json
+
+# Logs
+logs/
+*.log
+
+# OS
+*.pem
+
+# Build
+build/
+.next/
+out/
+
+# Docker certs
+docker/nginx/certs/
+
+# PM2
+.pm2/
+
+# Agent work (keep only shared dir and .md files)
+.agent-work/*/
+!.agent-work/shared/
+!.agent-work/shared/*.md
+
+# Test results
+test-results/
+
+# Local chain
+local-chain/cache/
+local-chain/artifacts/
+local-chain/typechain/
+
+# IDE
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json

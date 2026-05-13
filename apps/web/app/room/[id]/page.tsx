@@ -40,6 +40,10 @@ import {
   InsuranceOfferModal,
   InsuranceOfferData,
 } from "@/components/insurance/InsuranceOfferModal";
+import {
+  BadBeatJackpotModal,
+  BadBeatJackpotData,
+} from "@/components/badbeat/BadBeatJackpotModal";
 
 import { calculateEquity, GameStage } from "@texas/shared";
 
@@ -99,6 +103,9 @@ export default function RoomPage() {
   const [showAllInConfirm, setShowAllInConfirm] = useState(false);
   const [allInConfirmAmount, setAllInConfirmAmount] = useState(0);
   const [insuranceOffer, setInsuranceOffer] = useState<InsuranceOfferData | null>(
+    null,
+  );
+  const [badBeatJackpot, setBadBeatJackpot] = useState<BadBeatJackpotData | null>(
     null,
   );
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -590,11 +597,17 @@ export default function RoomPage() {
       setInsuranceOffer(null);
     });
 
+    // P2-BADBEAT-001: bad_beat_jackpot — full-screen overlay on showdown
+    socket.on("bad_beat_jackpot", (data: BadBeatJackpotData) => {
+      setBadBeatJackpot(data);
+    });
+
     return () => {
       socket.off("rejoin_available", rejoinAvailableHandler);
       socket.off("insurance_offered");
       socket.off("insurance_error");
       socket.off("insurance_purchased");
+      socket.off("bad_beat_jackpot");
       disconnectSocket();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1149,6 +1162,13 @@ export default function RoomPage() {
         offer={insuranceOffer}
         onBuy={handleBuyInsurance}
         onSkip={handleSkipInsurance}
+      />
+
+      {/* P2-BADBEAT-001: Bad Beat Jackpot — full-screen overlay */}
+      <BadBeatJackpotModal
+        data={badBeatJackpot}
+        currentUserId={myUserId}
+        onClose={() => setBadBeatJackpot(null)}
       />
 
       {/* Emoji Overlay */}

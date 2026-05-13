@@ -1,49 +1,35 @@
-# Test Latest — r103
+# Test — Latest Report
 
-**时间:** 2026-05-04 17:30
-**HEAD:** `f71b7d7` — 无变化
+**时间:** 2026-05-06 06:16
+**HEAD:** `d3496e6`
+**报告:** [report-2026-05-06-0616.md](./test/report-2026-05-06-0616.md)
 
----
-
-## 状态摘要
+## 状态
 
 | 检查项 | 状态 |
 |--------|------|
-| TS 编译（backend） | ✅ 0 errors |
-| TS 编译（web） | ✅ 0 errors |
+| TS 编译 backend | ✅ 0 errors |
+| TS 编译 web | ✅ 0 errors |
+| Jest backend | ✅ 473/474 |
+| ESLint backend | ✅ 0 errors |
+| ESLint web | ✅ 0 errors |
+| Jest web | ✅ 15/15 |
 
-## P0/P1 状态
+## P0/P1
 
-- **P0:** 0 ✅
-- **P1:** 1 进行中（P1-INS-FRONTEND）
+- **P0:** ✅ 全部清零
+- **P1:** ✅ 全部清零
 
-## 本轮发现
+## 本轮结果
 
-### P1-INS-FRONTEND（已确认，Phase 2 未完成）
+✅ 全部通过，无新增问题。上一轮 24 个 ESLint 错误已修复。
 
-Insurance Phase 2 前端缺口：
+## 待 Coding（P2）
 
-| 缺口 | 状态 |
-|------|------|
-| `socket.on("insurance_offered")` 监听 | ❌ 缺失 |
-| `<InsuranceOfferModal>` JSX 渲染 | ❌ 未使用 |
-| `socket.emit("buy_insurance")` 回调 | ❌ 缺失 |
-| `socket.emit("skip_insurance")` 回调 | ❌ 缺失 |
+- P2-BADBEAT-001 前端 overlay（后端完成）
+- P2-FAST-FOLD
+- P2-TOURNAMENT-GTD
+- P2-SOCIAL-001 观战系统（规格就绪）
+- P2-UX-004 表情飞行轨迹（等 Productor 规格）
 
-**后端已完成：** RIVER ALLIN → `insurance_offered` emit + `buy_insurance`/`skip_insurance` handlers ✅
-
-**前端未完成：** Modal 仅 import，未连接到 socket 事件
-
-## 任务队列
-
-### P1 进行中
-| ID | 任务 | 状态 |
-|----|------|------|
-| P1-INS-FRONTEND | Insurance Phase 2 前端完整集成 | 📋 待认领 |
-
-### P2 待实施
-| ID | 任务 |
-|----|------|
-| P2-INSURANCE-001 | All-In Insurance Phase 2 |
-| P2-BADBEAT-001 | Bad Beat Jackpot |
-| P2-FAST-FOLD | Fast-Fold |
+_Test r107 — 2026-05-06 06:16_
