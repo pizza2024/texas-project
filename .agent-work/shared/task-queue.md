@@ -529,3 +529,30 @@ _最后更新: 2026-05-04 11:00 — Test r78 — P2-SCHEDULE-001/002 已提交�
 |     |     |     | P2-INSURANCE-001 | All-In Insurance | P2 | ✅ 规格就绪 | `P2-INSURANCE-001-spec.md`；河牌 ALLIN 触发，50%/100% 两档，保险费 = netLoss×(1-equity)×rate%，赔付 = netLoss×rate%；竞品 GGPoker/888poker/WSOP |
 |     |     |     | P2-BADBEAT-001 | Bad Beat Jackpot | P2 | ✅ 规格就绪 | `P2-BADBEAT-001-spec.md`；四条+ 输给四条+，底池≥$100 showdown 触发，输家50%/赢家25%/牌桌25%分配；竞品 BetOnline/CoinPoker |
 |     |     |     | P2-FAST-FOLD | Fast-Fold（快速弃牌） | P2 | ✅ 规格就绪 | `P2-FAST-FOLD-spec.md`；任意阶段快速弃牌换桌，Redis sorted set ELO 匹配队列，±150 ELO/30s扩大/60s超时；竞品 888poker SNAP/GGPoker |
+
+---
+
+## P0 — Milestone 1: 测试环境完整流程 (新增 by TT @ 2026-05-13)
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P0-CHAIN-001 | 部署 TestUSDT 到 ETH Sepolia | 📋 | 需要 Infura API Key |
+| P0-CHAIN-002 | 部署 TestUSDT 到 BNB Testnet | 📋 | 需要 RPC 端点 |
+| P0-CHAIN-003 | 实现链上充值监控服务 | 📋 | 监听 Deposit 事件 |
+| P0-CHAIN-004 | 实现提现签名服务 | 📋 | HD Wallet 签名 |
+| P0-CHAIN-005 | 配置测试服务器环境变量 | 🔄 | .env.staging 已创建 |
+| P0-CHAIN-006 | 部署到测试服务器 | 📋 | 直接运行模式 |
+| P0-CHAIN-007 | 充值→游戏→结算→提现 端到端测试 | 📋 | 全链路验证 |
+
+---
+
+## P1 — Milestone 1 配套任务
+
+| ID | 任务 | 状态 | 备注 |
+|----|------|------|------|
+| P1-CHAIN-001 | 完善前端充提 UI | 📋 | - |
+| P1-CHAIN-002 | 多链切换器 UI | 📋 | ETH / BNB |
+| P1-CHAIN-003 | 充值限额风控 | 📋 | - |
+| P1-GAME-001 | 多人游戏 (6人桌) 完整测试 | 📋 | - |
+| P1-GAME-002 | SNG 比赛完整流程测试 | 📋 | - |
+
